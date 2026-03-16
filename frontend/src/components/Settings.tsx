@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { settingsApi } from '../api/client'
+import { settingsApi, adminApi } from '../api/client'
 
 const MIN = 3
 const MAX = 180
@@ -11,10 +11,24 @@ export function Settings() {
   const [days, setDays] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [confirmRestart, setConfirmRestart] = useState(false)
+  const [restartOutput, setRestartOutput] = useState<string | null>(null)
 
   useEffect(() => {
     if (data) setDays(String(data.retention_days))
   }, [data])
+
+  const restart = useMutation({
+    mutationFn: () => adminApi.restart(),
+    onSuccess: (data) => {
+      setRestartOutput(data.output || '最新の状態です')
+      setConfirmRestart(false)
+    },
+    onError: (e: { response?: { data?: { error?: string } } }) => {
+      setRestartOutput(`エラー: ${e.response?.data?.error ?? '更新に失敗しました'}`)
+      setConfirmRestart(false)
+    },
+  })
 
   const update = useMutation({
     mutationFn: () => settingsApi.update({ retention_days: Number(days) }),
@@ -83,6 +97,49 @@ export function Settings() {
           >
             {update.isPending ? '保存中...' : saved ? '✓ 保存しました' : '保存'}
           </button>
+        </section>
+        <section className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">アプリの更新</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            git pull を実行して最新のコードを取得し、サービスを再起動します。
+          </p>
+
+          {restartOutput && (
+            <pre className="text-xs bg-gray-900 text-green-400 rounded p-3 overflow-x-auto whitespace-pre-wrap">
+              {restartOutput}
+            </pre>
+          )}
+
+          {confirmRestart ? (
+            <div className="space-y-2">
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                本当に更新して再起動しますか？
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => restart.mutate()}
+                  disabled={restart.isPending}
+                  className="px-4 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded disabled:opacity-50 transition-colors"
+                >
+                  {restart.isPending ? '実行中...' : '実行する'}
+                </button>
+                <button
+                  onClick={() => setConfirmRestart(false)}
+                  disabled={restart.isPending}
+                  className="px-4 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setRestartOutput(null); setConfirmRestart(true) }}
+              className="px-4 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
+            >
+              ↻ git pull &amp;&amp; 再起動
+            </button>
+          )}
         </section>
       </div>
     </div>

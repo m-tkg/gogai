@@ -5,6 +5,7 @@ import groupsRouter from './routes/groups.js'
 import feedsRouter from './routes/feeds.js'
 import articlesRouter from './routes/articles.js'
 import settingsRouter from './routes/settings.js'
+import adminRouter from './routes/admin.js'
 import { getDb } from './db/schema.js'
 import { ArticlesService } from './services/articles.js'
 import { SettingsService } from './services/settings.js'
@@ -42,6 +43,7 @@ app.route('/api/groups', groupsRouter)
 app.route('/api/feeds', feedsRouter)
 app.route('/api/articles', articlesRouter)
 app.route('/api/settings', settingsRouter)
+app.route('/api/admin', adminRouter)
 
 app.get('/health', (c) => c.json({ status: 'ok' }))
 

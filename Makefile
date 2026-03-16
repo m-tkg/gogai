@@ -1,6 +1,7 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
         docker-up docker-down docker-build docker-logs docker-clean \
-        daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs
+        daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
+        restart-daemon
 
 # ── ローカル開発 ──────────────────────────────────────────
 
@@ -89,3 +90,6 @@ daemon-status:
 # ログをリアルタイム表示
 daemon-logs:
 	journalctl -u gogai-backend -u gogai-frontend -f
+
+# git pull して再起動（設定画面ボタンから呼ばれる）
+restart-daemon: daemon-restart
