@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { groupsApi, feedsApi, type Group, type Feed } from '../api/client'
 
@@ -24,11 +24,20 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const toggleSidebar = onToggle
+  // モバイルでオーバーレイ表示中に Escape キーで閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && window.matchMedia('(max-width: 767px)').matches) {
+        onToggle()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onToggle])
 
   // モバイルではナビ項目選択後にサイドバーを閉じる（open 状態のときのみ）
   const closeSidebarIfMobile = () => {
-    if (window.innerWidth < 768 && isOpen) {
+    if (window.matchMedia('(max-width: 767px)').matches && isOpen) {
       onToggle()
     }
   }
@@ -114,7 +123,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
       // モバイル: 完全非表示 / デスクトップ: w-10 の折りたたみ帯を表示
       <aside className="hidden md:flex w-10 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col h-screen flex-shrink-0 items-center pt-3">
         <button
-          onClick={toggleSidebar}
+          onClick={onToggle}
           className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           title="サイドバーを開く"
           aria-label="サイドバーを開く"
@@ -157,7 +166,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
             {darkMode ? '☀️' : '🌙'}
           </button>
           <button
-            onClick={toggleSidebar}
+            onClick={onToggle}
             className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="サイドバーを閉じる"
             aria-label="サイドバーを閉じる"
