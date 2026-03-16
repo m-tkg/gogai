@@ -30,7 +30,7 @@ setInterval(purgeOldArticles, 24 * 60 * 60 * 1000)
 const app = new Hono()
 
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3040'],
+  origin: (origin) => origin ?? '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type'],
 }))
@@ -44,4 +44,4 @@ app.get('/health', (c) => c.json({ status: 'ok' }))
 const port = Number(process.env.PORT ?? 3040)
 console.log(`Server running on http://localhost:${port}`)
 
-serve({ fetch: app.fetch, port })
+serve({ fetch: app.fetch, port, hostname: '0.0.0.0' })
