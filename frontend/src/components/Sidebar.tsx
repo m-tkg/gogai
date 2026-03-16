@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { groupsApi, feedsApi, type Group, type Feed } from '../api/client'
 
@@ -11,14 +11,12 @@ interface SidebarProps {
   onToggleDark: () => void
   onOpenSettings: () => void
   showSettings: boolean
+  isOpen: boolean
+  onToggle: () => void
 }
 
-export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings }: SidebarProps) {
+export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings, isOpen, onToggle }: SidebarProps) {
   const qc = useQueryClient()
-  const [isOpen, setIsOpen] = useState<boolean>(() => {
-    const saved = localStorage.getItem('sidebarOpen')
-    return saved !== null ? saved === 'true' : true
-  })
   const [addFeedUrl, setAddFeedUrl] = useState('')
   const [addFeedGroupId, setAddFeedGroupId] = useState<number | undefined>()
   const [addGroupName, setAddGroupName] = useState('')
@@ -26,10 +24,22 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const toggleSidebar = () => {
-    const next = !isOpen
-    setIsOpen(next)
-    localStorage.setItem('sidebarOpen', String(next))
+  // モバイルでオーバーレイ表示中に Escape キーで閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && window.matchMedia('(max-width: 767px)').matches) {
+        onToggle()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onToggle])
+
+  // モバイルではナビ項目選択後にサイドバーを閉じる（open 状態のときのみ）
+  const closeSidebarIfMobile = () => {
+    if (window.matchMedia('(max-width: 767px)').matches && isOpen) {
+      onToggle()
+    }
   }
 
   const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list })
@@ -110,9 +120,10 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   // useQuery はサイドバーが閉じていても実行し続ける（5分ごとの自動更新を維持するため意図的）
   if (!isOpen) {
     return (
-      <aside className="w-10 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen flex-shrink-0 items-center pt-3">
+      // モバイル: 完全非表示 / デスクトップ: w-10 の折りたたみ帯を表示
+      <aside className="hidden md:flex w-10 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col h-screen flex-shrink-0 items-center pt-3">
         <button
-          onClick={toggleSidebar}
+          onClick={onToggle}
           className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           title="サイドバーを開く"
           aria-label="サイドバーを開く"
@@ -124,7 +135,15 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   }
 
   return (
-    <aside className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen overflow-y-auto flex-shrink-0">
+    <>
+      {/* モバイル用バックドロップ（サイドバー背面のオーバーレイ） */}
+      <div
+        className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        onClick={toggleSidebar}
+        aria-hidden="true"
+      />
+      {/* サイドバー本体: モバイル=固定位置オーバーレイ / デスクトップ=通常フロー */}
+    <aside className="fixed md:static inset-y-0 left-0 z-50 md:z-auto w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen overflow-y-auto flex-shrink-0">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">RSS Reader</h1>
         <div className="flex items-center gap-1">
@@ -147,7 +166,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
             {darkMode ? '☀️' : '🌙'}
           </button>
           <button
-            onClick={toggleSidebar}
+            onClick={onToggle}
             className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="サイドバーを閉じる"
             aria-label="サイドバーを閉じる"
@@ -160,7 +179,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
       <nav className="flex-1 p-2">
         <div className="flex items-center group/all mb-1">
           <button
-            onClick={() => { onSelectFeed(null); onSelectGroup(null) }}
+            onClick={() => { onSelectFeed(null); onSelectGroup(null); closeSidebarIfMobile() }}
             className={`flex-1 text-left px-3 py-2 rounded-md text-sm ${
               selectedFeedId === null && selectedGroupId === null
                 ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
@@ -183,7 +202,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           <div key={group.id} className="mb-1">
             <div className="flex items-center group/group">
               <button
-                onClick={() => { onSelectGroup(group.id); onSelectFeed(null) }}
+                onClick={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile() }}
                 className={`flex-1 text-left px-3 py-1.5 rounded-md text-sm font-medium ${
                   selectedGroupId === group.id
                     ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
@@ -214,7 +233,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 feed={feed}
                 groups={groups}
                 selected={selectedFeedId === feed.id}
-                onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
+                onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
                 onRemove={() => removeFeed.mutate(feed.id)}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
                 onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
@@ -234,7 +253,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 feed={feed}
                 groups={groups}
                 selected={selectedFeedId === feed.id}
-                onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
+                onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
                 onRemove={() => removeFeed.mutate(feed.id)}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
                 onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
@@ -331,6 +350,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
         )}
       </div>
     </aside>
+    </>
   )
 }
 
