@@ -9,9 +9,11 @@ interface SidebarProps {
   onSelectGroup: (id: number | null) => void
   darkMode: boolean
   onToggleDark: () => void
+  onOpenSettings: () => void
+  showSettings: boolean
 }
 
-export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark }: SidebarProps) {
+export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings }: SidebarProps) {
   const qc = useQueryClient()
   const [addFeedUrl, setAddFeedUrl] = useState('')
   const [addFeedGroupId, setAddFeedGroupId] = useState<number | undefined>()
@@ -66,13 +68,26 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     <aside className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen overflow-y-auto flex-shrink-0">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">RSS Reader</h1>
-        <button
-          onClick={onToggleDark}
-          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          title={darkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
-        >
-          {darkMode ? '☀️' : '🌙'}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onOpenSettings}
+            className={`p-1.5 rounded-md transition-colors ${
+              showSettings
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+            title="設定"
+          >
+            ⚙️
+          </button>
+          <button
+            onClick={onToggleDark}
+            className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title={darkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+          >
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
       </div>
 
       <nav className="flex-1 p-2">

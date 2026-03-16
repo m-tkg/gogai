@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Sidebar } from './components/Sidebar'
 import { ArticleList } from './components/ArticleList'
 import { ArticleDetail } from './components/ArticleDetail'
+import { Settings } from './components/Settings'
 import type { Article } from './api/client'
 import './index.css'
 
@@ -16,6 +17,7 @@ function RssReader() {
   const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null)
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('darkMode')
     if (saved !== null) return saved === 'true'
@@ -32,22 +34,30 @@ function RssReader() {
       <Sidebar
         selectedFeedId={selectedFeedId}
         selectedGroupId={selectedGroupId}
-        onSelectFeed={setSelectedFeedId}
-        onSelectGroup={setSelectedGroupId}
+        onSelectFeed={(id) => { setSelectedFeedId(id); setShowSettings(false) }}
+        onSelectGroup={(id) => { setSelectedGroupId(id); setShowSettings(false) }}
         darkMode={darkMode}
         onToggleDark={() => setDarkMode(d => !d)}
+        onOpenSettings={() => setShowSettings(true)}
+        showSettings={showSettings}
       />
-      <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <ArticleList
-          feedId={selectedFeedId}
-          groupId={selectedGroupId}
-          onSelectArticle={setSelectedArticle}
-          selectedArticleId={selectedArticle?.id ?? null}
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <ArticleDetail article={selectedArticle} />
-      </div>
+      {showSettings ? (
+        <Settings />
+      ) : (
+        <>
+          <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <ArticleList
+              feedId={selectedFeedId}
+              groupId={selectedGroupId}
+              onSelectArticle={setSelectedArticle}
+              selectedArticleId={selectedArticle?.id ?? null}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <ArticleDetail article={selectedArticle} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
