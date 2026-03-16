@@ -63,4 +63,23 @@ describe('FeedsService', () => {
     feedsService.create({ url: 'https://example.com/feed.xml' })
     expect(() => feedsService.create({ url: 'https://example.com/feed.xml' })).toThrow()
   })
+
+  it('フィードのURLを変更できる', () => {
+    const feed = feedsService.create({ url: 'https://example.com/feed.xml', title: 'Example' })
+    const updated = feedsService.update(feed.id, { url: 'https://example.com/new-feed.xml' })
+    expect(updated?.url).toBe('https://example.com/new-feed.xml')
+  })
+
+  it('既存の別フィードのURLに変更しようとすると失敗する', () => {
+    feedsService.create({ url: 'https://example.com/feed.xml' })
+    const feed2 = feedsService.create({ url: 'https://other.com/feed.xml' })
+    expect(() => feedsService.update(feed2.id, { url: 'https://example.com/feed.xml' })).toThrow()
+  })
+
+  it('グループをnullに変更してグループなしにできる', () => {
+    const group = groupsService.create('Tech')
+    const feed = feedsService.create({ url: 'https://example.com/feed.xml', groupId: group.id })
+    const updated = feedsService.update(feed.id, { groupId: null })
+    expect(updated?.group_id).toBeNull()
+  })
 })
