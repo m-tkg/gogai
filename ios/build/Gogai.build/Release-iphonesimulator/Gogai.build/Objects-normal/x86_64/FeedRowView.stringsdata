@@ -1,0 +1,48 @@
+{
+  "source": "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Sidebar/FeedRowView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "フィードを削除しますか？",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "編集",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "削除",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 43
+        }
+      },
+      {
+        "comment": "",
+        "key": "削除",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "キャンセル",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 52
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,89 @@
+{
+  "" : {
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary.dia",
+    "emit-module-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary-emit-module.dia",
+    "pch" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/MockURLProtocol.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Network/APIClientTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/ArticleRepositoryTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/FeedRepositoryTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/GroupRepositoryTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/ArticleStoreTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/FeedStoreTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests~partial.swiftmodule"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/GroupStoreTests.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.dia",
+    "index-unit-output-path" : "/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.swiftdeps",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests~partial.swiftmodule"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Stores/ArticleStore.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ArticleStore.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ArticleStore.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ArticleStore.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ArticleStore.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ArticleStore.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Stores/FeedStore.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/FeedStore.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/FeedStore.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/FeedStore.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/FeedStore.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/FeedStore.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Stores/GroupStore.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/GroupStore.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/GroupStore.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/GroupStore.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/GroupStore.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/GroupStore.swiftdeps"
+  }
+}

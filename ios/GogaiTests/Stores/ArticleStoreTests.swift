@@ -1,0 +1,83 @@
+import XCTest
+@testable import Gogai
+
+final class ArticleStoreTests: XCTestCase {
+    var client: APIClient!
+    var store: ArticleStore!
+
+    override func setUp() {
+        super.setUp()
+        client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
+        store = ArticleStore()
+        store.configure(with: client)
+    }
+
+    override func tearDown() {
+        MockURLProtocol.requestHandler = nil
+        super.tearDown()
+    }
+
+    private func makeArticle(id: Int = 1, isRead: Int = 0) -> Article {
+        Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
+                link: nil, summary: nil, content: nil, published_at: nil,
+                is_read: isRead, created_at: "2024-01-01T00:00:00Z",
+                ai_summary: nil, ai_translation: nil)
+    }
+
+    @MainActor
+    func test_fetchArticles_updatesArticles() async {
+        let expected = [makeArticle(id: 1), makeArticle(id: 2)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(expected)) }
+
+        await store.fetchArticles()
+
+        XCTAssertEqual(store.articles.count, 2)
+        XCTAssertNil(store.error)
+    }
+
+    @MainActor
+    func test_markAsRead_optimisticallyUpdates() async {
+        store.articles = [makeArticle(id: 1, isRead: 0)]
+        var requestReceived = false
+        MockURLProtocol.requestHandler = { _ in
+            requestReceived = true
+            return (200, Data())
+        }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertTrue(requestReceived)
+        XCTAssertTrue(store.articles[0].isRead)
+    }
+
+    @MainActor
+    func test_markAsRead_rollsBackOnFailure() async {
+        store.articles = [makeArticle(id: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertFalse(store.articles[0].isRead)
+        XCTAssertNotNil(store.error)
+    }
+
+    @MainActor
+    func test_markAsUnread_optimisticallyUpdates() async {
+        store.articles = [makeArticle(id: 1, isRead: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.markAsUnread(id: 1)
+
+        XCTAssertFalse(store.articles[0].isRead)
+    }
+
+    func test_unreadCount_returnsCorrectCount() {
+        store.articles = [
+            makeArticle(id: 1, isRead: 0),
+            makeArticle(id: 2, isRead: 1),
+            makeArticle(id: 3, isRead: 0),
+        ]
+
+        XCTAssertEqual(store.unreadCount(for: nil), 2)
+    }
+}

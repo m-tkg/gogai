@@ -1,0 +1,8 @@
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/MockURLProtocol.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Network/APIClientTests.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/GroupRepositoryTests.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/FeedRepositoryTests.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/ArticleRepositoryTests.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/GroupStoreTests.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/FeedStoreTests.swift
+/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/ArticleStoreTests.swift

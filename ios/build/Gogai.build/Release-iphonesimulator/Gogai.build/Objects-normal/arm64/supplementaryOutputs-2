@@ -1,0 +1,12 @@
+{
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/App/GogaiApp.swift" : {
+    "abi-baseline-json" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai.abi.json",
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai-primary.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai-primary.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai-primary.dia",
+    "objc-header" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai-Swift.h",
+    "swiftdoc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai.swiftdoc",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai.swiftmodule",
+    "swiftsourceinfo" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/Gogai.build/Objects-normal/arm64/Gogai.swiftsourceinfo"
+  }
+}

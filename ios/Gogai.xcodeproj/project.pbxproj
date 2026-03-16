@@ -1,0 +1,711 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FF00000000000000000001AB /* GogaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000001AB /* GogaiApp.swift */; };
+		FF00000000000000000002AB /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000002AB /* RootView.swift */; };
+		FF00000000000000000003AB /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000003AB /* Group.swift */; };
+		FF00000000000000000004AB /* Feed.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000004AB /* Feed.swift */; };
+		FF00000000000000000005AB /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000005AB /* Article.swift */; };
+		FF00000000000000000006AB /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000006AB /* Settings.swift */; };
+		FF00000000000000000007AB /* UpdateCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000007AB /* UpdateCheck.swift */; };
+		FF00000000000000000008AB /* RefreshResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000008AB /* RefreshResult.swift */; };
+		FF00000000000000000009AB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000009AB /* APIClient.swift */; };
+		FF0000000000000000000AAB /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000AAB /* APIError.swift */; };
+		FF0000000000000000000BAB /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000BAB /* Endpoint.swift */; };
+		FF0000000000000000000CAB /* GroupRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000CAB /* GroupRepository.swift */; };
+		FF0000000000000000000DAB /* FeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000DAB /* FeedRepository.swift */; };
+		FF0000000000000000000EAB /* ArticleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000EAB /* ArticleRepository.swift */; };
+		FF0000000000000000000FAB /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000FAB /* SettingsRepository.swift */; };
+		FF00000000000000000010AB /* GroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000010AB /* GroupStore.swift */; };
+		FF00000000000000000011AB /* FeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000011AB /* FeedStore.swift */; };
+		FF00000000000000000012AB /* ArticleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000012AB /* ArticleStore.swift */; };
+		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
+		FF00000000000000000014AB /* ServerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000014AB /* ServerSetupView.swift */; };
+		FF00000000000000000015AB /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000015AB /* SidebarView.swift */; };
+		FF00000000000000000016AB /* GroupRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000016AB /* GroupRowView.swift */; };
+		FF00000000000000000017AB /* FeedRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000017AB /* FeedRowView.swift */; };
+		FF00000000000000000018AB /* AddFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000018AB /* AddFeedView.swift */; };
+		FF00000000000000000019AB /* AddGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000019AB /* AddGroupView.swift */; };
+		FF0000000000000000001AAB /* ArticleListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001AAB /* ArticleListView.swift */; };
+		FF0000000000000000001BAB /* ArticleRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001BAB /* ArticleRowView.swift */; };
+		FF0000000000000000001CAB /* ArticleDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001CAB /* ArticleDetailView.swift */; };
+		FF0000000000000000001DAB /* AISummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001DAB /* AISummaryView.swift */; };
+		FF0000000000000000001EAB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001EAB /* SettingsView.swift */; };
+		FF0000000000000000001FAB /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001FAB /* AdminView.swift */; };
+		FF00000000000000000020AB /* ArticleListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000020AB /* ArticleListViewModel.swift */; };
+		FF00000000000000000021AB /* ArticleDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000021AB /* ArticleDetailViewModel.swift */; };
+		FF00000000000000000022AB /* ServerURLManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000022AB /* ServerURLManager.swift */; };
+		FF00000000000000000023AB /* DateFormatter+.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000023AB /* DateFormatter+.swift */; };
+		FF00000000000000000024AB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000024AB /* Assets.xcassets */; };
+		FF00000000000000000025AB /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000001AB /* APIClientTests.swift */; };
+		FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000002AB /* GroupRepositoryTests.swift */; };
+		FF00000000000000000027AB /* FeedRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000003AB /* FeedRepositoryTests.swift */; };
+		FF00000000000000000028AB /* ArticleRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000004AB /* ArticleRepositoryTests.swift */; };
+		FF00000000000000000029AB /* GroupStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000005AB /* GroupStoreTests.swift */; };
+		FF0000000000000000002AAB /* FeedStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000006AB /* FeedStoreTests.swift */; };
+		FF0000000000000000002BAB /* ArticleStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000007AB /* ArticleStoreTests.swift */; };
+		FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000008AB /* MockURLProtocol.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		GG00000000000000000001AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA00000000000000000001AB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB00000000000000000001AB;
+			remoteInfo = Gogai;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		DD00000000000000000001AB /* GogaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GogaiApp.swift; sourceTree = "<group>"; };
+		DD00000000000000000002AB /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		DD00000000000000000003AB /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
+		DD00000000000000000004AB /* Feed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feed.swift; sourceTree = "<group>"; };
+		DD00000000000000000005AB /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		DD00000000000000000006AB /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		DD00000000000000000007AB /* UpdateCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheck.swift; sourceTree = "<group>"; };
+		DD00000000000000000008AB /* RefreshResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshResult.swift; sourceTree = "<group>"; };
+		DD00000000000000000009AB /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		DD0000000000000000000AAB /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
+		DD0000000000000000000BAB /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
+		DD0000000000000000000CAB /* GroupRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRepository.swift; sourceTree = "<group>"; };
+		DD0000000000000000000DAB /* FeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepository.swift; sourceTree = "<group>"; };
+		DD0000000000000000000EAB /* ArticleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleRepository.swift; sourceTree = "<group>"; };
+		DD0000000000000000000FAB /* SettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepository.swift; sourceTree = "<group>"; };
+		DD00000000000000000010AB /* GroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupStore.swift; sourceTree = "<group>"; };
+		DD00000000000000000011AB /* FeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStore.swift; sourceTree = "<group>"; };
+		DD00000000000000000012AB /* ArticleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStore.swift; sourceTree = "<group>"; };
+		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		DD00000000000000000014AB /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
+		DD00000000000000000015AB /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		DD00000000000000000016AB /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
+		DD00000000000000000017AB /* FeedRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRowView.swift; sourceTree = "<group>"; };
+		DD00000000000000000018AB /* AddFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFeedView.swift; sourceTree = "<group>"; };
+		DD00000000000000000019AB /* AddGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGroupView.swift; sourceTree = "<group>"; };
+		DD0000000000000000001AAB /* ArticleListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleListView.swift; sourceTree = "<group>"; };
+		DD0000000000000000001BAB /* ArticleRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleRowView.swift; sourceTree = "<group>"; };
+		DD0000000000000000001CAB /* ArticleDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleDetailView.swift; sourceTree = "<group>"; };
+		DD0000000000000000001DAB /* AISummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISummaryView.swift; sourceTree = "<group>"; };
+		DD0000000000000000001EAB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		DD0000000000000000001FAB /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
+		DD00000000000000000020AB /* ArticleListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleListViewModel.swift; sourceTree = "<group>"; };
+		DD00000000000000000021AB /* ArticleDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleDetailViewModel.swift; sourceTree = "<group>"; };
+		DD00000000000000000022AB /* ServerURLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManager.swift; sourceTree = "<group>"; };
+		DD00000000000000000023AB /* DateFormatter+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DateFormatter+.swift"; sourceTree = "<group>"; };
+		DD00000000000000000024AB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DD00000000000000000025AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DD00000000000000000026AB /* Gogai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gogai.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD00000000000000000027AB /* GogaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GogaiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE00000000000000000001AB /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000002AB /* GroupRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRepositoryTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000003AB /* FeedRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepositoryTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000004AB /* ArticleRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleRepositoryTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000005AB /* GroupStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupStoreTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000006AB /* FeedStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStoreTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000007AB /* ArticleStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStoreTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000008AB /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		AA00000000000000000002AB = {
+			isa = PBXGroup;
+			children = (
+				CC00000000000000000001AB /* Gogai */,
+				CC0000000000000000000FAB /* GogaiTests */,
+				AA00000000000000000003AB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA00000000000000000003AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000026AB /* Gogai.app */,
+				DD00000000000000000027AB /* GogaiTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000001AB /* Gogai */ = {
+			isa = PBXGroup;
+			children = (
+				CC00000000000000000002AB /* App */,
+				CC00000000000000000003AB /* Models */,
+				CC00000000000000000004AB /* Network */,
+				CC00000000000000000005AB /* Repositories */,
+				CC00000000000000000006AB /* Stores */,
+				CC00000000000000000007AB /* Views */,
+				CC00000000000000000008AB /* ViewModels */,
+				CC00000000000000000009AB /* Utilities */,
+				DD00000000000000000024AB /* Assets.xcassets */,
+				DD00000000000000000025AB /* Info.plist */,
+			);
+			path = Gogai;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000002AB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000001AB /* GogaiApp.swift */,
+				DD00000000000000000002AB /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000003AB /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000003AB /* Group.swift */,
+				DD00000000000000000004AB /* Feed.swift */,
+				DD00000000000000000005AB /* Article.swift */,
+				DD00000000000000000006AB /* Settings.swift */,
+				DD00000000000000000007AB /* UpdateCheck.swift */,
+				DD00000000000000000008AB /* RefreshResult.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000004AB /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000009AB /* APIClient.swift */,
+				DD0000000000000000000AAB /* APIError.swift */,
+				DD0000000000000000000BAB /* Endpoint.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000005AB /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000CAB /* GroupRepository.swift */,
+				DD0000000000000000000DAB /* FeedRepository.swift */,
+				DD0000000000000000000EAB /* ArticleRepository.swift */,
+				DD0000000000000000000FAB /* SettingsRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000006AB /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000010AB /* GroupStore.swift */,
+				DD00000000000000000011AB /* FeedStore.swift */,
+				DD00000000000000000012AB /* ArticleStore.swift */,
+				DD00000000000000000013AB /* SettingsStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000007AB /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CC0000000000000000000AAB /* Onboarding */,
+				CC0000000000000000000BAB /* Sidebar */,
+				CC0000000000000000000CAB /* Articles */,
+				CC0000000000000000000DAB /* AI */,
+				CC0000000000000000000EAB /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000008AB /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000020AB /* ArticleListViewModel.swift */,
+				DD00000000000000000021AB /* ArticleDetailViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000009AB /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000022AB /* ServerURLManager.swift */,
+				DD00000000000000000023AB /* DateFormatter+.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000AAB /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000014AB /* ServerSetupView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000BAB /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000015AB /* SidebarView.swift */,
+				DD00000000000000000016AB /* GroupRowView.swift */,
+				DD00000000000000000017AB /* FeedRowView.swift */,
+				DD00000000000000000018AB /* AddFeedView.swift */,
+				DD00000000000000000019AB /* AddGroupView.swift */,
+			);
+			path = Sidebar;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000CAB /* Articles */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000001AAB /* ArticleListView.swift */,
+				DD0000000000000000001BAB /* ArticleRowView.swift */,
+				DD0000000000000000001CAB /* ArticleDetailView.swift */,
+			);
+			path = Articles;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000DAB /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000001DAB /* AISummaryView.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000EAB /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000001EAB /* SettingsView.swift */,
+				DD0000000000000000001FAB /* AdminView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000FAB /* GogaiTests */ = {
+			isa = PBXGroup;
+			children = (
+				EE00000000000000000008AB /* MockURLProtocol.swift */,
+				CC00000000000000000010AB /* Network */,
+				CC00000000000000000011AB /* Repositories */,
+				CC00000000000000000012AB /* Stores */,
+			);
+			path = GogaiTests;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000010AB /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				EE00000000000000000001AB /* APIClientTests.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000011AB /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				EE00000000000000000002AB /* GroupRepositoryTests.swift */,
+				EE00000000000000000003AB /* FeedRepositoryTests.swift */,
+				EE00000000000000000004AB /* ArticleRepositoryTests.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000012AB /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				EE00000000000000000005AB /* GroupStoreTests.swift */,
+				EE00000000000000000006AB /* FeedStoreTests.swift */,
+				EE00000000000000000007AB /* ArticleStoreTests.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXTargetDependency section */
+		GG00000000000000000002AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BB00000000000000000001AB /* Gogai */;
+			targetProxy = GG00000000000000000001AB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXNativeTarget section */
+		BB00000000000000000001AB /* Gogai */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB00000000000000000006AB /* Build configuration list for PBXNativeTarget "Gogai" */;
+			buildPhases = (
+				BB00000000000000000002AB /* Sources */,
+				BB00000000000000000003AB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Gogai;
+			productName = Gogai;
+			productReference = DD00000000000000000026AB /* Gogai.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BB00000000000000000007AB /* GogaiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB0000000000000000000BAB /* Build configuration list for PBXNativeTarget "GogaiTests" */;
+			buildPhases = (
+				BB00000000000000000008AB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				GG00000000000000000002AB /* PBXTargetDependency */,
+			);
+			name = GogaiTests;
+			productName = GogaiTests;
+			productReference = DD00000000000000000027AB /* GogaiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA00000000000000000001AB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					BB00000000000000000001AB = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					BB00000000000000000007AB = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = BB00000000000000000001AB;
+					};
+				};
+			};
+			buildConfigurationList = AA00000000000000000006AB /* Build configuration list for PBXProject "Gogai" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = ja;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				ja,
+				Base,
+			);
+			mainGroup = AA00000000000000000002AB;
+			productRefGroup = AA00000000000000000003AB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BB00000000000000000001AB /* Gogai */,
+				BB00000000000000000007AB /* GogaiTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB00000000000000000003AB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF00000000000000000024AB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BB00000000000000000002AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF00000000000000000001AB /* GogaiApp.swift in Sources */,
+				FF00000000000000000002AB /* RootView.swift in Sources */,
+				FF00000000000000000003AB /* Group.swift in Sources */,
+				FF00000000000000000004AB /* Feed.swift in Sources */,
+				FF00000000000000000005AB /* Article.swift in Sources */,
+				FF00000000000000000006AB /* Settings.swift in Sources */,
+				FF00000000000000000007AB /* UpdateCheck.swift in Sources */,
+				FF00000000000000000008AB /* RefreshResult.swift in Sources */,
+				FF00000000000000000009AB /* APIClient.swift in Sources */,
+				FF0000000000000000000AAB /* APIError.swift in Sources */,
+				FF0000000000000000000BAB /* Endpoint.swift in Sources */,
+				FF0000000000000000000CAB /* GroupRepository.swift in Sources */,
+				FF0000000000000000000DAB /* FeedRepository.swift in Sources */,
+				FF0000000000000000000EAB /* ArticleRepository.swift in Sources */,
+				FF0000000000000000000FAB /* SettingsRepository.swift in Sources */,
+				FF00000000000000000010AB /* GroupStore.swift in Sources */,
+				FF00000000000000000011AB /* FeedStore.swift in Sources */,
+				FF00000000000000000012AB /* ArticleStore.swift in Sources */,
+				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
+				FF00000000000000000014AB /* ServerSetupView.swift in Sources */,
+				FF00000000000000000015AB /* SidebarView.swift in Sources */,
+				FF00000000000000000016AB /* GroupRowView.swift in Sources */,
+				FF00000000000000000017AB /* FeedRowView.swift in Sources */,
+				FF00000000000000000018AB /* AddFeedView.swift in Sources */,
+				FF00000000000000000019AB /* AddGroupView.swift in Sources */,
+				FF0000000000000000001AAB /* ArticleListView.swift in Sources */,
+				FF0000000000000000001BAB /* ArticleRowView.swift in Sources */,
+				FF0000000000000000001CAB /* ArticleDetailView.swift in Sources */,
+				FF0000000000000000001DAB /* AISummaryView.swift in Sources */,
+				FF0000000000000000001EAB /* SettingsView.swift in Sources */,
+				FF0000000000000000001FAB /* AdminView.swift in Sources */,
+				FF00000000000000000020AB /* ArticleListViewModel.swift in Sources */,
+				FF00000000000000000021AB /* ArticleDetailViewModel.swift in Sources */,
+				FF00000000000000000022AB /* ServerURLManager.swift in Sources */,
+				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB00000000000000000008AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */,
+				FF00000000000000000025AB /* APIClientTests.swift in Sources */,
+				FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */,
+				FF00000000000000000027AB /* FeedRepositoryTests.swift in Sources */,
+				FF00000000000000000028AB /* ArticleRepositoryTests.swift in Sources */,
+				FF00000000000000000029AB /* GroupStoreTests.swift in Sources */,
+				FF0000000000000000002AAB /* FeedStoreTests.swift in Sources */,
+				FF0000000000000000002BAB /* ArticleStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA00000000000000000004AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA00000000000000000005AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BB00000000000000000004AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Gogai/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gogai.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BB00000000000000000005AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Gogai/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gogai.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BB00000000000000000009AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gogai.ios.GogaiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gogai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gogai";
+			};
+			name = Debug;
+		};
+		BB0000000000000000000AAB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gogai.ios.GogaiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gogai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gogai";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA00000000000000000006AB /* Build configuration list for PBXProject "Gogai" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA00000000000000000004AB /* Debug */,
+				AA00000000000000000005AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB00000000000000000006AB /* Build configuration list for PBXNativeTarget "Gogai" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB00000000000000000004AB /* Debug */,
+				BB00000000000000000005AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB0000000000000000000BAB /* Build configuration list for PBXNativeTarget "GogaiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB00000000000000000009AB /* Debug */,
+				BB0000000000000000000AAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = AA00000000000000000001AB /* Project object */;
+}

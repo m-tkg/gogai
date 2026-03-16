@@ -1,0 +1,16 @@
+{
+  "source": "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/App/RootView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "記事を選択",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 31
+        }
+      }
+    ]
+  },
+  "version": 1
+}
