@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { ArticlesService } from '../services/articles.js'
 import { getAIProvider } from '../services/ai-provider.js'
 import { aiConfig } from '../services/ai-config.js'
+import { fetchArticleContent } from '../services/article-content.js'
 import { getDb } from '../db/schema.js'
 
 const app = new Hono()
@@ -36,22 +37,41 @@ app.post('/:id/unread', (c) => {
 // AI で要約・翻訳
 app.post('/:id/claude', async (c) => {
   const id = Number(c.req.param('id'))
-  const { action } = await c.req.json<{ action: 'summarize' | 'translate' }>()
+  const { action, force } = await c.req.json<{ action: 'summarize' | 'translate'; force?: boolean }>()
 
   if (!['summarize', 'translate'].includes(action)) {
     return c.json({ error: 'action must be summarize or translate' }, 400)
   }
 
-  const article = new ArticlesService(getDb()).findById(id)
+  const articlesService = new ArticlesService(getDb())
+  const article = articlesService.findById(id)
   if (!article) return c.json({ error: 'Not found' }, 404)
 
-  const text = article.content ?? article.summary ?? article.title ?? ''
+  // キャッシュ確認（force=true の場合はスキップ）
+  if (!force) {
+    const cached = action === 'summarize' ? article.ai_summary : article.ai_translation
+    if (cached) return c.json({ output: cached, cached: true })
+  }
+
+  // 記事リンクから本文を取得、失敗時は RSS の content/summary にフォールバック
+  let text = ''
+  if (article.link) {
+    try {
+      text = await fetchArticleContent(article.link)
+    } catch {
+      // フォールバック
+    }
+  }
+  if (!text) {
+    text = article.content ?? article.summary ?? article.title ?? ''
+  }
   if (!text) return c.json({ error: 'Article has no content' }, 422)
 
   try {
     const provider = getAIProvider(aiConfig)
     const output = await provider.run(action, text)
-    return c.json({ output })
+    articlesService.saveAiResult(id, action, output)
+    return c.json({ output, cached: false })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     return c.json({ error: message }, 500)
