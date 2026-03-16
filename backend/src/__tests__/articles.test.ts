@@ -84,13 +84,27 @@ describe('ArticlesService', () => {
     expect(articlesService.findByFeed(feedId)[0].title).toBe('Recent Article')
   })
 
-  it('published_at が null の記事は削除しない', () => {
+  it('published_at が null の記事は created_at で削除判定する', () => {
     articlesService.upsertMany(feedId, [
       { guid: 'no-date', title: 'No Date Article', link: 'https://example.com/no-date', summary: '' },
     ])
 
-    const threshold = new Date()
-    const deleted = articlesService.deleteOlderThan(threshold)
+    // created_at は INSERT 直後なので未来の threshold では削除されない
+    const futureThreshold = new Date(Date.now() + 1000)
+    const deleted = articlesService.deleteOlderThan(futureThreshold)
+
+    expect(deleted).toBe(1)
+    expect(articlesService.findByFeed(feedId)).toHaveLength(0)
+  })
+
+  it('published_at が null かつ created_at が新しい記事は削除しない', () => {
+    articlesService.upsertMany(feedId, [
+      { guid: 'no-date-new', title: 'New No Date Article', link: 'https://example.com/no-date', summary: '' },
+    ])
+
+    // created_at より前の threshold なので削除されない
+    const pastThreshold = new Date(Date.now() - 1000)
+    const deleted = articlesService.deleteOlderThan(pastThreshold)
 
     expect(deleted).toBe(0)
     expect(articlesService.findByFeed(feedId)).toHaveLength(1)
