@@ -64,7 +64,14 @@ export const settingsApi = {
 }
 
 // Admin API
+export interface UpdateCheck {
+  local: string
+  remote: string
+  hasUpdate: boolean
+}
+
 export const adminApi = {
+  updateCheck: () => api.get<UpdateCheck>('/api/admin/update-check').then(r => r.data),
   restart: () => api.post<{ output: string }>('/api/admin/restart').then(r => r.data),
 }
 
