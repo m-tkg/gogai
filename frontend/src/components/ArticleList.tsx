@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { articlesApi, feedsApi, type Article } from '../api/client'
 import { useState } from 'react'
+import { marked } from 'marked'
 
 interface ArticleListProps {
   feedId: number | null
@@ -91,9 +92,10 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
   )
 }
 
-function openTranslationTab(title: string | null, html: string) {
+function openTranslationTab(title: string | null, markdown: string) {
   const win = window.open('', '_blank')
   if (!win) return
+  const bodyHtml = marked.parse(markdown) as string
   win.document.write(`<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -102,13 +104,23 @@ function openTranslationTab(title: string | null, html: string) {
   <title>${title ? `翻訳: ${title}` : '翻訳'}</title>
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.8; color: #1a1a1a; }
-    h1 { font-size: 1.25rem; color: #4c1d95; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-    #content { white-space: pre-wrap; word-wrap: break-word; }
+    h1.page-title { font-size: 1.25rem; color: #4c1d95; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+    #content h1, #content h2, #content h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; font-weight: bold; }
+    #content h1 { font-size: 1.5rem; }
+    #content h2 { font-size: 1.25rem; }
+    #content h3 { font-size: 1.1rem; }
+    #content p { margin: 0.75rem 0; }
+    #content ul, #content ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+    #content li { margin: 0.25rem 0; }
+    #content code { background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+    #content pre { background: #f3f4f6; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    #content blockquote { border-left: 3px solid #d1d5db; margin: 0.75rem 0; padding-left: 1rem; color: #6b7280; }
+    #content a { color: #4c1d95; }
   </style>
 </head>
 <body>
-  <h1>✦ 翻訳${title ? `: ${title}` : ''}</h1>
-  <div id="content">${html}</div>
+  <h1 class="page-title">✦ 翻訳${title ? `: ${title}` : ''}</h1>
+  <div id="content">${bodyHtml}</div>
 </body>
 </html>`)
   win.document.close()
