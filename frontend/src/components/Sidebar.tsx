@@ -217,7 +217,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
                 onRemove={() => removeFeed.mutate(feed.id)}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
-                onUpdate={(data) => updateFeed.mutate({ id: feed.id, data })}
+                onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
                 isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
               />
@@ -237,7 +237,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
                 onRemove={() => removeFeed.mutate(feed.id)}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
-                onUpdate={(data) => updateFeed.mutate({ id: feed.id, data })}
+                onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
                 isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
               />
@@ -341,22 +341,28 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
   onSelect: () => void
   onRemove: () => void
   onRefresh: () => void
-  onUpdate: (data: { url?: string; groupId?: number | null }) => void
+  onUpdate: (data: { url?: string; groupId?: number | null }, onSuccess: () => void, onError: () => void) => void
   isRefreshing: boolean
   isUpdating: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editUrl, setEditUrl] = useState(feed.url)
   const [editGroupId, setEditGroupId] = useState<number | null>(feed.group_id)
+  const [editError, setEditError] = useState<string | null>(null)
 
   const handleSave = () => {
-    onUpdate({ url: editUrl.trim() || feed.url, groupId: editGroupId })
-    setIsEditing(false)
+    setEditError(null)
+    onUpdate(
+      { url: editUrl.trim() || feed.url, groupId: editGroupId },
+      () => setIsEditing(false),
+      () => setEditError('保存に失敗しました。URLを確認してください。'),
+    )
   }
 
   const handleCancel = () => {
     setEditUrl(feed.url)
     setEditGroupId(feed.group_id)
+    setEditError(null)
     setIsEditing(false)
   }
 
@@ -378,6 +384,9 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
           <option value="">グループなし</option>
           {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
+        {editError && (
+          <p className="text-xs text-red-500 dark:text-red-400">{editError}</p>
+        )}
         <div className="flex gap-1">
           <button
             onClick={handleSave}
@@ -388,7 +397,8 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
           </button>
           <button
             onClick={handleCancel}
-            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            disabled={isUpdating}
+            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
           >
             キャンセル
           </button>
