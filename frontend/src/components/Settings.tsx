@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { settingsApi, adminApi } from '../api/client'
+import { settingsApi, adminApi, type UpdateCheck } from '../api/client'
 
 const MIN = 3
 const MAX = 180
@@ -8,6 +8,8 @@ const MAX = 180
 export function Settings() {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['settings'], queryFn: settingsApi.get })
+  const { data: updateCheck, isLoading: checkLoading, error: checkError } =
+    useQuery<UpdateCheck>({ queryKey: ['update-check'], queryFn: adminApi.updateCheck })
   const [days, setDays] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -100,6 +102,37 @@ export function Settings() {
         </section>
         <section className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">アプリの更新</h3>
+
+          {/* 更新確認ステータス */}
+          {checkLoading && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 animate-pulse">更新を確認中...</p>
+          )}
+          {checkError && (
+            <p className="text-xs text-red-500 dark:text-red-400">更新確認に失敗しました</p>
+          )}
+          {updateCheck && (
+            <div className={`flex items-start gap-2 text-xs rounded px-3 py-2 ${
+              updateCheck.hasUpdate
+                ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+            }`}>
+              <span>{updateCheck.hasUpdate ? '⬆' : '✓'}</span>
+              <div className="space-y-0.5">
+                <p className="font-medium">
+                  {updateCheck.hasUpdate ? '更新があります' : '最新の状態です'}
+                </p>
+                <p className="font-mono opacity-75">
+                  local:&nbsp; {updateCheck.local.slice(0, 7)}
+                </p>
+                {updateCheck.hasUpdate && (
+                  <p className="font-mono opacity-75">
+                    remote: {updateCheck.remote.slice(0, 7)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-gray-500 dark:text-gray-400">
             git pull を実行して最新のコードを取得し、サービスを再起動します。
           </p>
