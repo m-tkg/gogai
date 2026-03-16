@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
 import { fetchFeed } from '../services/rss-fetcher.js'
+import { discoverFeedUrl } from '../services/feed-discovery.js'
 import { getDb } from '../db/schema.js'
 
 const app = new Hono()
@@ -19,11 +20,17 @@ app.post('/', async (c) => {
   const articlesService = new ArticlesService(db)
 
   try {
+    // URLからRSSフィードを自動検出
+    const feedUrl = await discoverFeedUrl(url.trim())
+    if (!feedUrl) {
+      return c.json({ error: 'RSSフィードが見つかりませんでした' }, 422)
+    }
+
     // RSSフィードを取得してメタ情報を取得
-    const fetched = await fetchFeed(url.trim())
+    const fetched = await fetchFeed(feedUrl)
 
     const feed = feedsService.create({
-      url: url.trim(),
+      url: feedUrl,
       title: fetched.title,
       faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
       groupId: groupId ?? null,
