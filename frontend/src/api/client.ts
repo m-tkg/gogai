@@ -63,6 +63,11 @@ export const settingsApi = {
   update: (data: Partial<Settings>) => api.put<Settings>('/api/settings', data).then(r => r.data),
 }
 
+// Admin API
+export const adminApi = {
+  restart: () => api.post<{ output: string }>('/api/admin/restart').then(r => r.data),
+}
+
 // Articles API
 export const articlesApi = {
   list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; limit?: number; offset?: number }) =>
