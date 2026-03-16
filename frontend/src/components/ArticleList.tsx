@@ -163,13 +163,21 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
           loading={pendingAction === 'translate'}
           onClick={e => runClaude(e, 'translate')}
         />
-        {article.is_read && (
+        {article.is_read === 1 ? (
           <ActionButton
             label="未読にする"
-            icon="●"
+            icon="○"
             color="blue"
             loading={false}
             onClick={e => { e.stopPropagation(); onMarkAsUnread() }}
+          />
+        ) : (
+          <ActionButton
+            label="既読にする"
+            icon="●"
+            color="gray"
+            loading={false}
+            onClick={e => { e.stopPropagation(); onClick() }}
           />
         )}
       </div>
@@ -208,7 +216,7 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
 function ActionButton({ label, icon, color, loading, onClick }: {
   label: string
   icon: string
-  color: 'purple' | 'indigo' | 'blue'
+  color: 'purple' | 'indigo' | 'blue' | 'gray'
   loading: boolean
   onClick: (e: React.MouseEvent) => void
 }) {
@@ -216,6 +224,7 @@ function ActionButton({ label, icon, color, loading, onClick }: {
     purple: 'bg-purple-100 text-purple-600 hover:bg-purple-200',
     indigo: 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200',
     blue: 'bg-blue-100 text-blue-600 hover:bg-blue-200',
+    gray: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
   }
   return (
     <button
