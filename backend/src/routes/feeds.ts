@@ -3,6 +3,7 @@ import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
 import { fetchFeed } from '../services/rss-fetcher.js'
 import { discoverFeedUrl } from '../services/feed-discovery.js'
+import { refreshAllFeeds } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
 
 const app = new Hono()
@@ -61,6 +62,13 @@ app.put('/:id', async (c) => {
 app.delete('/:id', (c) => {
   new FeedsService(getDb()).remove(Number(c.req.param('id')))
   return c.body(null, 204)
+})
+
+// 全フィードを一括リフレッシュ
+app.post('/refresh-all', async (c) => {
+  const db = getDb()
+  const result = await refreshAllFeeds(new FeedsService(db), new ArticlesService(db))
+  return c.json(result)
 })
 
 // フィードを手動でリフレッシュ

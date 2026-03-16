@@ -42,6 +42,12 @@ export const groupsApi = {
   create: (name: string) => api.post<Group>('/api/groups', { name }).then(r => r.data),
   update: (id: number, name: string) => api.put<Group>(`/api/groups/${id}`, { name }).then(r => r.data),
   remove: (id: number) => api.delete(`/api/groups/${id}`),
+  refresh: (id: number) => api.post<RefreshResult>(`/api/groups/${id}/refresh`).then(r => r.data),
+}
+
+export interface RefreshResult {
+  refreshed: number
+  failed: number
 }
 
 // Feeds API
@@ -51,6 +57,7 @@ export const feedsApi = {
   update: (id: number, data: { title?: string; groupId?: number | null }) => api.put<Feed>(`/api/feeds/${id}`, data).then(r => r.data),
   remove: (id: number) => api.delete(`/api/feeds/${id}`),
   refresh: (id: number) => api.post(`/api/feeds/${id}/refresh`).then(r => r.data),
+  refreshAll: () => api.post<RefreshResult>('/api/feeds/refresh-all').then(r => r.data),
 }
 
 // Settings API
