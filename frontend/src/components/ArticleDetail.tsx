@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { articlesApi, type Article } from '../api/client'
 
@@ -24,12 +24,10 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
   }
 
   // 記事が切り替わったらClaudeの出力をリセット
-  const [lastArticleId, setLastArticleId] = useState<number | null>(null)
-  if (article?.id !== lastArticleId) {
-    setLastArticleId(article?.id ?? null)
+  useEffect(() => {
     setClaudeOutput(null)
     setClaudeAction(null)
-  }
+  }, [article?.id])
 
   if (!article) {
     return (
