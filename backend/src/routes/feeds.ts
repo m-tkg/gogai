@@ -90,6 +90,7 @@ app.put('/:id', async (c) => {
 
   try {
     const feed = feedsService.update(id, { title: body.title, groupId: body.groupId })
+    if (!feed) return c.json({ error: 'Not found' }, 404)
     return c.json(feed)
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
