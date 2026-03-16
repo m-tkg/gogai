@@ -23,6 +23,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmGroupId, setConfirmGroupId] = useState<number | null>(null)
 
   // モバイルでオーバーレイ表示中に Escape キーで閉じる
   useEffect(() => {
@@ -211,21 +212,41 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               >
                 📁 {group.name}
               </button>
-              <button
-                onClick={() => refreshGroup.mutate(group.id)}
-                disabled={refreshGroup.isPending && refreshGroup.variables === group.id}
-                className="hidden group-hover/group:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
-                title="グループのフィードを更新"
-              >
-                {refreshGroup.isPending && refreshGroup.variables === group.id ? '…' : '↻'}
-              </button>
-              <button
-                onClick={() => removeGroup.mutate(group.id)}
-                className="hidden group-hover/group:block px-1 text-gray-400 hover:text-red-500 text-xs"
-                title="グループを削除"
-              >
-                ✕
-              </button>
+              {confirmGroupId === group.id ? (
+                <div className="flex items-center gap-1 px-1">
+                  <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
+                  <button
+                    onClick={() => { removeGroup.mutate(group.id); setConfirmGroupId(null) }}
+                    className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    削除
+                  </button>
+                  <button
+                    onClick={() => setConfirmGroupId(null)}
+                    className="px-1.5 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => refreshGroup.mutate(group.id)}
+                    disabled={refreshGroup.isPending && refreshGroup.variables === group.id}
+                    className="hidden group-hover/group:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
+                    title="グループのフィードを更新"
+                  >
+                    {refreshGroup.isPending && refreshGroup.variables === group.id ? '…' : '↻'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmGroupId(group.id)}
+                    className="hidden group-hover/group:block px-1 text-gray-400 hover:text-red-500 text-xs"
+                    title="グループを削除"
+                  >
+                    ✕
+                  </button>
+                </>
+              )}
             </div>
             {feedsByGroup(group.id).map((feed: Feed) => (
               <FeedItem
@@ -366,6 +387,7 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
   isUpdating: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [editUrl, setEditUrl] = useState(feed.url)
   const [editGroupId, setEditGroupId] = useState<number | null>(feed.group_id)
   const [editError, setEditError] = useState<string | null>(null)
@@ -440,30 +462,50 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
         <FeedFavicon url={feed.favicon_url} />
         <span className="truncate">{feed.title ?? feed.url}</span>
       </button>
-      <button
-        onClick={onRefresh}
-        disabled={isRefreshing}
-        className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
-        title="フィードを更新"
-      >
-        {isRefreshing ? '…' : '↻'}
-      </button>
-      <button
-        onClick={() => setIsEditing(true)}
-        className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-green-500 text-xs"
-        title="フィードを編集"
-        aria-label="フィードを編集"
-      >
-        ✎
-      </button>
-      <button
-        onClick={onRemove}
-        className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-red-500 text-xs"
-        title="フィードを削除"
-        aria-label="フィードを削除"
-      >
-        ✕
-      </button>
+      {confirmDelete ? (
+        <div className="flex items-center gap-1 px-1">
+          <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
+          <button
+            onClick={() => { onRemove(); setConfirmDelete(false) }}
+            className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            削除
+          </button>
+          <button
+            onClick={() => setConfirmDelete(false)}
+            className="px-1.5 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+          >
+            キャンセル
+          </button>
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
+            title="フィードを更新"
+          >
+            {isRefreshing ? '…' : '↻'}
+          </button>
+          <button
+            onClick={() => setIsEditing(true)}
+            className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-green-500 text-xs"
+            title="フィードを編集"
+            aria-label="フィードを編集"
+          >
+            ✎
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-red-500 text-xs"
+            title="フィードを削除"
+            aria-label="フィードを削除"
+          >
+            ✕
+          </button>
+        </>
+      )}
     </div>
   )
 }
