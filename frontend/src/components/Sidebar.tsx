@@ -15,12 +15,22 @@ interface SidebarProps {
 
 export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings }: SidebarProps) {
   const qc = useQueryClient()
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('sidebarOpen')
+    return saved !== null ? saved === 'true' : true
+  })
   const [addFeedUrl, setAddFeedUrl] = useState('')
   const [addFeedGroupId, setAddFeedGroupId] = useState<number | undefined>()
   const [addGroupName, setAddGroupName] = useState('')
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const toggleSidebar = () => {
+    const next = !isOpen
+    setIsOpen(next)
+    localStorage.setItem('sidebarOpen', String(next))
+  }
 
   const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list })
   const { data: feeds = [] } = useQuery({ queryKey: ['feeds'], queryFn: feedsApi.list })
@@ -88,6 +98,20 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
 
   const ungroupedFeeds = feedsByGroup(null)
 
+  if (!isOpen) {
+    return (
+      <aside className="w-10 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen flex-shrink-0 items-center pt-3">
+        <button
+          onClick={toggleSidebar}
+          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          title="サイドバーを開く"
+        >
+          ▶
+        </button>
+      </aside>
+    )
+  }
+
   return (
     <aside className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen overflow-y-auto flex-shrink-0">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -110,6 +134,13 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
             title={darkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
           >
             {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button
+            onClick={toggleSidebar}
+            className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title="サイドバーを閉じる"
+          >
+            ◀
           </button>
         </div>
       </div>
