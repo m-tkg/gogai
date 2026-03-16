@@ -4,9 +4,10 @@ import { articlesApi, type Article } from '../api/client'
 
 interface ArticleDetailProps {
   article: Article | null
+  onBack?: () => void
 }
 
-export function ArticleDetail({ article }: ArticleDetailProps) {
+export function ArticleDetail({ article, onBack }: ArticleDetailProps) {
   const [claudeOutput, setClaudeOutput] = useState<string | null>(null)
   const [claudeAction, setClaudeAction] = useState<'summarize' | 'translate' | null>(null)
 
@@ -45,7 +46,17 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
 
   return (
     <article className="flex flex-col h-screen overflow-hidden bg-white dark:bg-gray-900">
-      <header className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <header className="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        {/* モバイル用戻るボタン */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="md:hidden mb-3 flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            aria-label="記事一覧に戻る"
+          >
+            ← 記事一覧
+          </button>
+        )}
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 leading-snug mb-2">
           {article.title ?? '(タイトルなし)'}
         </h2>

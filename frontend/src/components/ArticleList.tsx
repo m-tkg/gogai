@@ -8,9 +8,10 @@ interface ArticleListProps {
   groupId: number | null
   onSelectArticle: (article: Article) => void
   selectedArticleId: number | null
+  onOpenSidebar?: () => void
 }
 
-export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId }: ArticleListProps) {
+export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId, onOpenSidebar }: ArticleListProps) {
   const qc = useQueryClient()
   const [unreadOnly, setUnreadOnly] = useState(false)
 
@@ -47,15 +48,27 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={unreadOnly}
-            onChange={e => setUnreadOnly(e.target.checked)}
-            className="rounded"
-          />
-          未読のみ
-        </label>
+        <div className="flex items-center gap-2">
+          {/* モバイル用ハンバーガーメニューボタン */}
+          {onOpenSidebar && (
+            <button
+              onClick={onOpenSidebar}
+              className="md:hidden p-1 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label="メニューを開く"
+            >
+              ☰
+            </button>
+          )}
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={unreadOnly}
+              onChange={e => setUnreadOnly(e.target.checked)}
+              className="rounded"
+            />
+            未読のみ
+          </label>
+        </div>
         {feedId && (
           <button
             onClick={() => refresh.mutate()}

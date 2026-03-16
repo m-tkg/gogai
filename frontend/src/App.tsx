@@ -18,6 +18,13 @@ function RssReader() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  // モバイルでは一度に一パネルのみ表示する（list: 記事一覧, detail: 記事詳細）
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list')
+  // サイドバー開閉状態（localStorage で永続化）
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('sidebarOpen')
+    return saved !== null ? saved === 'true' : true
+  })
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('darkMode')
     if (saved !== null) return saved === 'true'
@@ -29,32 +36,48 @@ function RssReader() {
     localStorage.setItem('darkMode', String(darkMode))
   }, [darkMode])
 
+  const toggleSidebar = () => {
+    const next = !sidebarOpen
+    setSidebarOpen(next)
+    localStorage.setItem('sidebarOpen', String(next))
+  }
+
+  const handleSelectArticle = (article: Article) => {
+    setSelectedArticle(article)
+    setMobileView('detail')
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-gray-900">
       <Sidebar
         selectedFeedId={selectedFeedId}
         selectedGroupId={selectedGroupId}
-        onSelectFeed={(id) => { setSelectedFeedId(id); setShowSettings(false) }}
-        onSelectGroup={(id) => { setSelectedGroupId(id); setShowSettings(false) }}
+        onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedArticle(null); setShowSettings(false); setMobileView('list') }}
+        onSelectGroup={(id) => { setSelectedGroupId(id); setSelectedArticle(null); setShowSettings(false); setMobileView('list') }}
         darkMode={darkMode}
         onToggleDark={() => setDarkMode(d => !d)}
         onOpenSettings={() => setShowSettings(true)}
         showSettings={showSettings}
+        isOpen={sidebarOpen}
+        onToggle={toggleSidebar}
       />
       {showSettings ? (
         <Settings />
       ) : (
         <>
-          <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
+          {/* 記事一覧: モバイルでは detail 表示中は隠す */}
+          <div className={`border-r border-gray-200 dark:border-gray-700 flex-shrink-0 md:w-80 ${mobileView === 'detail' ? 'hidden md:block' : 'flex-1 md:flex-initial'}`}>
             <ArticleList
               feedId={selectedFeedId}
               groupId={selectedGroupId}
-              onSelectArticle={setSelectedArticle}
+              onSelectArticle={handleSelectArticle}
               selectedArticleId={selectedArticle?.id ?? null}
+              onOpenSidebar={toggleSidebar}
             />
           </div>
-          <div className="flex-1 min-w-0">
-            <ArticleDetail article={selectedArticle} />
+          {/* 記事詳細: モバイルでは list 表示中は隠す */}
+          <div className={`flex-1 min-w-0 ${mobileView === 'list' ? 'hidden md:block' : 'block'}`}>
+            <ArticleDetail article={selectedArticle} onBack={() => setMobileView('list')} />
           </div>
         </>
       )}
