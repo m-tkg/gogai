@@ -27,6 +27,11 @@ app.post('/:id/read', (c) => {
   return c.body(null, 204)
 })
 
+app.post('/:id/unread', (c) => {
+  new ArticlesService(getDb()).markAsUnread(Number(c.req.param('id')))
+  return c.body(null, 204)
+})
+
 // Claude CLI で要約・翻訳
 app.post('/:id/claude', async (c) => {
   const id = Number(c.req.param('id'))

@@ -18,7 +18,7 @@ function RssReader() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-white">
       <Sidebar
         selectedFeedId={selectedFeedId}
         selectedGroupId={selectedGroupId}

@@ -99,4 +99,8 @@ export class ArticlesService {
   markAsRead(id: number): void {
     this.db.prepare('UPDATE articles SET is_read = 1 WHERE id = ?').run(id)
   }
+
+  markAsUnread(id: number): void {
+    this.db.prepare('UPDATE articles SET is_read = 0 WHERE id = ?').run(id)
+  }
 }

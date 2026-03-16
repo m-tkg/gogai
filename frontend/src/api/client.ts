@@ -57,6 +57,7 @@ export const articlesApi = {
     api.get<Article[]>('/api/articles', { params }).then(r => r.data),
   get: (id: number) => api.get<Article>(`/api/articles/${id}`).then(r => r.data),
   markAsRead: (id: number) => api.post(`/api/articles/${id}/read`),
+  markAsUnread: (id: number) => api.post(`/api/articles/${id}/unread`),
   claude: (id: number, action: 'summarize' | 'translate') =>
     api.post<{ output: string }>(`/api/articles/${id}/claude`, { action }).then(r => r.data),
 }
