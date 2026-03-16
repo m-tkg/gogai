@@ -203,7 +203,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           <div key={group.id} className="mb-1">
             <div className="flex items-center group/group">
               <button
-                onClick={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile() }}
+                onClick={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile(); setConfirmGroupId(null) }}
                 className={`flex-1 text-left px-3 py-1.5 rounded-md text-sm font-medium ${
                   selectedGroupId === group.id
                     ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
@@ -216,7 +216,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 <div className="flex items-center gap-1 px-1">
                   <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
                   <button
-                    onClick={() => { removeGroup.mutate(group.id); setConfirmGroupId(null) }}
+                    onClick={() => removeGroup.mutate(group.id, { onSuccess: () => setConfirmGroupId(null) })}
                     className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                   >
                     削除
@@ -242,6 +242,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                     onClick={() => setConfirmGroupId(group.id)}
                     className="hidden group-hover/group:block px-1 text-gray-400 hover:text-red-500 text-xs"
                     title="グループを削除"
+                    aria-label="グループを削除"
                   >
                     ✕
                   </button>
@@ -255,7 +256,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 groups={groups}
                 selected={selectedFeedId === feed.id}
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
-                onRemove={() => removeFeed.mutate(feed.id)}
+                onRemove={(onSuccess) => removeFeed.mutate(feed.id, { onSuccess })}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
                 onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
@@ -275,7 +276,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 groups={groups}
                 selected={selectedFeedId === feed.id}
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
-                onRemove={() => removeFeed.mutate(feed.id)}
+                onRemove={(onSuccess) => removeFeed.mutate(feed.id, { onSuccess })}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
                 onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
@@ -380,7 +381,7 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
   groups: Group[]
   selected: boolean
   onSelect: () => void
-  onRemove: () => void
+  onRemove: (onSuccess: () => void) => void
   onRefresh: () => void
   onUpdate: (data: { url?: string; groupId?: number | null }, onSuccess: () => void, onError: () => void) => void
   isRefreshing: boolean
@@ -466,7 +467,7 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
         <div className="flex items-center gap-1 px-1">
           <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
           <button
-            onClick={() => { onRemove(); setConfirmDelete(false) }}
+            onClick={() => onRemove(() => setConfirmDelete(false))}
             className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
           >
             削除
