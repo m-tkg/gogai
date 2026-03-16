@@ -65,4 +65,34 @@ describe('ArticlesService', () => {
     feedsService.remove(feedId)
     expect(articlesService.findByFeed(feedId)).toHaveLength(0)
   })
+
+  it('指定日より古い記事を削除できる', () => {
+    const now = new Date()
+    const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000) // 200日前
+    const recent = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) // 30日前
+
+    articlesService.upsertMany(feedId, [
+      { guid: 'old-1', title: 'Old Article', link: 'https://example.com/old', summary: '', publishedAt: old.toISOString() },
+      { guid: 'new-1', title: 'Recent Article', link: 'https://example.com/new', summary: '', publishedAt: recent.toISOString() },
+    ])
+
+    const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000) // 半年前(180日)
+    const deleted = articlesService.deleteOlderThan(threshold)
+
+    expect(deleted).toBe(1)
+    expect(articlesService.findByFeed(feedId)).toHaveLength(1)
+    expect(articlesService.findByFeed(feedId)[0].title).toBe('Recent Article')
+  })
+
+  it('published_at が null の記事は削除しない', () => {
+    articlesService.upsertMany(feedId, [
+      { guid: 'no-date', title: 'No Date Article', link: 'https://example.com/no-date', summary: '' },
+    ])
+
+    const threshold = new Date()
+    const deleted = articlesService.deleteOlderThan(threshold)
+
+    expect(deleted).toBe(0)
+    expect(articlesService.findByFeed(feedId)).toHaveLength(1)
+  })
 })
