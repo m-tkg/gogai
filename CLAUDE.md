@@ -1,13 +1,14 @@
-# RSS Reader — Claude Code 向けプロジェクト情報
+# Gogai — Claude Code 向けプロジェクト情報
 
 ## プロジェクト構成
 
 モノレポ構成。`backend/` と `frontend/` は独立した npm プロジェクト。
 
 ```
-rss-reader/
-├── backend/    Node.js + Hono + TypeScript（ポート 3000）
+gogai/
+├── backend/    Node.js + Hono + TypeScript（ポート 3040）
 ├── frontend/   React 19 + Vite + Tailwind CSS v4（ポート 5173）
+├── daemon/     systemd サービスファイル（Raspberry Pi 用）
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -16,25 +17,27 @@ rss-reader/
 
 ```bash
 make dev            # バックエンド + フロントエンドを並列起動
-make test           # バックエンドのテストを実行（Vitest）
+make test           # バックエンドのテストを実行（Vitest、92 件）
 make test-watch     # テストをウォッチモードで実行
 make typecheck      # 型チェック（backend + frontend）
 make docker-up      # Docker で起動（http://localhost:8080）
+make daemon-restart # Raspberry Pi でサービスを再起動
 ```
 
 ## バックエンド
 
 - **エントリーポイント**: `backend/src/index.ts`
-- **ルーター**: `backend/src/routes/` (groups / feeds / articles)
+- **ルーター**: `backend/src/routes/` (groups / feeds / articles / settings / admin)
 - **サービス層**: `backend/src/services/`
 - **DB スキーマ**: `backend/src/db/schema.ts`
-- **テスト**: `backend/src/__tests__/`（66 件）
+- **テスト**: `backend/src/__tests__/`（92 件）
 
 ### DB（SQLite）
 
 - パス: `backend/data/rss.db`（環境変数 `DB_PATH` で変更可）
 - WAL モード有効、外部キー制約有効
-- テーブル: `groups` → `feeds` → `articles`（CASCADE 削除）
+- テーブル: `groups` → `feeds` → `articles`、`settings`
+- 新カラム追加は `initSchema` 内で `ALTER TABLE ... ADD COLUMN` + try/catch で移行
 
 ### AI プロバイダー
 
@@ -44,13 +47,21 @@ make docker-up      # Docker で起動（http://localhost:8080）
 { "provider": "claude" }   // claude | openai | gemini
 ```
 
-- `claude`: `~/.local/bin/claude -p` を `spawn` で呼び出す（stdin は `/dev/null`）
-  - TTY チェック回避のため stdin を `/dev/null` にする必要がある（exec では exit 143 になる）
+- `claude`: `~/.local/bin/claude -p` を `spawn` で呼び出す
+  - **stdin を `/dev/null` にしないと exit 143 になる**（TTY チェック回避）
   - バイナリパスは環境変数 `CLAUDE_PATH` で上書き可能
 - `openai`: 環境変数 `OPENAI_API_KEY` が必要
 - `gemini`: 環境変数 `GEMINI_API_KEY` が必要
 
 実装: `backend/src/services/providers/`
+
+### AI キャッシュ
+
+- `articles.ai_summary` / `ai_translation` カラムに結果を保存
+- `/api/articles/:id/claude` はキャッシュ済みなら即返却
+- `{ force: true }` を付けるとキャッシュを無視して再実行
+- AI に渡すテキストは `article.link` から本文を fetch して取得（`article-content.ts`）
+  - fetch 失敗時は RSS の `content` / `summary` にフォールバック
 
 ### RSS フィード自動検出（`feed-discovery.ts`）
 
@@ -63,14 +74,25 @@ make docker-up      # Docker で起動（http://localhost:8080）
 ### 記事の自動削除
 
 サーバー起動時と 24 時間ごとに実行。
-`COALESCE(published_at, created_at)` が 180 日前より古い記事を削除。
-`published_at` が NULL の記事は `created_at`（DB 登録日）が基準になる。
+`settings` テーブルの `retention_days`（デフォルト 180）を毎回読んで判定。
+`COALESCE(published_at, created_at)` が閾値より古い記事を削除。
+
+### Admin エンドポイント（`routes/admin.ts`）
+
+`POST /api/admin/restart` — `git pull` 実行後、0.3 秒遅延で `make restart-daemon` をバックグラウンド実行。
+バックエンド自身が再起動されるため、レスポンスを先に返してから restart する。
 
 ## フロントエンド
 
 - **エントリーポイント**: `frontend/src/App.tsx`
-- **コンポーネント**: `Sidebar` / `ArticleList` / `ArticleDetail`
+- **コンポーネント**: `Sidebar` / `ArticleList` / `ArticleDetail` / `Settings`
 - **API クライアント**: `frontend/src/api/client.ts`（axios + TanStack Query）
+
+### Vite プロキシ
+
+`vite.config.ts` で `/api` を `http://localhost:3040` にプロキシ。
+API クライアントの `BASE_URL` は空文字（相対パス）にすることで、
+どのホストからアクセスしても正常に動作する。
 
 ### Tailwind CSS v4 の注意点
 
@@ -82,6 +104,10 @@ make docker-up      # Docker で起動（http://localhost:8080）
 - `document.documentElement` の `dark` クラスで切り替え
 - 初期値: localStorage → システム設定の優先順
 - `localStorage` キー: `darkMode`
+
+### 翻訳タブ
+
+`openTranslationTab()` で新しいウィンドウを開き、`marked.parse()` で Markdown → HTML に変換して表示。
 
 ## テスト指針
 
@@ -95,7 +121,7 @@ make docker-up      # Docker で起動（http://localhost:8080）
 
 | 変数 | デフォルト | 説明 |
 |-----|---------|------|
-| `PORT` | `3000` | バックエンドのポート番号 |
+| `PORT` | `3040` | バックエンドのポート番号 |
 | `DB_PATH` | `backend/data/rss.db` | SQLite ファイルパス |
 | `AI_CONFIG_PATH` | `backend/ai.config.json` | AI 設定ファイルパス |
 | `CLAUDE_PATH` | `~/.local/bin/claude` | Claude CLI バイナリパス |
@@ -108,3 +134,10 @@ make docker-up      # Docker で起動（http://localhost:8080）
 - `frontend` サービス: nginx でホスト、`/api/*` をバックエンドへリバースプロキシ
 - `db-data` 名前付きボリューム: SQLite を永続化
 - 外部アクセス: `http://localhost:8080`（環境変数 `PORT` で変更可）
+
+## Raspberry Pi（systemd）
+
+- サービスファイル: `daemon/gogai-backend.service` / `gogai-frontend.service`
+- セットアップ: `bash daemon/setup.sh`
+- backend / frontend ともに `host: 0.0.0.0` でバインドして LAN からアクセス可能
+- 設定画面の「git pull && 再起動」ボタンでブラウザから更新可能

@@ -1,4 +1,4 @@
-# RSS Reader
+# Gogai
 
 Web ベースの RSS リーダー。将来的な iOS アプリ版への拡張を前提とした REST API 設計。
 
@@ -6,11 +6,15 @@ Web ベースの RSS リーダー。将来的な iOS アプリ版への拡張を
 
 - RSS フィードの追加・削除・グループ管理
 - ドメイン URL からの RSS フィード自動検出
-- 記事一覧（favicon・タイトル・本文プレビュー・日時表示）
-- 未読管理（青い丸インジケーター）
+- 記事一覧（favicon・タイトル・本文プレビュー・日時表示・未読インジケーター）
 - AI による記事の要約・翻訳（Claude CLI / OpenAI / Gemini）
+  - 結果を DB にキャッシュ（再実行ボタンで再取得可）
+  - 要約はカード内に表示、翻訳は新タブで Markdown レンダリング
+  - 要約/翻訳済み記事には「要」「訳」バッジを表示
 - ダークモード（手動切替 + localStorage 永続化）
-- 180 日以上経過した記事の自動削除
+- 設定画面（記事の保持期間を変更可能）
+- アプリの更新（設定画面から git pull + サービス再起動）
+- 設定した日数以上経過した記事の自動削除（デフォルト 180 日）
 
 ## 技術スタック
 
@@ -19,43 +23,52 @@ Web ベースの RSS リーダー。将来的な iOS アプリ版への拡張を
 | Backend | Node.js + Hono + TypeScript + better-sqlite3 |
 | Frontend | React 19 + Vite 8 + TanStack Query + Tailwind CSS v4 |
 | DB | SQLite（WAL モード） |
-| Test | Vitest（バックエンドのみ） |
-| Infra | Docker Compose + nginx リバースプロキシ |
+| Test | Vitest（バックエンドのみ、92 件） |
+| Infra | Docker Compose + nginx / systemd（Raspberry Pi） |
 
 ## ディレクトリ構成
 
 ```
-rss-reader/
+gogai/
 ├── backend/
 │   ├── src/
-│   │   ├── db/schema.ts          # DB 初期化・スキーマ定義
-│   │   ├── routes/               # Hono ルーター
+│   │   ├── db/schema.ts              # DB 初期化・スキーマ定義
+│   │   ├── routes/                   # Hono ルーター
+│   │   │   ├── admin.ts              # git pull + 再起動
 │   │   │   ├── articles.ts
 │   │   │   ├── feeds.ts
-│   │   │   └── groups.ts
-│   │   ├── services/             # ビジネスロジック
-│   │   │   ├── ai-config.ts      # AI 設定ファイル読み込み
-│   │   │   ├── ai-provider.ts    # AI プロバイダーインターフェース
+│   │   │   ├── groups.ts
+│   │   │   └── settings.ts
+│   │   ├── services/                 # ビジネスロジック
+│   │   │   ├── ai-config.ts          # AI 設定ファイル読み込み
+│   │   │   ├── ai-provider.ts        # AI プロバイダーインターフェース
+│   │   │   ├── article-content.ts    # 記事リンクから本文取得
 │   │   │   ├── articles.ts
-│   │   │   ├── feed-discovery.ts # RSS URL 自動検出
+│   │   │   ├── feed-discovery.ts     # RSS URL 自動検出
 │   │   │   ├── feeds.ts
 │   │   │   ├── groups.ts
 │   │   │   ├── rss-fetcher.ts
+│   │   │   ├── settings.ts
 │   │   │   └── providers/
-│   │   │       ├── claude-cli.ts  # Claude Code CLI
-│   │   │       ├── gemini.ts      # Google Gemini API
-│   │   │       └── openai.ts      # OpenAI API
-│   │   └── index.ts              # サーバーエントリーポイント
-│   ├── ai.config.json            # AI プロバイダー設定
-│   └── data/                     # SQLite DB（.gitignore 済み）
+│   │   │       ├── claude-cli.ts     # Claude Code CLI
+│   │   │       ├── gemini.ts         # Google Gemini API
+│   │   │       └── openai.ts         # OpenAI API
+│   │   └── index.ts                  # サーバーエントリーポイント
+│   ├── ai.config.json                # AI プロバイダー設定
+│   └── data/                         # SQLite DB（.gitignore 済み）
 ├── frontend/
 │   └── src/
-│       ├── api/client.ts         # API クライアント
+│       ├── api/client.ts             # API クライアント
 │       ├── components/
 │       │   ├── ArticleDetail.tsx
 │       │   ├── ArticleList.tsx
+│       │   ├── Settings.tsx
 │       │   └── Sidebar.tsx
 │       └── App.tsx
+├── daemon/                           # systemd サービスファイル
+│   ├── gogai-backend.service
+│   ├── gogai-frontend.service
+│   └── setup.sh
 ├── docker-compose.yml
 ├── Makefile
 └── README.md
@@ -71,9 +84,31 @@ make install
 
 # バックエンド・フロントエンドを同時起動
 make dev
-# → Backend: http://localhost:3000
+# → Backend:  http://localhost:3040
 # → Frontend: http://localhost:5173
 ```
+
+### Raspberry Pi（systemd デーモン）
+
+```bash
+git clone https://github.com/m-tkg/gogai.git
+cd gogai
+make install
+bash daemon/setup.sh
+# → http://<raspi-ip>:5173
+```
+
+以降は Makefile で管理：
+
+```bash
+make daemon-start    # 起動
+make daemon-stop     # 停止
+make daemon-restart  # 再起動
+make daemon-status   # 状態確認
+make daemon-logs     # ログ表示（リアルタイム）
+```
+
+または設定画面の「↻ git pull && 再起動」ボタンでブラウザから更新可能。
 
 ### Docker
 
@@ -109,7 +144,7 @@ make docker-down
 | `openai` | 環境変数 `OPENAI_API_KEY` |
 | `gemini` | 環境変数 `GEMINI_API_KEY` |
 
-Claude CLI のバイナリパスを変更する場合は環境変数 `CLAUDE_PATH` で指定できます（デフォルト: `~/.local/bin/claude`）。
+Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できます（デフォルト: `~/.local/bin/claude`）。
 
 ## API エンドポイント
 
@@ -127,7 +162,7 @@ Claude CLI のバイナリパスを変更する場合は環境変数 `CLAUDE_PAT
 | Method | Path | 説明 |
 |--------|------|------|
 | GET | `/api/feeds` | フィード一覧 |
-| POST | `/api/feeds` | フィード追加 `{ url, groupId? }` ※ドメインURLも可 |
+| POST | `/api/feeds` | フィード追加 `{ url, groupId? }` ※ドメイン URL も可 |
 | PUT | `/api/feeds/:id` | フィード更新 `{ title?, groupId? }` |
 | DELETE | `/api/feeds/:id` | フィード削除（記事も CASCADE 削除） |
 | POST | `/api/feeds/:id/refresh` | 記事を手動更新 |
@@ -140,19 +175,46 @@ Claude CLI のバイナリパスを変更する場合は環境変数 `CLAUDE_PAT
 | GET | `/api/articles/:id` | 記事詳細 |
 | POST | `/api/articles/:id/read` | 既読にする |
 | POST | `/api/articles/:id/unread` | 未読にする |
-| POST | `/api/articles/:id/claude` | AI 処理 `{ action: "summarize" \| "translate" }` |
+| POST | `/api/articles/:id/claude` | AI 処理 `{ action: "summarize"\|"translate", force?: boolean }` |
+
+### Settings
+
+| Method | Path | 説明 |
+|--------|------|------|
+| GET | `/api/settings` | 設定を取得 |
+| PUT | `/api/settings` | 設定を更新 `{ retention_days }` （3〜180） |
+
+### Admin
+
+| Method | Path | 説明 |
+|--------|------|------|
+| POST | `/api/admin/restart` | git pull + サービス再起動 |
 
 ## DB スキーマ
 
 ```sql
 groups    (id, name, created_at)
 feeds     (id, url, title, favicon_url, group_id→groups, last_fetched_at, created_at)
-articles  (id, feed_id→feeds, guid, title, link, summary, content, published_at, is_read, created_at)
+articles  (id, feed_id→feeds, guid, title, link, summary, content,
+           published_at, is_read, ai_summary, ai_translation, created_at)
+settings  (key, value)
 ```
 
 - `feeds.group_id` は `ON DELETE SET NULL`（グループ削除時にフィードは残る）
 - `articles.feed_id` は `ON DELETE CASCADE`（フィード削除時に記事も削除）
-- 記事の重複排除は `(feed_id, guid)` の UNIQUE 制約で管理
+- `articles.ai_summary` / `ai_translation`: AI 結果のキャッシュ
+- `settings`: key-value 形式（現在 `retention_days` のみ）
+
+## 環境変数
+
+| 変数 | デフォルト | 説明 |
+|-----|---------|------|
+| `PORT` | `3040` | バックエンドのポート番号 |
+| `DB_PATH` | `backend/data/rss.db` | SQLite ファイルパス |
+| `AI_CONFIG_PATH` | `backend/ai.config.json` | AI 設定ファイルパス |
+| `CLAUDE_PATH` | `~/.local/bin/claude` | Claude CLI バイナリパス |
+| `OPENAI_API_KEY` | — | OpenAI 使用時に必要 |
+| `GEMINI_API_KEY` | — | Gemini 使用時に必要 |
 
 ## Makefile コマンド一覧
 
@@ -172,3 +234,9 @@ articles  (id, feed_id→feeds, guid, title, link, summary, content, published_a
 | `make docker-build` | イメージを再ビルドして起動 |
 | `make docker-logs` | ログを表示 |
 | `make docker-clean` | コンテナ・イメージ・ボリュームをすべて削除 |
+| `make daemon-setup` | systemd サービスをインストール・自動起動設定 |
+| `make daemon-start` | サービスを起動 |
+| `make daemon-stop` | サービスを停止 |
+| `make daemon-restart` | サービスを再起動 |
+| `make daemon-status` | サービスの状態確認 |
+| `make daemon-logs` | ログをリアルタイム表示 |
