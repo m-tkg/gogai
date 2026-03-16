@@ -166,10 +166,11 @@ function ArticleContent({ html }: { html: string }) {
   )
 }
 
-// 基本的なHTMLサニタイズ（scriptタグ除去）
+// 基本的なHTMLサニタイズ（scriptタグ除去）＋外部リンクを新しいタブで開く
 function sanitizeHtml(html: string): string {
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/on\w+="[^"]*"/g, '')
     .replace(/on\w+='[^']*'/g, '')
+    .replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ')
 }
