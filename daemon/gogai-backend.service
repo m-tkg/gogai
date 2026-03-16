@@ -1,0 +1,18 @@
+[Unit]
+Description=Gogai Backend
+After=network.target
+
+[Service]
+Type=simple
+User=masaki
+WorkingDirectory=/home/masaki/gogai/backend
+ExecStartPre=npm run build
+ExecStart=node dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3040
+Environment=DB_PATH=/home/masaki/gogai/backend/data/rss.db
+
+[Install]
+WantedBy=multi-user.target

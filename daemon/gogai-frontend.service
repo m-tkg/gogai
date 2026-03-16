@@ -1,0 +1,15 @@
+[Unit]
+Description=Gogai Frontend
+After=network.target gogai-backend.service
+
+[Service]
+Type=simple
+User=masaki
+WorkingDirectory=/home/masaki/gogai/frontend
+ExecStart=npm run dev
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=development
+
+[Install]
+WantedBy=multi-user.target
