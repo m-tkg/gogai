@@ -48,6 +48,10 @@ export class FeedsService {
     return (this.db.prepare('SELECT * FROM feeds WHERE url = ?').get(url) as Feed) ?? null
   }
 
+  findByGroupId(groupId: number): Feed[] {
+    return this.db.prepare('SELECT * FROM feeds WHERE group_id = ? ORDER BY created_at DESC').all(groupId) as Feed[]
+  }
+
   update(id: number, input: UpdateFeedInput): Feed | null {
     const fields: string[] = []
     const values: unknown[] = []

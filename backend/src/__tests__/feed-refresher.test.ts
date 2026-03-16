@@ -79,6 +79,16 @@ describe('refreshAllFeeds', () => {
 
     expect(feedsService.findById(feed.id)?.last_fetched_at).not.toBeNull()
   })
+
+  it('更新に失敗したフィードのlast_fetched_atは更新されない', async () => {
+    const feed = feedsService.create({ url: 'https://a.com/feed.xml', title: 'A' })
+    expect(feedsService.findById(feed.id)?.last_fetched_at).toBeNull()
+
+    const fetchFeedFn = vi.fn(() => Promise.reject(new Error('Network error')))
+    await refreshAllFeeds(feedsService, articlesService, fetchFeedFn)
+
+    expect(feedsService.findById(feed.id)?.last_fetched_at).toBeNull()
+  })
 })
 
 describe('refreshFeedsByGroupId', () => {
