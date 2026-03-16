@@ -190,7 +190,7 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
       }`}
     >
       {/* メインコンテンツ行 */}
-      <button onClick={onClick} className="w-full text-left px-4 py-3">
+      <button onClick={onClick} className="w-full text-left px-4 py-2">
         <div className="flex items-start gap-2">
           {/* 未読インジケーター */}
           <span className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full transition-colors ${
@@ -220,7 +220,7 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
       </button>
 
       {/* アクションボタン行（ホバー時に表示） */}
-      <div className="flex items-center gap-1 px-4 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="hidden group-hover:flex items-center gap-1 px-4 pb-2">
         <ActionButton
           label="要約"
           icon="✦"
