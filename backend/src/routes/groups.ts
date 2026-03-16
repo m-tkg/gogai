@@ -1,5 +1,8 @@
 import { Hono } from 'hono'
 import { GroupsService } from '../services/groups.js'
+import { FeedsService } from '../services/feeds.js'
+import { ArticlesService } from '../services/articles.js'
+import { refreshFeedsByGroupId } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
 
 const app = new Hono()
@@ -31,6 +34,16 @@ app.put('/:id', async (c) => {
 app.delete('/:id', (c) => {
   new GroupsService(getDb()).remove(Number(c.req.param('id')))
   return c.body(null, 204)
+})
+
+// グループ内の全フィードを一括リフレッシュ
+app.post('/:id/refresh', async (c) => {
+  const id = Number(c.req.param('id'))
+  const db = getDb()
+  const group = new GroupsService(db).findById(id)
+  if (!group) return c.json({ error: 'Not found' }, 404)
+  const result = await refreshFeedsByGroupId(id, new FeedsService(db), new ArticlesService(db))
+  return c.json(result)
 })
 
 export default app
