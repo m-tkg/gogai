@@ -31,7 +31,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
 
   if (!article) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400">
+      <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900">
         記事を選択してください
       </div>
     )
@@ -44,20 +44,20 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
     : null
 
   return (
-    <article className="flex flex-col h-screen overflow-hidden">
-      <header className="px-6 py-4 border-b border-gray-200 bg-white">
-        <h2 className="text-lg font-semibold text-gray-900 leading-snug mb-2">
+    <article className="flex flex-col h-screen overflow-hidden bg-white dark:bg-gray-900">
+      <header className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 leading-snug mb-2">
           {article.title ?? '(タイトルなし)'}
         </h2>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {date && <span className="text-sm text-gray-500">{date}</span>}
+            {date && <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>}
             {article.link && (
               <a
                 href={article.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
               >
                 元記事を開く ↗
               </a>
@@ -68,7 +68,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
             <button
               onClick={() => runClaude('summarize')}
               disabled={claudeMutation.isPending}
-              className="px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 disabled:opacity-50 font-medium"
+              className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/60 disabled:opacity-50 font-medium"
               title="Claude で要約"
             >
               {claudeMutation.isPending && claudeAction === 'summarize' ? '要約中...' : '✦ 要約'}
@@ -76,7 +76,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
             <button
               onClick={() => runClaude('translate')}
               disabled={claudeMutation.isPending}
-              className="px-3 py-1.5 text-xs bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200 disabled:opacity-50 font-medium"
+              className="px-3 py-1.5 text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/60 disabled:opacity-50 font-medium"
               title="Claude で日本語翻訳"
             >
               {claudeMutation.isPending && claudeAction === 'translate' ? '翻訳中...' : '✦ 翻訳'}
@@ -88,8 +88,8 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {/* Claude出力 */}
         {claudeMutation.isPending && (
-          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-            <div className="flex items-center gap-2 text-purple-600 text-sm">
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg">
+            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 text-sm">
               <span className="animate-pulse">✦</span>
               Claude が{claudeAction === 'summarize' ? '要約' : '翻訳'}しています...
             </div>
@@ -97,26 +97,26 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
         )}
 
         {claudeOutput && (
-          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-purple-600">
+              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
                 ✦ Claude による{claudeAction === 'summarize' ? '要約' : '翻訳'}
               </span>
               <button
                 onClick={() => setClaudeOutput(null)}
-                className="text-xs text-purple-400 hover:text-purple-600"
+                className="text-xs text-purple-400 hover:text-purple-600 dark:hover:text-purple-300"
               >
                 閉じる
               </button>
             </div>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
               {claudeOutput}
             </p>
           </div>
         )}
 
         {claudeMutation.isError && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
             Claude の実行に失敗しました。CLIがインストールされているか確認してください。
           </div>
         )}
@@ -125,9 +125,9 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
         {article.content ? (
           <ArticleContent html={sanitizeHtml(article.content)} />
         ) : article.summary ? (
-          <p className="text-gray-800 leading-relaxed">{article.summary}</p>
+          <p className="text-gray-800 dark:text-gray-200 leading-relaxed">{article.summary}</p>
         ) : (
-          <p className="text-gray-400 text-sm">本文がありません。元記事を開いてください。</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">本文がありません。元記事を開いてください。</p>
         )}
       </div>
     </article>
@@ -151,7 +151,7 @@ function ArticleContent({ html }: { html: string }) {
       <div
         ref={ref}
         style={!expanded ? { maxHeight: `${MAX_HEIGHT}px`, overflow: 'hidden' } : undefined}
-        className="text-sm text-gray-800 leading-6 [&_img]:max-w-full [&_a]:text-blue-600 [&_a]:underline [&_pre]:overflow-x-auto [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:rounded [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:text-gray-600"
+        className="text-sm text-gray-800 dark:text-gray-200 leading-6 [&_img]:max-w-full [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_pre]:overflow-x-auto [&_pre]:bg-gray-100 dark:[&_pre]:bg-gray-800 [&_pre]:p-3 [&_pre]:rounded [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 dark:[&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:text-gray-600 dark:[&_blockquote]:text-gray-400"
         dangerouslySetInnerHTML={{ __html: html }}
       />
       {overflows && (

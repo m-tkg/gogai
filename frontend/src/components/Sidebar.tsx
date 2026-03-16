@@ -7,9 +7,11 @@ interface SidebarProps {
   selectedGroupId: number | null
   onSelectFeed: (id: number | null) => void
   onSelectGroup: (id: number | null) => void
+  darkMode: boolean
+  onToggleDark: () => void
 }
 
-export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup }: SidebarProps) {
+export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark }: SidebarProps) {
   const qc = useQueryClient()
   const [addFeedUrl, setAddFeedUrl] = useState('')
   const [addFeedGroupId, setAddFeedGroupId] = useState<number | undefined>()
@@ -61,25 +63,30 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const ungroupedFeeds = feedsByGroup(null)
 
   return (
-    <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-screen overflow-y-auto">
-      <div className="p-4 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-800">RSS Reader</h1>
+    <aside className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen overflow-y-auto flex-shrink-0">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">RSS Reader</h1>
+        <button
+          onClick={onToggleDark}
+          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          title={darkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+        >
+          {darkMode ? '☀️' : '🌙'}
+        </button>
       </div>
 
       <nav className="flex-1 p-2">
-        {/* すべての記事 */}
         <button
           onClick={() => { onSelectFeed(null); onSelectGroup(null) }}
           className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 ${
             selectedFeedId === null && selectedGroupId === null
-              ? 'bg-blue-100 text-blue-700 font-medium'
-              : 'text-gray-700 hover:bg-gray-100'
+              ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
         >
           📋 すべての記事
         </button>
 
-        {/* グループ */}
         {groups.map((group: Group) => (
           <div key={group.id} className="mb-1">
             <div className="flex items-center group/group">
@@ -87,8 +94,8 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 onClick={() => { onSelectGroup(group.id); onSelectFeed(null) }}
                 className={`flex-1 text-left px-3 py-1.5 rounded-md text-sm font-medium ${
                   selectedGroupId === group.id
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 📁 {group.name}
@@ -113,10 +120,9 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           </div>
         ))}
 
-        {/* グループなしフィード */}
         {ungroupedFeeds.length > 0 && (
           <div className="mt-2">
-            <p className="text-xs text-gray-400 px-3 mb-1">グループなし</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 px-3 mb-1">グループなし</p>
             {ungroupedFeeds.map((feed: Feed) => (
               <FeedItem
                 key={feed.id}
@@ -130,16 +136,14 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
         )}
       </nav>
 
-      {/* エラー表示 */}
       {error && (
-        <div className="mx-2 mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+        <div className="mx-2 mb-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
           {error}
           <button onClick={() => setError(null)} className="ml-1 font-bold">✕</button>
         </div>
       )}
 
-      {/* フィード追加 */}
-      <div className="p-2 border-t border-gray-200">
+      <div className="p-2 border-t border-gray-200 dark:border-gray-700">
         {showAddFeed ? (
           <div className="space-y-1">
             <input
@@ -147,12 +151,12 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               placeholder="Feed URL"
               value={addFeedUrl}
               onChange={e => setAddFeedUrl(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
             <select
               value={addFeedGroupId ?? ''}
               onChange={e => setAddFeedGroupId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             >
               <option value="">グループなし</option>
               {groups.map((g: Group) => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -167,7 +171,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               </button>
               <button
                 onClick={() => { setShowAddFeed(false); setError(null) }}
-                className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
               >
                 キャンセル
               </button>
@@ -176,7 +180,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
         ) : (
           <button
             onClick={() => setShowAddFeed(true)}
-            className="w-full px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md text-left"
+            className="w-full px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-left"
           >
             ＋ フィードを追加
           </button>
@@ -189,7 +193,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               placeholder="グループ名"
               value={addGroupName}
               onChange={e => setAddGroupName(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
             <div className="flex gap-1">
               <button
@@ -201,7 +205,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               </button>
               <button
                 onClick={() => setShowAddGroup(false)}
-                className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
               >
                 キャンセル
               </button>
@@ -210,7 +214,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
         ) : (
           <button
             onClick={() => setShowAddGroup(true)}
-            className="w-full px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md text-left mt-1"
+            className="w-full px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-left mt-1"
           >
             ＋ グループを追加
           </button>
@@ -231,7 +235,9 @@ function FeedItem({ feed, selected, onSelect, onRemove }: {
       <button
         onClick={onSelect}
         className={`flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-sm ${
-          selected ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+          selected
+            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
         }`}
       >
         <FeedFavicon url={feed.favicon_url} />

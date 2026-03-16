@@ -1,4 +1,7 @@
-.PHONY: install dev dev-backend dev-frontend build test lint clean
+.PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
+        docker-up docker-down docker-build docker-logs docker-clean
+
+# ── ローカル開発 ──────────────────────────────────────────
 
 # 両プロジェクトの依存関係をインストール
 install:
@@ -38,3 +41,25 @@ typecheck:
 # クリーンアップ
 clean:
 	rm -rf backend/dist frontend/dist
+
+# ── Docker ───────────────────────────────────────────────
+
+# コンテナをビルドして起動（http://localhost:8080）
+docker-up:
+	docker compose up -d
+
+# コンテナを停止
+docker-down:
+	docker compose down
+
+# イメージを再ビルドして起動
+docker-build:
+	docker compose up -d --build
+
+# ログを表示
+docker-logs:
+	docker compose logs -f
+
+# コンテナ・イメージ・ボリュームをすべて削除
+docker-clean:
+	docker compose down -v --rmi all
