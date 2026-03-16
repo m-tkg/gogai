@@ -98,6 +98,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
 
   const ungroupedFeeds = feedsByGroup(null)
 
+  // useQuery はサイドバーが閉じていても実行し続ける（5分ごとの自動更新を維持するため意図的）
   if (!isOpen) {
     return (
       <aside className="w-10 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen flex-shrink-0 items-center pt-3">
@@ -105,6 +106,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           onClick={toggleSidebar}
           className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           title="サイドバーを開く"
+          aria-label="サイドバーを開く"
         >
           ▶
         </button>
@@ -139,6 +141,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
             onClick={toggleSidebar}
             className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="サイドバーを閉じる"
+            aria-label="サイドバーを閉じる"
           >
             ◀
           </button>
