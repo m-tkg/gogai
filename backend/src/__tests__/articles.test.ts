@@ -109,4 +109,35 @@ describe('ArticlesService', () => {
     expect(deleted).toBe(0)
     expect(articlesService.findByFeed(feedId)).toHaveLength(1)
   })
+
+  describe('AI キャッシュ', () => {
+    let articleId: number
+
+    beforeEach(() => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'ai-test', title: 'AI Test Article', link: 'https://example.com/ai', summary: 'summary' },
+      ])
+      articleId = articlesService.findByFeed(feedId)[0].id
+    })
+
+    it('要約結果を保存して取得できる', () => {
+      articlesService.saveAiResult(articleId, 'summarize', 'これは要約です')
+      const article = articlesService.findById(articleId)
+      expect(article?.ai_summary).toBe('これは要約です')
+      expect(article?.ai_translation).toBeNull()
+    })
+
+    it('翻訳結果を保存して取得できる', () => {
+      articlesService.saveAiResult(articleId, 'translate', 'これは翻訳です')
+      const article = articlesService.findById(articleId)
+      expect(article?.ai_translation).toBe('これは翻訳です')
+      expect(article?.ai_summary).toBeNull()
+    })
+
+    it('上書き保存できる', () => {
+      articlesService.saveAiResult(articleId, 'summarize', '最初の要約')
+      articlesService.saveAiResult(articleId, 'summarize', '更新した要約')
+      expect(articlesService.findById(articleId)?.ai_summary).toBe('更新した要約')
+    })
+  })
 })

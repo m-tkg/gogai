@@ -32,6 +32,8 @@ export interface Article {
   published_at: string | null
   is_read: number
   created_at: string
+  ai_summary: string | null
+  ai_translation: string | null
 }
 
 // Groups API
@@ -58,6 +60,6 @@ export const articlesApi = {
   get: (id: number) => api.get<Article>(`/api/articles/${id}`).then(r => r.data),
   markAsRead: (id: number) => api.post(`/api/articles/${id}/read`),
   markAsUnread: (id: number) => api.post(`/api/articles/${id}/unread`),
-  claude: (id: number, action: 'summarize' | 'translate') =>
-    api.post<{ output: string }>(`/api/articles/${id}/claude`, { action }).then(r => r.data),
+  claude: (id: number, action: 'summarize' | 'translate', force?: boolean) =>
+    api.post<{ output: string; cached: boolean }>(`/api/articles/${id}/claude`, { action, force }).then(r => r.data),
 }

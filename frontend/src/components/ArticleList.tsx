@@ -91,28 +91,65 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
   )
 }
 
+function openTranslationTab(title: string | null, html: string) {
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(`<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title ? `翻訳: ${title}` : '翻訳'}</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.8; color: #1a1a1a; }
+    h1 { font-size: 1.25rem; color: #4c1d95; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+    #content { white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+  <h1>✦ 翻訳${title ? `: ${title}` : ''}</h1>
+  <div id="content">${html}</div>
+</body>
+</html>`)
+  win.document.close()
+}
+
 function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
   article: Article
   selected: boolean
   onClick: () => void
   onMarkAsUnread: () => void
 }) {
-  const [claudeOutput, setClaudeOutput] = useState<{ action: 'summarize' | 'translate'; text: string } | null>(null)
+  const [summaryText, setSummaryText] = useState<string | null>(article.ai_summary)
   const [pendingAction, setPendingAction] = useState<'summarize' | 'translate' | null>(null)
+  const qc = useQueryClient()
 
   const claudeMutation = useMutation({
-    mutationFn: (action: 'summarize' | 'translate') => articlesApi.claude(article.id, action),
-    onSuccess: (data, action) => {
-      setClaudeOutput({ action, text: data.output })
+    mutationFn: ({ action, force }: { action: 'summarize' | 'translate'; force?: boolean }) =>
+      articlesApi.claude(article.id, action, force),
+    onSuccess: (data, { action }) => {
+      if (action === 'summarize') {
+        setSummaryText(data.output)
+      } else {
+        openTranslationTab(article.title, data.output)
+      }
+      qc.invalidateQueries({ queryKey: ['articles'] })
       setPendingAction(null)
     },
     onError: () => setPendingAction(null),
   })
 
-  const runClaude = (e: React.MouseEvent, action: 'summarize' | 'translate') => {
+  const runClaude = (e: React.MouseEvent, action: 'summarize' | 'translate', force?: boolean) => {
     e.stopPropagation()
+    if (!force) {
+      if (action === 'summarize' && summaryText) return
+      if (action === 'translate' && article.ai_translation) {
+        openTranslationTab(article.title, article.ai_translation)
+        return
+      }
+    }
     setPendingAction(action)
-    claudeMutation.mutate(action)
+    claudeMutation.mutate({ action, force })
   }
 
   const date = article.published_at ? formatDate(new Date(article.published_at)) : ''
@@ -140,7 +177,15 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
               <h3 className={`text-sm leading-snug ${!article.is_read ? 'font-semibold text-gray-900 dark:text-gray-100' : 'font-normal text-gray-600 dark:text-gray-400'}`}>
                 {article.title ?? '(タイトルなし)'}
               </h3>
-              {date && <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5">{date}</span>}
+              <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                {article.ai_summary && (
+                  <span className="text-[10px] px-1 py-0 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-500 dark:text-purple-400 leading-4">要</span>
+                )}
+                {article.ai_translation && (
+                  <span className="text-[10px] px-1 py-0 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-500 dark:text-indigo-400 leading-4">訳</span>
+                )}
+                {date && <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>}
+              </div>
             </div>
             {article.summary && (
               <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{article.summary}</p>
@@ -159,12 +204,21 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
           onClick={e => runClaude(e, 'summarize')}
         />
         <ActionButton
-          label="翻訳"
+          label={article.ai_translation ? '翻訳を開く' : '翻訳'}
           icon="✦"
           color="indigo"
           loading={pendingAction === 'translate'}
           onClick={e => runClaude(e, 'translate')}
         />
+        {article.ai_translation && (
+          <ActionButton
+            label="再翻訳"
+            icon="↻"
+            color="indigo"
+            loading={pendingAction === 'translate'}
+            onClick={e => runClaude(e, 'translate', true)}
+          />
+        )}
         {article.is_read === 1 ? (
           <ActionButton
             label="未読にする"
@@ -184,31 +238,39 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
         )}
       </div>
 
-      {/* Claude 出力 */}
+      {/* AI 出力 */}
       {claudeMutation.isPending && (
         <div className="mx-4 mb-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/30 rounded text-xs text-purple-500 dark:text-purple-400 animate-pulse">
           {pendingAction === 'summarize' ? '要約' : '翻訳'}しています...
         </div>
       )}
-      {claudeOutput && (
+      {summaryText && (
         <div className="mx-4 mb-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 rounded text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-purple-500 dark:text-purple-400 font-medium">
-              ✦ {claudeOutput.action === 'summarize' ? '要約' : '翻訳'}
-            </span>
-            <button
-              onClick={e => { e.stopPropagation(); setClaudeOutput(null) }}
-              className="text-gray-400 hover:text-gray-600 text-xs"
-            >
-              ✕
-            </button>
+            <span className="text-purple-500 dark:text-purple-400 font-medium">✦ 要約</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={e => runClaude(e, 'summarize', true)}
+                disabled={pendingAction === 'summarize'}
+                className="text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 text-xs disabled:opacity-50"
+                title="再要約"
+              >
+                ↻ 再要約
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setSummaryText(null) }}
+                className="text-gray-400 hover:text-gray-600 text-xs"
+              >
+                ✕
+              </button>
+            </div>
           </div>
-          <p className="whitespace-pre-wrap">{claudeOutput.text}</p>
+          <p className="whitespace-pre-wrap">{summaryText}</p>
         </div>
       )}
       {claudeMutation.isError && (
         <div className="mx-4 mb-2 px-3 py-2 bg-red-50 dark:bg-red-900/30 rounded text-xs text-red-500 dark:text-red-400">
-          Claude の実行に失敗しました
+          AI の実行に失敗しました
         </div>
       )}
     </div>

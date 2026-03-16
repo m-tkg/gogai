@@ -60,4 +60,13 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
     CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
   `)
+
+  // カラムが存在しない場合のみ追加（既存 DB への移行）
+  for (const col of ['ai_summary', 'ai_translation']) {
+    try {
+      db.exec(`ALTER TABLE articles ADD COLUMN ${col} TEXT`)
+    } catch {
+      // already exists — ignore
+    }
+  }
 }
