@@ -1,5 +1,6 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
-        docker-up docker-down docker-build docker-logs docker-clean
+        docker-up docker-down docker-build docker-logs docker-clean \
+        daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs
 
 # ── ローカル開発 ──────────────────────────────────────────
 
@@ -63,3 +64,28 @@ docker-logs:
 # コンテナ・イメージ・ボリュームをすべて削除
 docker-clean:
 	docker compose down -v --rmi all
+
+# ── Daemon (systemd / Raspberry Pi) ──────────────────────
+# サービスをインストールして自動起動を有効化
+daemon-setup:
+	bash daemon/setup.sh
+
+# サービスを起動
+daemon-start:
+	sudo systemctl start gogai-backend gogai-frontend
+
+# サービスを停止
+daemon-stop:
+	sudo systemctl stop gogai-backend gogai-frontend
+
+# サービスを再起動
+daemon-restart:
+	sudo systemctl restart gogai-backend gogai-frontend
+
+# サービスの状態確認
+daemon-status:
+	sudo systemctl status gogai-backend gogai-frontend
+
+# ログをリアルタイム表示
+daemon-logs:
+	journalctl -u gogai-backend -u gogai-frontend -f
