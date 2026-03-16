@@ -52,8 +52,8 @@ function RssReader() {
       <Sidebar
         selectedFeedId={selectedFeedId}
         selectedGroupId={selectedGroupId}
-        onSelectFeed={(id) => { setSelectedFeedId(id); setShowSettings(false); setMobileView('list') }}
-        onSelectGroup={(id) => { setSelectedGroupId(id); setShowSettings(false); setMobileView('list') }}
+        onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedArticle(null); setShowSettings(false); setMobileView('list') }}
+        onSelectGroup={(id) => { setSelectedGroupId(id); setSelectedArticle(null); setShowSettings(false); setMobileView('list') }}
         darkMode={darkMode}
         onToggleDark={() => setDarkMode(d => !d)}
         onOpenSettings={() => setShowSettings(true)}
