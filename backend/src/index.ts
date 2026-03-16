@@ -33,7 +33,7 @@ function purgeOldArticles() {
 purgeOldArticles()
 setInterval(purgeOldArticles, 24 * 60 * 60 * 1000)
 
-// 5分ごとにフィードを自動更新
+// 5分ごとにフィードを自動更新（起動直後は不要なためインターバルのみ）
 async function autoRefreshFeeds() {
   const db = getDb()
   const { refreshed, failed } = await refreshAllFeeds(new FeedsService(db), new ArticlesService(db))

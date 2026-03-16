@@ -65,6 +65,7 @@ app.delete('/:id', (c) => {
 })
 
 // 全フィードを一括リフレッシュ
+// NOTE: /:id/refresh より前に定義しないと /refresh-all が id=refresh として解釈されるため順序が重要
 app.post('/refresh-all', async (c) => {
   const db = getDb()
   const result = await refreshAllFeeds(new FeedsService(db), new ArticlesService(db))

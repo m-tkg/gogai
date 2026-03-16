@@ -51,6 +51,6 @@ export async function refreshFeedsByGroupId(
   articlesService: ArticlesService,
   fetchFeedFn: (url: string) => Promise<FetchedFeed> = fetchFeed,
 ): Promise<RefreshResult> {
-  const feeds = feedsService.findAll().filter(f => f.group_id === groupId)
+  const feeds = feedsService.findByGroupId(groupId)
   return refreshFeeds(feeds, feedsService, articlesService, fetchFeedFn)
 }

@@ -151,11 +151,11 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               </button>
               <button
                 onClick={() => refreshGroup.mutate(group.id)}
-                disabled={refreshGroup.isPending}
+                disabled={refreshGroup.isPending && refreshGroup.variables === group.id}
                 className="hidden group-hover/group:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
                 title="グループのフィードを更新"
               >
-                {refreshGroup.isPending ? '…' : '↻'}
+                {refreshGroup.isPending && refreshGroup.variables === group.id ? '…' : '↻'}
               </button>
               <button
                 onClick={() => removeGroup.mutate(group.id)}
