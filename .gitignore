@@ -8,3 +8,5 @@ backend/data/
 .next/
 frontend/.env.development.local
 frontend/.env.local
+.playwright-mcp/
+*.png
