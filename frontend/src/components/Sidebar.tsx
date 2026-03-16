@@ -139,7 +139,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
       {/* モバイル用バックドロップ（サイドバー背面のオーバーレイ） */}
       <div
         className="fixed inset-0 z-40 bg-black/40 md:hidden"
-        onClick={toggleSidebar}
+        onClick={onToggle}
         aria-hidden="true"
       />
       {/* サイドバー本体: モバイル=固定位置オーバーレイ / デスクトップ=通常フロー */}
