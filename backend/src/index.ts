@@ -4,8 +4,10 @@ import { cors } from 'hono/cors'
 import groupsRouter from './routes/groups.js'
 import feedsRouter from './routes/feeds.js'
 import articlesRouter from './routes/articles.js'
+import settingsRouter from './routes/settings.js'
 import { getDb } from './db/schema.js'
 import { ArticlesService } from './services/articles.js'
+import { SettingsService } from './services/settings.js'
 import { mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -13,13 +15,14 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 mkdirSync(join(__dirname, '../data'), { recursive: true })
 
-const RETENTION_DAYS = 180 // 半年
+const DEFAULT_RETENTION_DAYS = 180
 
 function purgeOldArticles() {
-  const threshold = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000)
+  const days = new SettingsService(getDb()).get('retention_days', DEFAULT_RETENTION_DAYS)
+  const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
   const deleted = new ArticlesService(getDb()).deleteOlderThan(threshold)
   if (deleted > 0) {
-    console.log(`[cleanup] ${deleted} 件の古い記事を削除しました（${RETENTION_DAYS}日以前）`)
+    console.log(`[cleanup] ${deleted} 件の古い記事を削除しました（${days}日以前）`)
   }
 }
 
@@ -38,6 +41,7 @@ app.use('*', cors({
 app.route('/api/groups', groupsRouter)
 app.route('/api/feeds', feedsRouter)
 app.route('/api/articles', articlesRouter)
+app.route('/api/settings', settingsRouter)
 
 app.get('/health', (c) => c.json({ status: 'ok' }))
 

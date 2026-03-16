@@ -53,6 +53,16 @@ export const feedsApi = {
   refresh: (id: number) => api.post(`/api/feeds/${id}/refresh`).then(r => r.data),
 }
 
+// Settings API
+export interface Settings {
+  retention_days: number
+}
+
+export const settingsApi = {
+  get: () => api.get<Settings>('/api/settings').then(r => r.data),
+  update: (data: Partial<Settings>) => api.put<Settings>('/api/settings', data).then(r => r.data),
+}
+
 // Articles API
 export const articlesApi = {
   list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; limit?: number; offset?: number }) =>
