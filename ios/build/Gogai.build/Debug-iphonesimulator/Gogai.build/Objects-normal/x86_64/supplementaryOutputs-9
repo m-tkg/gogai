@@ -1,0 +1,23 @@
+{
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Stores/SettingsStore.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SettingsStore.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SettingsStore.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SettingsStore.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SettingsStore.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SettingsStore.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Onboarding/ServerSetupView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ServerSetupView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ServerSetupView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ServerSetupView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ServerSetupView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/ServerSetupView.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Sidebar/SidebarView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SidebarView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SidebarView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SidebarView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SidebarView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/x86_64/SidebarView.swiftdeps"
+  }
+}

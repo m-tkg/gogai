@@ -1,0 +1,12 @@
+{
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/MockURLProtocol.swift" : {
+    "abi-baseline-json" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests.abi.json",
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests-primary.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests-primary.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests-primary.dia",
+    "objc-header" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests-Swift.h",
+    "swiftdoc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests.swiftdoc",
+    "swiftmodule" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests.swiftmodule",
+    "swiftsourceinfo" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/arm64/GogaiTests.swiftsourceinfo"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "source": "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Sidebar/GroupRowView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "グループ名を変更",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "グループを削除しますか？",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 49
+        }
+      },
+      {
+        "comment": "",
+        "key": "名前を変更",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "削除",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 37
+        }
+      },
+      {
+        "comment": "",
+        "key": "グループ名",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "変更",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "キャンセル",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "削除",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "キャンセル",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 55
+        }
+      },
+      {
+        "comment": "",
+        "key": "このグループのフィードはグループなしになります",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 57
+        }
+      }
+    ]
+  },
+  "version": 1
+}

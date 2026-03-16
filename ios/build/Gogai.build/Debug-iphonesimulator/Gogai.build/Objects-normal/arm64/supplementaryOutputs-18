@@ -1,0 +1,23 @@
+{
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Articles/ArticleListView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleListView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleListView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleListView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleListView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleListView.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Articles/ArticleRowView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleRowView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleRowView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleRowView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleRowView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleRowView.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Sidebar/AddGroupView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AddGroupView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AddGroupView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AddGroupView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AddGroupView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AddGroupView.swiftdeps"
+  }
+}

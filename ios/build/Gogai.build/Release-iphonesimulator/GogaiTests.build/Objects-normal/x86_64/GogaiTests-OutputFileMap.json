@@ -1,0 +1,51 @@
+{
+  "" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary.dia",
+    "emit-module-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary-emit-module.dia",
+    "pch" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GogaiTests-primary.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/MockURLProtocol.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/MockURLProtocol.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Network/APIClientTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/APIClientTests.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/ArticleRepositoryTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleRepositoryTests.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/FeedRepositoryTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedRepositoryTests.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Repositories/GroupRepositoryTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupRepositoryTests.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/ArticleStoreTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/ArticleStoreTests.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/FeedStoreTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/FeedStoreTests.o"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/GogaiTests/Stores/GroupStoreTests.swift" : {
+    "index-unit-output-path" : "/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.o",
+    "llvm-bc" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.bc",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Release-iphonesimulator/GogaiTests.build/Objects-normal/x86_64/GroupStoreTests.o"
+  }
+}

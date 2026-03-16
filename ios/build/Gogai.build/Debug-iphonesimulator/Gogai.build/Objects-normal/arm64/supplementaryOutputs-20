@@ -1,0 +1,23 @@
+{
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/AI/AISummaryView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AISummaryView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AISummaryView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AISummaryView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AISummaryView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/AISummaryView.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Articles/ArticleDetailView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleDetailView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleDetailView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleDetailView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleDetailView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/ArticleDetailView.swiftdeps"
+  },
+  "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Settings/SettingsView.swift" : {
+    "const-values" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/SettingsView.d",
+    "diagnostics" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/SettingsView.dia",
+    "object" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/SettingsView.o",
+    "swift-dependencies" : "/Users/masaki/git/github.com/m-tkg/gogai/ios/build/Gogai.build/Debug-iphonesimulator/Gogai.build/Objects-normal/arm64/SettingsView.swiftdeps"
+  }
+}

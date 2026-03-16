@@ -1,0 +1,48 @@
+{
+  "source": "/Users/masaki/git/github.com/m-tkg/gogai/ios/Gogai/Views/Sidebar/AddGroupView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "グループを追加",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "グループ名",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 14
+        }
+      },
+      {
+        "comment": "",
+        "key": "グループ名を入力",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 15
+        }
+      },
+      {
+        "comment": "",
+        "key": "キャンセル",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 28
+        }
+      },
+      {
+        "comment": "",
+        "key": "追加",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 31
+        }
+      }
+    ]
+  },
+  "version": 1
+}
