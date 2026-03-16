@@ -1,0 +1,9 @@
+{
+  "provider": "claude",
+  "openai": {
+    "model": "gpt-4o-mini"
+  },
+  "gemini": {
+    "model": "gemini-2.0-flash"
+  }
+}

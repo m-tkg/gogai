@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { ArticlesService } from '../services/articles.js'
-import { runClaudeAction } from '../services/claude-cli.js'
+import { getAIProvider } from '../services/ai-provider.js'
+import { aiConfig } from '../services/ai-config.js'
 import { getDb } from '../db/schema.js'
 
 const app = new Hono()
@@ -32,7 +33,7 @@ app.post('/:id/unread', (c) => {
   return c.body(null, 204)
 })
 
-// Claude CLI で要約・翻訳
+// AI で要約・翻訳
 app.post('/:id/claude', async (c) => {
   const id = Number(c.req.param('id'))
   const { action } = await c.req.json<{ action: 'summarize' | 'translate' }>()
@@ -48,8 +49,9 @@ app.post('/:id/claude', async (c) => {
   if (!text) return c.json({ error: 'Article has no content' }, 422)
 
   try {
-    const result = await runClaudeAction(action, text)
-    return c.json(result)
+    const provider = getAIProvider(aiConfig)
+    const output = await provider.run(action, text)
+    return c.json({ output })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     return c.json({ error: message }, 500)
