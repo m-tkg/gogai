@@ -54,7 +54,7 @@ export interface RefreshResult {
 export const feedsApi = {
   list: () => api.get<Feed[]>('/api/feeds').then(r => r.data),
   create: (url: string, groupId?: number) => api.post<Feed>('/api/feeds', { url, groupId }).then(r => r.data),
-  update: (id: number, data: { title?: string; groupId?: number | null }) => api.put<Feed>(`/api/feeds/${id}`, data).then(r => r.data),
+  update: (id: number, data: { url?: string; title?: string; groupId?: number | null }) => api.put<Feed>(`/api/feeds/${id}`, data).then(r => r.data),
   remove: (id: number) => api.delete(`/api/feeds/${id}`),
   refresh: (id: number) => api.post(`/api/feeds/${id}/refresh`).then(r => r.data),
   refreshAll: () => api.post<RefreshResult>('/api/feeds/refresh-all').then(r => r.data),

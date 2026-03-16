@@ -55,6 +55,15 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
   })
 
+  const updateFeed = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { url?: string; groupId?: number | null } }) =>
+      feedsApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feeds'] })
+      qc.invalidateQueries({ queryKey: ['articles'] })
+    },
+  })
+
   const refreshFeed = useMutation({
     mutationFn: (id: number) => feedsApi.refresh(id),
     onSuccess: () => {
@@ -203,11 +212,14 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               <FeedItem
                 key={feed.id}
                 feed={feed}
+                groups={groups}
                 selected={selectedFeedId === feed.id}
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
                 onRemove={() => removeFeed.mutate(feed.id)}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
+                onUpdate={(data) => updateFeed.mutate({ id: feed.id, data })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
+                isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
               />
             ))}
           </div>
@@ -220,11 +232,14 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               <FeedItem
                 key={feed.id}
                 feed={feed}
+                groups={groups}
                 selected={selectedFeedId === feed.id}
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
                 onRemove={() => removeFeed.mutate(feed.id)}
                 onRefresh={() => refreshFeed.mutate(feed.id)}
+                onUpdate={(data) => updateFeed.mutate({ id: feed.id, data })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
+                isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
               />
             ))}
           </div>
@@ -319,14 +334,69 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   )
 }
 
-function FeedItem({ feed, selected, onSelect, onRemove, onRefresh, isRefreshing }: {
+function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpdate, isRefreshing, isUpdating }: {
   feed: Feed
+  groups: Group[]
   selected: boolean
   onSelect: () => void
   onRemove: () => void
   onRefresh: () => void
+  onUpdate: (data: { url?: string; groupId?: number | null }) => void
   isRefreshing: boolean
+  isUpdating: boolean
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editUrl, setEditUrl] = useState(feed.url)
+  const [editGroupId, setEditGroupId] = useState<number | null>(feed.group_id)
+
+  const handleSave = () => {
+    onUpdate({ url: editUrl.trim() || feed.url, groupId: editGroupId })
+    setIsEditing(false)
+  }
+
+  const handleCancel = () => {
+    setEditUrl(feed.url)
+    setEditGroupId(feed.group_id)
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <div className="pl-3 pr-1 py-1 space-y-1">
+        <input
+          type="url"
+          value={editUrl}
+          onChange={e => setEditUrl(e.target.value)}
+          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          placeholder="Feed URL"
+        />
+        <select
+          value={editGroupId ?? ''}
+          onChange={e => setEditGroupId(e.target.value ? Number(e.target.value) : null)}
+          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+        >
+          <option value="">グループなし</option>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+        <div className="flex gap-1">
+          <button
+            onClick={handleSave}
+            disabled={isUpdating}
+            className="flex-1 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isUpdating ? '保存中…' : '保存'}
+          </button>
+          <button
+            onClick={handleCancel}
+            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center group/feed pl-3">
       <button
@@ -349,9 +419,18 @@ function FeedItem({ feed, selected, onSelect, onRemove, onRefresh, isRefreshing 
         {isRefreshing ? '…' : '↻'}
       </button>
       <button
+        onClick={() => setIsEditing(true)}
+        className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-green-500 text-xs"
+        title="フィードを編集"
+        aria-label="フィードを編集"
+      >
+        ✎
+      </button>
+      <button
         onClick={onRemove}
         className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-red-500 text-xs"
         title="フィードを削除"
+        aria-label="フィードを削除"
       >
         ✕
       </button>

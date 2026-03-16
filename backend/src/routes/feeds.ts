@@ -53,10 +53,51 @@ app.post('/', async (c) => {
 
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
-  const body = await c.req.json<{ title?: string; groupId?: number | null }>()
-  const feed = new FeedsService(getDb()).update(id, body)
-  if (!feed) return c.json({ error: 'Not found' }, 404)
-  return c.json(feed)
+  const body = await c.req.json<{ url?: string; title?: string; groupId?: number | null }>()
+
+  const db = getDb()
+  const feedsService = new FeedsService(db)
+  const articlesService = new ArticlesService(db)
+
+  const existing = feedsService.findById(id)
+  if (!existing) return c.json({ error: 'Not found' }, 404)
+
+  // URLが変更された場合は新URLでフィードを再取得してメタ情報を更新する
+  if (body.url && body.url.trim() !== existing.url) {
+    const newUrl = body.url.trim()
+    try {
+      const feedUrl = await discoverFeedUrl(newUrl)
+      if (!feedUrl) return c.json({ error: 'RSSフィードが見つかりませんでした' }, 422)
+
+      const fetched = await fetchFeed(feedUrl)
+      articlesService.upsertMany(id, fetched.items)
+      const updated = feedsService.update(id, {
+        url: feedUrl,
+        title: fetched.title,
+        faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
+        lastFetchedAt: new Date().toISOString(),
+        groupId: body.groupId,
+      })
+      return c.json(updated)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      if (message.includes('UNIQUE constraint')) {
+        return c.json({ error: 'Feed URL already exists' }, 409)
+      }
+      return c.json({ error: `Failed to fetch feed: ${message}` }, 422)
+    }
+  }
+
+  try {
+    const feed = feedsService.update(id, { title: body.title, groupId: body.groupId })
+    return c.json(feed)
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    if (message.includes('UNIQUE constraint')) {
+      return c.json({ error: 'Feed URL already exists' }, 409)
+    }
+    return c.json({ error: message }, 422)
+  }
 })
 
 app.delete('/:id', (c) => {

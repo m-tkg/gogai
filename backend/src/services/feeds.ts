@@ -18,6 +18,7 @@ export interface CreateFeedInput {
 }
 
 export interface UpdateFeedInput {
+  url?: string
   title?: string
   faviconUrl?: string
   groupId?: number | null
@@ -56,6 +57,7 @@ export class FeedsService {
     const fields: string[] = []
     const values: unknown[] = []
 
+    if (input.url !== undefined) { fields.push('url = ?'); values.push(input.url) }
     if (input.title !== undefined) { fields.push('title = ?'); values.push(input.title) }
     if (input.faviconUrl !== undefined) { fields.push('favicon_url = ?'); values.push(input.faviconUrl) }
     if (input.groupId !== undefined) { fields.push('group_id = ?'); values.push(input.groupId) }
