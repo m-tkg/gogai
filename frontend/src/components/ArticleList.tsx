@@ -115,9 +115,7 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
     claudeMutation.mutate(action)
   }
 
-  const date = article.published_at
-    ? new Date(article.published_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
-    : ''
+  const date = article.published_at ? formatDate(new Date(article.published_at)) : ''
 
   return (
     <div
@@ -236,4 +234,18 @@ function ActionButton({ label, icon, color, loading, onClick }: {
       {label}
     </button>
   )
+}
+
+function formatDate(date: Date): string {
+  const now = new Date()
+  const isToday = date.toDateString() === now.toDateString()
+  const isThisYear = date.getFullYear() === now.getFullYear()
+
+  if (isToday) {
+    return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  }
+  if (isThisYear) {
+    return date.toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })
 }

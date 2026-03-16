@@ -103,4 +103,11 @@ export class ArticlesService {
   markAsUnread(id: number): void {
     this.db.prepare('UPDATE articles SET is_read = 0 WHERE id = ?').run(id)
   }
+
+  deleteOlderThan(threshold: Date): number {
+    const result = this.db.prepare(
+      "DELETE FROM articles WHERE published_at IS NOT NULL AND published_at < ?"
+    ).run(threshold.toISOString())
+    return result.changes
+  }
 }
