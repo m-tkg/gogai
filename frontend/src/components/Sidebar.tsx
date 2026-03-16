@@ -45,6 +45,30 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
   })
 
+  const refreshFeed = useMutation({
+    mutationFn: (id: number) => feedsApi.refresh(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feeds'] })
+      qc.invalidateQueries({ queryKey: ['articles'] })
+    },
+  })
+
+  const refreshAllFeedsMutation = useMutation({
+    mutationFn: feedsApi.refreshAll,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feeds'] })
+      qc.invalidateQueries({ queryKey: ['articles'] })
+    },
+  })
+
+  const refreshGroup = useMutation({
+    mutationFn: (id: number) => groupsApi.refresh(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feeds'] })
+      qc.invalidateQueries({ queryKey: ['articles'] })
+    },
+  })
+
   const addGroup = useMutation({
     mutationFn: () => groupsApi.create(addGroupName),
     onSuccess: () => {
@@ -91,16 +115,26 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
       </div>
 
       <nav className="flex-1 p-2">
-        <button
-          onClick={() => { onSelectFeed(null); onSelectGroup(null) }}
-          className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 ${
-            selectedFeedId === null && selectedGroupId === null
-              ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-          }`}
-        >
-          📋 すべての記事
-        </button>
+        <div className="flex items-center group/all mb-1">
+          <button
+            onClick={() => { onSelectFeed(null); onSelectGroup(null) }}
+            className={`flex-1 text-left px-3 py-2 rounded-md text-sm ${
+              selectedFeedId === null && selectedGroupId === null
+                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            📋 すべての記事
+          </button>
+          <button
+            onClick={() => refreshAllFeedsMutation.mutate()}
+            disabled={refreshAllFeedsMutation.isPending}
+            className="hidden group-hover/all:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
+            title="全フィードを更新"
+          >
+            {refreshAllFeedsMutation.isPending ? '…' : '↻'}
+          </button>
+        </div>
 
         {groups.map((group: Group) => (
           <div key={group.id} className="mb-1">
@@ -114,6 +148,14 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 }`}
               >
                 📁 {group.name}
+              </button>
+              <button
+                onClick={() => refreshGroup.mutate(group.id)}
+                disabled={refreshGroup.isPending}
+                className="hidden group-hover/group:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
+                title="グループのフィードを更新"
+              >
+                {refreshGroup.isPending ? '…' : '↻'}
               </button>
               <button
                 onClick={() => removeGroup.mutate(group.id)}
@@ -130,6 +172,8 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 selected={selectedFeedId === feed.id}
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
                 onRemove={() => removeFeed.mutate(feed.id)}
+                onRefresh={() => refreshFeed.mutate(feed.id)}
+                isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
               />
             ))}
           </div>
@@ -145,6 +189,8 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 selected={selectedFeedId === feed.id}
                 onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null) }}
                 onRemove={() => removeFeed.mutate(feed.id)}
+                onRefresh={() => refreshFeed.mutate(feed.id)}
+                isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
               />
             ))}
           </div>
@@ -239,11 +285,13 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   )
 }
 
-function FeedItem({ feed, selected, onSelect, onRemove }: {
+function FeedItem({ feed, selected, onSelect, onRemove, onRefresh, isRefreshing }: {
   feed: Feed
   selected: boolean
   onSelect: () => void
   onRemove: () => void
+  onRefresh: () => void
+  isRefreshing: boolean
 }) {
   return (
     <div className="flex items-center group/feed pl-3">
@@ -257,6 +305,14 @@ function FeedItem({ feed, selected, onSelect, onRemove }: {
       >
         <FeedFavicon url={feed.favicon_url} />
         <span className="truncate">{feed.title ?? feed.url}</span>
+      </button>
+      <button
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
+        title="フィードを更新"
+      >
+        {isRefreshing ? '…' : '↻'}
       </button>
       <button
         onClick={onRemove}

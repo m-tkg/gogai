@@ -9,6 +9,8 @@ import adminRouter from './routes/admin.js'
 import { getDb } from './db/schema.js'
 import { ArticlesService } from './services/articles.js'
 import { SettingsService } from './services/settings.js'
+import { FeedsService } from './services/feeds.js'
+import { refreshAllFeeds } from './services/feed-refresher.js'
 import { mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -30,6 +32,17 @@ function purgeOldArticles() {
 // 起動時 + 24時間ごとにクリーンアップ
 purgeOldArticles()
 setInterval(purgeOldArticles, 24 * 60 * 60 * 1000)
+
+// 5分ごとにフィードを自動更新
+async function autoRefreshFeeds() {
+  const db = getDb()
+  const { refreshed, failed } = await refreshAllFeeds(new FeedsService(db), new ArticlesService(db))
+  if (refreshed > 0 || failed > 0) {
+    console.log(`[feed-refresher] ${refreshed} 件更新、${failed} 件失敗`)
+  }
+}
+
+setInterval(autoRefreshFeeds, 5 * 60 * 1000)
 
 const app = new Hono()
 
