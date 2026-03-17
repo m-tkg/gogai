@@ -3,14 +3,12 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import fetch from 'node-fetch'
 
 const execAsync = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // backend/src/routes/ → プロジェクトルート（3階層上）
 const PROJECT_ROOT = resolve(__dirname, '../../../')
 
-const GITHUB_REPO = 'm-tkg/gogai'
 const GITHUB_BRANCH = 'main'
 
 const app = new Hono()
@@ -25,18 +23,14 @@ app.get('/update-check', async (c) => {
     return c.json({ error: 'git rev-parse に失敗しました' }, 500)
   }
 
-  // GitHub API でリモートの最新コミットを取得
+  // git fetch でリモートの最新コミットを取得（GitHub API 不使用・既存認証情報を利用）
   let remoteSha: string
   try {
-    const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
-      { headers: { 'User-Agent': 'gogai-app' } }
-    )
-    if (!res.ok) throw new Error(`GitHub API: ${res.status}`)
-    const data = await res.json() as { sha: string }
-    remoteSha = data.sha
+    await execAsync(`git fetch origin ${GITHUB_BRANCH} --quiet`, { cwd: PROJECT_ROOT })
+    const { stdout } = await execAsync(`git rev-parse origin/${GITHUB_BRANCH}`, { cwd: PROJECT_ROOT })
+    remoteSha = stdout.trim()
   } catch (e: unknown) {
-    return c.json({ error: 'GitHub API の取得に失敗しました' }, 500)
+    return c.json({ error: 'リモートの取得に失敗しました' }, 500)
   }
 
   return c.json({
