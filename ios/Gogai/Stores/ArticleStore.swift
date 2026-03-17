@@ -2,6 +2,10 @@ import Foundation
 
 final class ArticleStore: ObservableObject {
     @Published var articles: [Article] = []
+    /// 全フィードの記事キャッシュ（未読バッジの計算に使用）
+    /// articles はフィルタ表示用なので特定フィードのみになることがあるが、
+    /// allArticles は常に全体を保持して sidebar の未読カウントを正確にする
+    @Published private(set) var allArticles: [Article] = []
     @Published private(set) var isLoading = false
     @Published var error: Error?
     @Published private(set) var summarizingIds: Set<Int> = []
@@ -34,11 +38,13 @@ final class ArticleStore: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            articles = try await ArticleRepository(client: client).fetchAll(
+            let fetched = try await ArticleRepository(client: client).fetchAll(
                 feedId: feedId,
                 groupId: groupId,
                 unreadOnly: self.unreadOnly
             )
+            articles = fetched
+            mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
         } catch {
             self.error = error
         }
@@ -46,12 +52,10 @@ final class ArticleStore: ObservableObject {
 
     @MainActor
     func refresh() async {
-        // リフレッシュ前のローカル既読状態を保持（markAsRead の API コールが完了前に
-        // リフレッシュが走った場合、DB がまだ未読のままでも既読が失われないようにする）
         let localReadIds = Set(articles.filter { $0.isRead }.map { $0.id })
         await fetchArticles(feedId: currentFeedId, groupId: currentGroupId)
         guard !localReadIds.isEmpty else { return }
-        articles = articles.map { a in
+        let applyLocalRead: (Article) -> Article = { a in
             guard localReadIds.contains(a.id), !a.isRead else { return a }
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
                            title: a.title, link: a.link, summary: a.summary,
@@ -59,6 +63,8 @@ final class ArticleStore: ObservableObject {
                            is_read: 1, created_at: a.created_at,
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation)
         }
+        articles = articles.map(applyLocalRead)
+        allArticles = allArticles.map(applyLocalRead)
     }
 
     // Optimistic update: immediately update local state, rollback on failure
@@ -67,21 +73,21 @@ final class ArticleStore: ObservableObject {
         guard let client else { return }
         guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
         let original = articles[idx]
-
-        articles[idx] = Article(
+        let updated = Article(
             id: original.id, feed_id: original.feed_id, guid: original.guid,
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: 1, created_at: original.created_at,
             ai_summary: original.ai_summary, ai_translation: original.ai_translation
         )
+        articles[idx] = updated
+        updateAllArticles(updated)
 
         do {
             try await ArticleRepository(client: client).markAsRead(id: id)
         } catch {
-            if let rollbackIdx = articles.firstIndex(where: { $0.id == id }) {
-                articles[rollbackIdx] = original
-            }
+            articles[idx] = original
+            updateAllArticles(original)
             self.error = error
         }
     }
@@ -90,7 +96,6 @@ final class ArticleStore: ObservableObject {
     func markAllAsRead() async {
         let unreadIds = articles.filter { !$0.isRead }.map { $0.id }
         guard !unreadIds.isEmpty, let client else { return }
-        // Optimistic update
         articles = articles.map { a in
             guard !a.isRead else { return a }
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
@@ -98,6 +103,7 @@ final class ArticleStore: ObservableObject {
                            published_at: a.published_at, is_read: 1, created_at: a.created_at,
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation)
         }
+        for a in articles { updateAllArticles(a) }
         await withTaskGroup(of: Void.self) { group in
             for id in unreadIds {
                 group.addTask {
@@ -112,21 +118,21 @@ final class ArticleStore: ObservableObject {
         guard let client else { return }
         guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
         let original = articles[idx]
-
-        articles[idx] = Article(
+        let updated = Article(
             id: original.id, feed_id: original.feed_id, guid: original.guid,
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: 0, created_at: original.created_at,
             ai_summary: original.ai_summary, ai_translation: original.ai_translation
         )
+        articles[idx] = updated
+        updateAllArticles(updated)
 
         do {
             try await ArticleRepository(client: client).markAsUnread(id: id)
         } catch {
-            if let rollbackIdx = articles.firstIndex(where: { $0.id == id }) {
-                articles[rollbackIdx] = original
-            }
+            articles[idx] = original
+            updateAllArticles(original)
             self.error = error
         }
     }
@@ -140,12 +146,14 @@ final class ArticleStore: ObservableObject {
             let result = try await runAI(id: id, action: .summarize)
             if let idx = articles.firstIndex(where: { $0.id == id }) {
                 let a = articles[idx]
-                articles[idx] = Article(
+                let updated = Article(
                     id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
                     link: a.link, summary: a.summary, content: a.content,
                     published_at: a.published_at, is_read: a.is_read, created_at: a.created_at,
                     ai_summary: result.output, ai_translation: a.ai_translation
                 )
+                articles[idx] = updated
+                updateAllArticles(updated)
             }
         } catch {
             self.error = error
@@ -159,7 +167,29 @@ final class ArticleStore: ObservableObject {
     }
 
     func unreadCount(for feedId: Int?) -> Int {
-        let filtered = feedId.map { fid in articles.filter { $0.feed_id == fid } } ?? articles
+        // allArticles（全フィードキャッシュ）を優先して使用する
+        let source = allArticles.isEmpty ? articles : allArticles
+        let filtered = feedId.map { fid in source.filter { $0.feed_id == fid } } ?? source
         return filtered.filter { !$0.isRead }.count
+    }
+
+    // MARK: - Private
+
+    /// フェッチ結果を allArticles にマージする
+    /// 全記事フェッチ時は全置換、特定フィード/グループのフェッチ時は該当フィードの記事を差し替える
+    private func mergeIntoAllArticles(_ fetched: [Article], feedId: Int?, groupId: Int?) {
+        if feedId == nil && groupId == nil {
+            allArticles = fetched
+        } else {
+            let fetchedFeedIds = Set(fetched.map { $0.feed_id })
+            allArticles = allArticles.filter { !fetchedFeedIds.contains($0.feed_id) } + fetched
+        }
+    }
+
+    /// allArticles 内の該当記事を更新する
+    private func updateAllArticles(_ article: Article) {
+        if let idx = allArticles.firstIndex(where: { $0.id == article.id }) {
+            allArticles[idx] = article
+        }
     }
 }
