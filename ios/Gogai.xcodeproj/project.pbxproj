@@ -31,6 +31,7 @@
 		FF00000000000000000016AB /* GroupRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000016AB /* GroupRowView.swift */; };
 		FF00000000000000000017AB /* FeedRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000017AB /* FeedRowView.swift */; };
 		FF00000000000000000018AB /* AddFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000018AB /* AddFeedView.swift */; };
+		FF00000000000000000033AB /* EditFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000033AB /* EditFeedView.swift */; };
 		FF00000000000000000019AB /* AddGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000019AB /* AddGroupView.swift */; };
 		FF0000000000000000001AAB /* ArticleListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001AAB /* ArticleListView.swift */; };
 		FF0000000000000000001BAB /* ArticleRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001BAB /* ArticleRowView.swift */; };
@@ -91,6 +92,7 @@
 		DD00000000000000000016AB /* GroupRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRowView.swift; sourceTree = "<group>"; };
 		DD00000000000000000017AB /* FeedRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRowView.swift; sourceTree = "<group>"; };
 		DD00000000000000000018AB /* AddFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFeedView.swift; sourceTree = "<group>"; };
+		DD00000000000000000033AB /* EditFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFeedView.swift; sourceTree = "<group>"; };
 		DD00000000000000000019AB /* AddGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGroupView.swift; sourceTree = "<group>"; };
 		DD0000000000000000001AAB /* ArticleListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000001BAB /* ArticleRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleRowView.swift; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 				DD00000000000000000016AB /* GroupRowView.swift */,
 				DD00000000000000000017AB /* FeedRowView.swift */,
 				DD00000000000000000018AB /* AddFeedView.swift */,
+				DD00000000000000000033AB /* EditFeedView.swift */,
 				DD00000000000000000019AB /* AddGroupView.swift */,
 			);
 			path = Sidebar;
@@ -442,6 +445,7 @@
 				FF00000000000000000016AB /* GroupRowView.swift in Sources */,
 				FF00000000000000000017AB /* FeedRowView.swift in Sources */,
 				FF00000000000000000018AB /* AddFeedView.swift in Sources */,
+				FF00000000000000000033AB /* EditFeedView.swift in Sources */,
 				FF00000000000000000019AB /* AddGroupView.swift in Sources */,
 				FF0000000000000000001AAB /* ArticleListView.swift in Sources */,
 				FF0000000000000000001BAB /* ArticleRowView.swift in Sources */,
