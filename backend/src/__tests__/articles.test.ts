@@ -40,6 +40,20 @@ describe('ArticlesService', () => {
     expect(articlesService.findByFeed(feedId)).toHaveLength(1)
   })
 
+  it('フィードリフレッシュ後も既読状態は保持される', () => {
+    const item = { guid: 'guid-1', title: 'Article 1', link: 'https://example.com/1', summary: 'Summary', publishedAt: new Date().toISOString() }
+    articlesService.upsertMany(feedId, [item])
+    const article = articlesService.findByFeed(feedId)[0]
+    articlesService.markAsRead(article.id)
+
+    // フィードリフレッシュ時と同じ操作（内容が更新された同一記事を再 upsert）
+    articlesService.upsertMany(feedId, [{ ...item, title: '更新されたタイトル' }])
+
+    const [updated] = articlesService.findByFeed(feedId)
+    expect(updated.is_read).toBe(1)
+    expect(updated.title).toBe('更新されたタイトル')
+  })
+
   it('全フィードの記事を取得できる', () => {
     articlesService.upsertMany(feedId, [
       { guid: 'g1', title: 'A1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() },
