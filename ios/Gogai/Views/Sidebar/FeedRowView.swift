@@ -18,25 +18,27 @@ struct FeedRowView: View {
             onNavigate?(ArticleDestination(feedId: feed.id, groupId: nil))
         } label: {
             HStack(spacing: 8) {
-                if let faviconURL = feed.favicon_url, let url = URL(string: faviconURL) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().frame(width: 16, height: 16)
-                    } placeholder: {
-                        Image(systemName: "globe").frame(width: 16, height: 16)
+                let faviconURL = feed.favicon_url.flatMap { URL(string: $0) }
+                AsyncImage(url: faviconURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFit()
+                    } else {
+                        Image(systemName: "globe").foregroundStyle(.secondary)
                     }
-                } else {
-                    Image(systemName: "globe")
-                        .frame(width: 16, height: 16)
-                        .foregroundStyle(.secondary)
                 }
+                .frame(width: 16, height: 16)
                 Text(feed.title ?? feed.url)
                     .lineLimit(1)
                     .foregroundStyle(.primary)
                 let unread = articleStore.unreadCount(for: feed.id)
                 if unread > 0 {
-                    Text("(\(unread))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("\(unread)")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor, in: Capsule())
                 }
             }
         }
@@ -59,6 +61,11 @@ struct FeedRowView: View {
                 }
             }
             Button("キャンセル", role: .cancel) {}
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditFeedView(feed: feed)
+                .environmentObject(feedStore)
+                .environmentObject(groupStore)
         }
     }
 }
