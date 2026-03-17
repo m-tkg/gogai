@@ -3,6 +3,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { getServer } from '../serverInstance.js'
 
 const execAsync = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -61,10 +62,16 @@ app.post('/restart', async (c) => {
   }
 
   // レスポンスを返してからプロセスを終了する
+  // server.close() で既存コネクションが閉じられた後に process.exit(0)
   // systemd の Restart=always により自動再起動 → ExecStartPre の npm run build で新コードをビルド
-  setTimeout(() => process.exit(0), 1000)
-
-  return c.json({ output: gitOutput.trim() })
+  const response = c.json({ output: gitOutput.trim() })
+  const srv = getServer()
+  if (srv) {
+    srv.close(() => process.exit(0))
+  } else {
+    setTimeout(() => process.exit(0), 1000)
+  }
+  return response
 })
 
 export default app
