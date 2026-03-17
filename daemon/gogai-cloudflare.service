@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel (Gogai)
+After=network-online.target gogai-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=masaki
+ExecStart=/home/masaki/gogai/daemon/cloudflare-tunnel.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
