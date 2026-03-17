@@ -54,8 +54,10 @@ app.post('/restart', async (c) => {
 
   // レスポンスを返してから再起動（バックエンド自身も再起動されるため非同期で遅延実行）
   setTimeout(() => {
-    exec('make restart-daemon', { cwd: PROJECT_ROOT })
-  }, 300)
+    exec('sudo systemctl restart gogai-backend gogai-frontend', { cwd: PROJECT_ROOT }, (err) => {
+      if (err) console.error('[restart] systemctl failed:', err.message)
+    })
+  }, 1000)
 
   return c.json({ output: gitOutput.trim() })
 })
