@@ -1,15 +1,20 @@
 import { Hono } from 'hono'
 import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
-import { fetchFeed } from '../services/rss-fetcher.js'
+import { fetchFeed, getFaviconUrl } from '../services/rss-fetcher.js'
 import { discoverFeedUrl } from '../services/feed-discovery.js'
 import { refreshAllFeeds } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
+import type { Feed } from '../services/feeds.js'
+
+function withGoogleFavicon(feed: Feed): Feed {
+  return { ...feed, favicon_url: getFaviconUrl(feed.url) }
+}
 
 const app = new Hono()
 
 app.get('/', (c) => {
-  return c.json(new FeedsService(getDb()).findAll())
+  return c.json(new FeedsService(getDb()).findAll().map(withGoogleFavicon))
 })
 
 app.post('/', async (c) => {

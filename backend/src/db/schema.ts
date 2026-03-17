@@ -75,19 +75,4 @@ export function initSchema(db: Database.Database): void {
     }
   }
 
-  // favicon_url を Google favicon service（PNG）に統一（iOS ICO非対応対応）
-  try {
-    const feeds = db.prepare('SELECT id, url FROM feeds').all() as { id: number; url: string }[]
-    const update = db.prepare('UPDATE feeds SET favicon_url = ? WHERE id = ?')
-    for (const feed of feeds) {
-      try {
-        const { origin } = new URL(feed.url)
-        update.run(`https://www.google.com/s2/favicons?domain_url=${origin}&sz=32`, feed.id)
-      } catch {
-        // skip invalid URL
-      }
-    }
-  } catch {
-    // ignore
-  }
 }
