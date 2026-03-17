@@ -44,12 +44,20 @@ app.post('/restart', async (c) => {
   let gitOutput = ''
 
   // git pull 実行
+  // GIT_SSH_COMMAND: known_hosts 未登録でも失敗せず、対話入力なしで動作させる
   try {
-    const { stdout, stderr } = await execAsync('git pull', { cwd: PROJECT_ROOT })
+    const { stdout, stderr } = await execAsync('git pull', {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no -o BatchMode=yes',
+      },
+    })
     gitOutput = stdout || stderr
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
-    return c.json({ error: `git pull に失敗しました: ${msg}` }, 500)
+    console.error('[restart] git pull failed:', msg)
+    return c.json({ error: msg }, 500)
   }
 
   // レスポンスを返してから再起動（バックエンド自身も再起動されるため非同期で遅延実行）
