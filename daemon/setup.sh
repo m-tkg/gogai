@@ -7,9 +7,13 @@ SERVICE_USER="${SUDO_USER:-$(whoami)}"
 
 echo "=== Gogai daemon setup ==="
 
+# スクリプトに実行権限を付与
+chmod +x "$SCRIPT_DIR/cloudflare-tunnel.sh"
+
 # サービスファイルをコピー
 sudo cp "$SCRIPT_DIR/gogai-backend.service" "$SYSTEMD_DIR/"
 sudo cp "$SCRIPT_DIR/gogai-frontend.service" "$SYSTEMD_DIR/"
+sudo cp "$SCRIPT_DIR/gogai-cloudflare.service" "$SYSTEMD_DIR/"
 
 # systemd をリロード
 sudo systemctl daemon-reload
