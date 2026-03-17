@@ -3,9 +3,11 @@ import SwiftUI
 struct FeedRowView: View {
     let feed: Feed
     @Binding var selectedFeedId: Int?
+    var onNavigate: ((ArticleDestination) -> Void)?
 
     @EnvironmentObject private var feedStore: FeedStore
     @EnvironmentObject private var groupStore: GroupStore
+    @EnvironmentObject private var articleStore: ArticleStore
 
     @State private var showDeleteConfirm = false
     @State private var showEditSheet = false
@@ -13,6 +15,7 @@ struct FeedRowView: View {
     var body: some View {
         Button {
             selectedFeedId = feed.id
+            onNavigate?(ArticleDestination(feedId: feed.id, groupId: nil))
         } label: {
             HStack(spacing: 8) {
                 if let faviconURL = feed.favicon_url, let url = URL(string: faviconURL) {
@@ -29,6 +32,12 @@ struct FeedRowView: View {
                 Text(feed.title ?? feed.url)
                     .lineLimit(1)
                     .foregroundStyle(.primary)
+                let unread = articleStore.unreadCount(for: feed.id)
+                if unread > 0 {
+                    Text("(\(unread))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .contextMenu {

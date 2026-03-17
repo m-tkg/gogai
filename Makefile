@@ -1,7 +1,7 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
         docker-up docker-down docker-build docker-logs docker-clean \
         daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
-        restart-daemon
+        restart-daemon ios-sync-icons ios-build ios-deploy
 
 # ── ローカル開発 ──────────────────────────────────────────
 
@@ -93,3 +93,42 @@ daemon-logs:
 
 # git pull して再起動（設定画面ボタンから呼ばれる）
 restart-daemon: daemon-restart
+
+# ── iOS ──────────────────────────────────────────────────────
+
+# appiconset/ のアイコンを xcassets へ同期
+ios-sync-icons:
+	cp ios/appiconset/*.png ios/Gogai/Assets.xcassets/AppIcon.appiconset/
+	cp ios/appiconset/Contents.json ios/Gogai/Assets.xcassets/AppIcon.appiconset/
+
+# アイコン同期してビルド（シミュレーター）
+ios-build: ios-sync-icons
+	cd ios && xcodebuild build -project Gogai.xcodeproj -scheme Gogai \
+		-destination "platform=iOS Simulator,name=iPhone 17 Pro" -quiet
+
+# Release ビルドして実機に転送して起動
+DEVICE_ID    ?= 620080DD-019A-5477-8F2D-96E9E0C8C538
+DERIVED_DATA  = ios/.build
+BUNDLE_ID     = com.gogai.ios
+
+ios-deploy: ios-sync-icons
+	@echo "==> Building Release for device..."
+	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+		xcodebuild build \
+		-project Gogai.xcodeproj \
+		-scheme Gogai \
+		-configuration Release \
+		-destination "platform=iOS,id=$(DEVICE_ID)" \
+		-derivedDataPath ../.build/ios \
+		-allowProvisioningUpdates \
+		-quiet
+	@echo "==> Installing on device..."
+	DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+		xcrun devicectl device install app \
+		--device $(DEVICE_ID) \
+		".build/ios/Build/Products/Release-iphoneos/Gogai.app"
+	@echo "==> Launching app..."
+	DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+		xcrun devicectl device process launch \
+		--device $(DEVICE_ID) \
+		$(BUNDLE_ID)

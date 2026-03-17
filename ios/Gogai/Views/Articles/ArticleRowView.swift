@@ -3,28 +3,69 @@ import SwiftUI
 struct ArticleRowView: View {
     let article: Article
 
+    @EnvironmentObject private var feedStore: FeedStore
+    @EnvironmentObject private var articleStore: ArticleStore
+
+    private var faviconURL: URL? {
+        feedStore.feeds.first(where: { $0.id == article.feed_id })
+            .flatMap { URL(string: $0.favicon_url ?? "") }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(article.title ?? "（タイトルなし）")
-                .font(.headline)
-                .foregroundStyle(article.isRead ? .secondary : .primary)
-                .lineLimit(2)
+        HStack(alignment: .top, spacing: 10) {
+            faviconView
+                .frame(width: 16, height: 16)
+                .padding(.top, 3)
 
-            if let published = article.published_at {
-                Text(published.displayDate)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-
-            if let summary = article.summary {
-                Text(summary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(article.title ?? "（タイトルなし）")
+                    .font(.headline)
+                    .foregroundStyle(article.isRead ? .secondary : .primary)
                     .lineLimit(2)
+
+                if let published = article.published_at {
+                    Text(published.displayDate)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+
+                if let summary = article.summary {
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
             }
+
+            Spacer()
+            VStack(spacing: 4) {
+                if articleStore.summarizingIds.contains(article.id) {
+                    ProgressView()
+                } else if article.ai_summary != nil {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(.purple)
+                        .font(.caption)
+                }
+            }
+            .padding(.top, 2)
         }
         .padding(.vertical, 4)
         .listRowBackground(article.isRead ? Color.clear : Color.accentColor.opacity(0.05))
+    }
+
+    @ViewBuilder
+    private var faviconView: some View {
+        if let url = faviconURL {
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFit()
+                } else {
+                    Image(systemName: "globe").foregroundStyle(.secondary)
+                }
+            }
+        } else {
+            Image(systemName: "globe").foregroundStyle(.secondary)
+        }
     }
 }
 

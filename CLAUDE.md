@@ -2,12 +2,13 @@
 
 ## プロジェクト構成
 
-モノレポ構成。`backend/` と `frontend/` は独立した npm プロジェクト。
+モノレポ構成。`backend/` と `frontend/` は独立した npm プロジェクト。`ios/` は Xcode プロジェクト。
 
 ```
 gogai/
 ├── backend/    Node.js + Hono + TypeScript（ポート 3040）
 ├── frontend/   React 19 + Vite + Tailwind CSS v4（ポート 5173）
+├── ios/        iOS アプリ（SwiftUI + Swift 6.0）
 ├── daemon/     systemd サービスファイル（Raspberry Pi 用）
 ├── docker-compose.yml
 └── Makefile
@@ -108,6 +109,115 @@ API クライアントの `BASE_URL` は空文字（相対パス）にするこ�
 ### 翻訳タブ
 
 `openTranslationTab()` で新しいウィンドウを開き、`marked.parse()` で Markdown → HTML に変換して表示。
+
+## iOS アプリ
+
+- **Xcode プロジェクト**: `ios/Gogai.xcodeproj`
+- **最低 OS**: iOS 17.0 / Swift 6.0
+- **アーキテクチャ**: View → Store → Repository → APIClient → URLSession
+- **状態管理**: `ObservableObject` + `@EnvironmentObject`（Store パターン）
+
+### ディレクトリ構成
+
+```
+ios/
+├── appiconset/               # アプリアイコン原本（変更はここで行う）
+├── Gogai.xcodeproj/
+├── Gogai/
+│   ├── App/                  GogaiApp.swift（@main）/ RootView.swift
+│   ├── Models/               Article / Feed / Group / Settings など（Codable + Sendable）
+│   ├── Network/              APIClient / Endpoint / APIError
+│   ├── Repositories/         Group / Feed / Article / Settings リポジトリ
+│   ├── Stores/               GroupStore / FeedStore / ArticleStore / SettingsStore
+│   ├── Views/
+│   │   ├── FilterFooterView.swift   フィルター footer（全て/未読のみ/要約あり）
+│   │   ├── Onboarding/      ServerSetupView（初回 URL 設定）
+│   │   ├── Sidebar/         SidebarView / FeedRowView / GroupRowView / AddFeedView / AddGroupView
+│   │   ├── Articles/        ArticleListView / ArticleRowView / ArticleDetailView
+│   │   │                    HTMLContentView（WKWebView で HTML レンダリング）
+│   │   │                    BrowserView（アプリ内ブラウザ）
+│   │   ├── AI/              AISummaryView
+│   │   └── Settings/        SettingsView / AdminView
+│   ├── ViewModels/           ArticleListViewModel / ArticleDetailViewModel
+│   └── Utilities/            ServerURLManager / DateFormatter+
+└── GogaiTests/               XCTest ユニットテスト
+```
+
+### iOS make コマンド
+
+```bash
+make ios-sync-icons   # appiconset/ → xcassets へアイコンを同期
+make ios-build        # アイコン同期 + シミュレータービルド
+make ios-deploy       # アイコン同期 + Release ビルド + 実機インストール + 起動
+```
+
+`ios-deploy` は `DEVICE_ID` 変数で転送先を上書き可能:
+```bash
+make ios-deploy DEVICE_ID=<device-uuid>
+```
+
+### iOS シミュレーターの注意点
+
+- 使用シミュレーター: iPhone 17 Pro（iOS 26）
+- `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` を xcodebuild に付与する
+- iOS 26 ランタイムで dyld shared cache が未生成の場合:
+  ```bash
+  xcrun simctl runtime dyld_shared_cache update com.apple.CoreSimulator.SimRuntime.iOS-26-0
+  ```
+- SDK ビルドとランタイムビルドが異なる場合はマッチングを上書き:
+  ```bash
+  xcrun simctl runtime match set iphoneos26.0 <runtime-build>
+  ```
+
+### アプリアイコンの更新手順
+
+1. `ios/appiconset/` 内の PNG を差し替える
+2. `make ios-sync-icons` を実行（または `make ios-deploy`）
+3. Xcode でビルドすると反映される
+
+`AppIcon.appiconset/` 内のファイルは `appiconset/` からのコピー。
+`appiconset/Contents.json` でサイズマッピングを管理している。
+
+### Swift 6 対応の注意点
+
+- Stores はクラスレベルの `@MainActor` を**付けない**（テストの `setUp()` で非 actor コンテキストから生成するため）
+- メソッド単位で `@MainActor` を付ける
+- `withTaskGroup` で Store を渡すと non-Sendable エラーになるため、sequential `await` を使う
+- `Group` モデルと SwiftUI の `Group` ビューが衝突するため `SwiftUI.Group { }` と修飾する
+
+### ArticleStore の主な仕様
+
+- `unreadOnly: Bool` — `UserDefaults` で永続化（キー: `"unreadOnly"`）
+- `summaryOnly: Bool` — `UserDefaults` で永続化（キー: `"summaryOnly"`）。クライアント側フィルター（`ai_summary != nil`）
+- `summarizingIds: Set<Int>` — AI 要約生成中の記事 ID セット（ProgressView 表示用）
+- `markAsRead` / `markAsUnread` — 楽観的更新（失敗時ロールバック）
+- `markAllAsRead()` — 表示中の未読記事を並列 API 呼び出しで一括既読
+- `summarize(id:)` — AI 要約を生成し `articles` の `ai_summary` を更新。`summarizingIds` で進捗管理
+
+### 画面・インタラクション仕様
+
+| 画面 | 機能 |
+|------|------|
+| SidebarView | タイトル "Feed list"。フィード名横に未読数 `(N)` 表示 |
+| ArticleListView | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
+| ArticleListView | 右スワイプ: 既読/未読トグル（フルスワイプで即実行）|
+| ArticleListView | 左スワイプ: AI 要約生成（フルスワイプで即実行）|
+| ArticleListView | 要約済み記事行に ✦ アイコン、生成中はスピナー表示 |
+| ArticleDetailView | 右上 Safari アイコン: デフォルトブラウザで開く |
+| ArticleDetailView | 上スワイプ: アプリ内ブラウザ（BrowserView）を sheet で開く |
+| FilterFooterView | 「全て」「未読のみ」「要約あり」ボタン（両画面共通）|
+| BrowserView | WKWebView。戻る / 進む / リロード（読込中はキャンセル）ボタン |
+
+### ナビゲーション構造
+
+- **iPad**: `NavigationSplitView`（3カラム: Sidebar / ArticleList / ArticleDetail）
+- **iPhone**: `NavigationStack(path: $navigationPath)`
+  - `SidebarView` の各行に `onNavigate` コールバックを渡し、`ArticleDestination` を push
+  - `ArticleListView` の各行に `onArticleSelected` コールバックを渡し、`Article` を push
+
+### デバッガなしで実機実行（高速化）
+
+Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI の `make ios-deploy` を使う（どちらもデバッガなしで起動）。
 
 ## テスト指針
 
