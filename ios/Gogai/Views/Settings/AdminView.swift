@@ -2,9 +2,14 @@ import SwiftUI
 
 struct AdminView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    @EnvironmentObject private var serverURLManager: ServerURLManager
+    @EnvironmentObject private var groupStore: GroupStore
+    @EnvironmentObject private var feedStore: FeedStore
+    @EnvironmentObject private var articleStore: ArticleStore
 
     @State private var isChecking = false
     @State private var isRestarting = false
+    @State private var isWaitingForRestart = false
     @State private var restartOutput: String?
     @State private var errorMessage: String?
 
@@ -53,7 +58,13 @@ struct AdminView: View {
             }
 
             Section {
-                if let output = restartOutput {
+                if isWaitingForRestart {
+                    HStack {
+                        ProgressView()
+                        Text("再起動中...")
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let output = restartOutput {
                     Text(output)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -67,7 +78,7 @@ struct AdminView: View {
                         Text("git pull して再起動")
                     }
                 }
-                .disabled(isRestarting)
+                .disabled(isRestarting || isWaitingForRestart)
             } header: {
                 Text("再起動")
             } footer: {
@@ -98,11 +109,40 @@ struct AdminView: View {
     private func restart() async {
         isRestarting = true
         errorMessage = nil
-        defer { isRestarting = false }
         do {
             restartOutput = try await settingsStore.restart()
         } catch {
+            isRestarting = false
             errorMessage = error.localizedDescription
+            return
+        }
+        isRestarting = false
+
+        // サーバーが再起動して戻るまでポーリング
+        isWaitingForRestart = true
+        await waitForServer()
+        isWaitingForRestart = false
+
+        // サーバーが戻ったら全ストアを再フェッチ（接続を復活させる）
+        await groupStore.fetchGroups()
+        await feedStore.fetchFeeds()
+        await articleStore.fetchArticles()
+    }
+
+    /// /health に到達できるまで 3 秒間隔で最大 40 回（約 2 分）ポーリングする
+    /// URLSession.shared の stale コネクションを避けるため ephemeral セッションを使用
+    private func waitForServer() async {
+        guard let baseURL = serverURLManager.serverURL else { return }
+        let healthURL = baseURL.appendingPathComponent("health")
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 5
+        let session = URLSession(configuration: config)
+        for _ in 0..<40 {
+            try? await Task.sleep(for: .seconds(3))
+            if let (_, response) = try? await session.data(from: healthURL),
+               (response as? HTTPURLResponse)?.statusCode == 200 {
+                return
+            }
         }
     }
 }
