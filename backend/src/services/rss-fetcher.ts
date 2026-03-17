@@ -24,7 +24,7 @@ export interface FetchedItem {
 export async function fetchFeed(url: string): Promise<FetchedFeed> {
   const feed = await parser.parseURL(url)
 
-  const faviconUrl = feed.link ? await getFaviconUrl(feed.link) : null
+  const faviconUrl = getFaviconUrl(feed.link ?? url)
 
   const items: FetchedItem[] = feed.items.map(item => ({
     guid: item.guid ?? item.link ?? item.title ?? String(Date.now()),
@@ -42,20 +42,9 @@ export async function fetchFeed(url: string): Promise<FetchedFeed> {
   }
 }
 
-async function getFaviconUrl(siteUrl: string): Promise<string | null> {
+export function getFaviconUrl(siteUrl: string): string | null {
   try {
-    const { origin, hostname } = new URL(siteUrl)
-    const res = await fetch(siteUrl, { signal: AbortSignal.timeout(3000) })
-    if (res.ok) {
-      const html = await res.text()
-      const match =
-        html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["']/i) ??
-        html.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut )?icon["']/i)
-      if (match) {
-        const href = match[1]
-        return href.startsWith('http') ? href : new URL(href, origin).href
-      }
-    }
+    const { origin } = new URL(siteUrl)
     return `https://www.google.com/s2/favicons?domain_url=${origin}&sz=32`
   } catch {
     return null
