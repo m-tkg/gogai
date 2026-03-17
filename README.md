@@ -1,6 +1,6 @@
 # Gogai
 
-Web ベースの RSS リーダー。将来的な iOS アプリ版への拡張を前提とした REST API 設計。
+Web + iOS の RSS リーダー。REST API を共有する Web フロントエンドと iOS ネイティブアプリ。
 
 ## 機能
 
@@ -13,8 +13,15 @@ Web ベースの RSS リーダー。将来的な iOS アプリ版への拡張を
   - 要約/翻訳済み記事には「要」「訳」バッジを表示
 - ダークモード（手動切替 + localStorage 永続化）
 - 設定画面（記事の保持期間を変更可能）
-- アプリの更新（設定画面から git pull + サービス再起動）
+- アプリの更新（設定画面から git pull + ビルド + サービス再起動）
 - 設定した日数以上経過した記事の自動削除（デフォルト 180 日）
+- **iOS アプリ**（SwiftUI）
+  - LAN IP または Cloudflare Tunnel URL（Gist 経由）でサーバーに接続
+  - 起動時・バックグラウンド復帰時・5 分ごとに記事を自動更新
+  - 右スワイプで既読/未読、左スワイプで AI 要約生成
+- **Cloudflare Tunnel**（Raspberry Pi 用）
+  - 起動時に Quick Tunnel URL を自動取得し GitHub Gist に書き込む
+  - iOS アプリは Gist URL をサーバー URL として登録可能
 
 ## 技術スタック
 
@@ -22,8 +29,9 @@ Web ベースの RSS リーダー。将来的な iOS アプリ版への拡張を
 |---------|------|
 | Backend | Node.js + Hono + TypeScript + better-sqlite3 |
 | Frontend | React 19 + Vite 8 + TanStack Query + Tailwind CSS v4 |
+| iOS | SwiftUI + Swift 6.0 + URLSession（iOS 17.0+） |
 | DB | SQLite（WAL モード） |
-| Test | Vitest（バックエンドのみ、92 件） |
+| Test | Vitest（バックエンドのみ、92 件） / XCTest（iOS） |
 | Infra | Docker Compose + nginx / systemd（Raspberry Pi） |
 
 ## ディレクトリ構成
@@ -65,9 +73,15 @@ gogai/
 │       │   ├── Settings.tsx
 │       │   └── Sidebar.tsx
 │       └── App.tsx
-├── daemon/                           # systemd サービスファイル
+├── ios/                              # iOS アプリ（Xcode プロジェクト）
+│   ├── Gogai.xcodeproj/
+│   ├── Gogai/                        # アプリソース
+│   └── GogaiTests/                   # XCTest ユニットテスト
+├── daemon/                           # systemd サービスファイル（Raspberry Pi 用）
 │   ├── gogai-backend.service
 │   ├── gogai-frontend.service
+│   ├── gogai-cloudflare.service      # Cloudflare Tunnel サービス
+│   ├── cloudflare-tunnel.sh          # Tunnel 起動 + Gist 書き込みスクリプト
 │   └── setup.sh
 ├── docker-compose.yml
 ├── Makefile
@@ -109,6 +123,28 @@ make daemon-logs     # ログ表示（リアルタイム）
 ```
 
 または設定画面の「↻ git pull && 再起動」ボタンでブラウザから更新可能。
+
+#### Cloudflare Tunnel（外部アクセス用）
+
+外出先から iOS アプリで接続する場合、Cloudflare Tunnel を使って Raspberry Pi を外部公開できます。
+
+```bash
+# 1. daemon/.env を作成（GitHub Classic PAT で gist スコープが必要）
+cat > daemon/.env << EOF
+GITHUB_PAT=ghp_xxxxxxxxxxxxxxxxxx
+EOF
+
+# 2. cloudflare-tunnel サービスを起動
+sudo systemctl enable gogai-cloudflare
+sudo systemctl start gogai-cloudflare
+```
+
+起動すると以下が自動実行されます：
+- Cloudflare Quick Tunnel を起動して `*.trycloudflare.com` URL を取得
+- GitHub Gist に URL を書き込む
+- iOS アプリはその Gist URL をサーバー URL として登録可能
+  - 例: `https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47`
+  - 起動するたびに Gist から最新 URL を取得するため、Pi 再起動後も自動で繋がる
 
 ### Docker
 
@@ -188,7 +224,7 @@ Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できま
 
 | Method | Path | 説明 |
 |--------|------|------|
-| POST | `/api/admin/restart` | git pull + サービス再起動 |
+| POST | `/api/admin/restart` | git pull + npm run build → レスポンス返却後に `process.exit(0)` で終了（systemd が自動再起動） |
 
 ## DB スキーマ
 
@@ -240,3 +276,6 @@ settings  (key, value)
 | `make daemon-restart` | サービスを再起動 |
 | `make daemon-status` | サービスの状態確認 |
 | `make daemon-logs` | ログをリアルタイム表示 |
+| `make ios-sync-icons` | `appiconset/` → xcassets へアイコンを同期 |
+| `make ios-build` | アイコン同期 + シミュレータービルド |
+| `make ios-deploy` | アイコン同期 + Release ビルド + 実機インストール + 起動 |

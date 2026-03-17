@@ -23,6 +23,8 @@ make test-watch     # テストをウォッチモードで実行
 make typecheck      # 型チェック（backend + frontend）
 make docker-up      # Docker で起動（http://localhost:8080）
 make daemon-restart # Raspberry Pi でサービスを再起動
+make ios-build      # iOS シミュレータービルド
+make ios-deploy     # iOS 実機インストール＆起動
 ```
 
 ## バックエンド
@@ -64,6 +66,21 @@ make daemon-restart # Raspberry Pi でサービスを再起動
 - AI に渡すテキストは `article.link` から本文を fetch して取得（`article-content.ts`）
   - fetch 失敗時は RSS の `content` / `summary` にフォールバック
 
+### favicon
+
+`GET /api/feeds` レスポンス時に Google favicon サービス URL を動的に生成して返す。
+DB には保存せず、レスポンス変換で差し替えているため DB マイグレーション不要。
+
+```typescript
+// routes/feeds.ts
+function withGoogleFavicon(feed: Feed): Feed {
+  return { ...feed, favicon_url: getFaviconUrl(feed.url) }
+}
+```
+
+iOS の `AsyncImage` は ICO 非対応のため、**必ず Google favicon サービス（PNG）を使うこと**。
+DuckDuckGo favicon は ICO を返すため使用禁止。
+
 ### RSS フィード自動検出（`feed-discovery.ts`）
 
 ドメイン URL を渡すと RSS URL を自動解決する。優先順位:
@@ -80,8 +97,18 @@ make daemon-restart # Raspberry Pi でサービスを再起動
 
 ### Admin エンドポイント（`routes/admin.ts`）
 
-`POST /api/admin/restart` — `git pull` 実行後、0.3 秒遅延で `make restart-daemon` をバックグラウンド実行。
-バックエンド自身が再起動されるため、レスポンスを先に返してから restart する。
+**`GET /api/admin/update-check`** — `git fetch origin main` でリモートを取得後、
+`git rev-parse` でローカルとリモートの SHA を比較して返す。
+GitHub API は使用しない（private repo でも動作する）。
+
+**`POST /api/admin/restart`** — 以下の順序で実行:
+1. `git pull`（`GIT_SSH_COMMAND` で非対話モード）
+2. `npm run build`（**現プロセスの PATH を引き継ぐ**ため systemd の PATH 制限を回避）
+3. レスポンスを返す
+4. 500ms 後に `process.exit(0)`
+
+systemd の `Restart=always` により自動再起動。`ExecStartPre=-npm run build`（`-` = 失敗しても無視）は
+ビルド済み `dist/` があれば即起動できるようにするセーフティネット。
 
 ## フロントエンド
 
@@ -133,6 +160,7 @@ ios/
 │   │   ├── FilterFooterView.swift   フィルター footer（全て/未読のみ/要約あり）
 │   │   ├── Onboarding/      ServerSetupView（初回 URL 設定）
 │   │   ├── Sidebar/         SidebarView / FeedRowView / GroupRowView / AddFeedView / AddGroupView
+│   │   │                    EditFeedView（フィードタイトル・グループ編集）
 │   │   ├── Articles/        ArticleListView / ArticleRowView / ArticleDetailView
 │   │   │                    HTMLContentView（WKWebView で HTML レンダリング）
 │   │   │                    BrowserView（アプリ内ブラウザ）
@@ -185,20 +213,45 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - `withTaskGroup` で Store を渡すと non-Sendable エラーになるため、sequential `await` を使う
 - `Group` モデルと SwiftUI の `Group` ビューが衝突するため `SwiftUI.Group { }` と修飾する
 
+### ServerURLManager の仕様
+
+- `serverURL`: UserDefaults に保存した生の URL（Gist URL の場合もある）
+- `resolvedURL`: 実際に API クライアントが使う URL（Gist URL なら解決済み）
+- `resolve()`: `gist.github.com` URL の場合は GitHub Gist API 経由でコンテンツを取得し実 URL を解決
+- Gist URL を保存することで Pi 再起動後も最新トンネル URL を自動取得できる
+
+```swift
+// 入力例: https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47
+// → GitHub API で Gist のコンテンツ（トンネル URL）を取得
+// → resolvedURL = https://xxxx.trycloudflare.com
+```
+
 ### ArticleStore の主な仕様
 
+- `articles`: 現在表示中フィードの記事（フィルター後）
+- `allArticles`: 全フィードの記事キャッシュ（**未読バッジ計算に使用**）
+  - `articles` は特定フィード表示時にそのフィードのみになるため、sidebar の unreadCount がずれる問題を回避
+  - フェッチ時: 全件取得なら全置換、特定フィードなら該当フィード分を差し替え
+  - markAsRead / markAsUnread / summarize 時: `articles` と `allArticles` 両方を同期更新
 - `unreadOnly: Bool` — `UserDefaults` で永続化（キー: `"unreadOnly"`）
 - `summaryOnly: Bool` — `UserDefaults` で永続化（キー: `"summaryOnly"`）。クライアント側フィルター（`ai_summary != nil`）
 - `summarizingIds: Set<Int>` — AI 要約生成中の記事 ID セット（ProgressView 表示用）
 - `markAsRead` / `markAsUnread` — 楽観的更新（失敗時ロールバック）
-- `markAllAsRead()` — 表示中の未読記事を並列 API 呼び出しで一括既読
-- `summarize(id:)` — AI 要約を生成し `articles` の `ai_summary` を更新。`summarizingIds` で進捗管理
+- `markAllAsRead()` — 表示中の未読記事を sequential API 呼び出しで一括既読
+- `summarize(id:)` — AI 要約を生成し `articles` / `allArticles` の `ai_summary` を更新
+
+### GogaiApp の自動更新
+
+- **起動時**: `resolvedURL` 確定後に `configureStores()` → `fetchArticles()`
+- **バックグラウンド復帰時**: `scenePhase == .active` を検知して `articleStore.refresh()`
+- **5 分ごと**: `.task(id: resolvedURL)` でループし `articleStore.refresh()`（バックグラウンド中は iOS がタスクを停止）
 
 ### 画面・インタラクション仕様
 
 | 画面 | 機能 |
 |------|------|
-| SidebarView | タイトル "Feed list"。フィード名横に未読数 `(N)` 表示 |
+| SidebarView | タイトル "Feed list"。フィード名横にアクセントカラーの丸バッジで未読数表示 |
+| SidebarView | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
 | ArticleListView | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
 | ArticleListView | 右スワイプ: 既読/未読トグル（フルスワイプで即実行）|
 | ArticleListView | 左スワイプ: AI 要約生成（フルスワイプで即実行）|
@@ -207,6 +260,7 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | ArticleDetailView | 上スワイプ: アプリ内ブラウザ（BrowserView）を sheet で開く |
 | FilterFooterView | 「全て」「未読のみ」「要約あり」ボタン（両画面共通）|
 | BrowserView | WKWebView。戻る / 進む / リロード（読込中はキャンセル）ボタン |
+| AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
 
 ### ナビゲーション構造
 
@@ -247,7 +301,31 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 
 ## Raspberry Pi（systemd）
 
-- サービスファイル: `daemon/gogai-backend.service` / `gogai-frontend.service`
+- サービスファイル: `daemon/gogai-backend.service` / `gogai-frontend.service` / `gogai-cloudflare.service`
 - セットアップ: `bash daemon/setup.sh`
 - backend / frontend ともに `host: 0.0.0.0` でバインドして LAN からアクセス可能
-- 設定画面の「git pull && 再起動」ボタンでブラウザから更新可能
+- 設定画面の「git pull して再起動」ボタンでブラウザ・iOS アプリから更新可能
+
+### gogai-backend.service の注意点
+
+- `Restart=always` — `process.exit(0)` でも再起動するために必要（`on-failure` は終了コード 0 で再起動しない）
+- `ExecStartPre=-npm run build` — `-` プレフィックスで失敗しても無視（restart エンドポイントが事前にビルド済みのため）
+
+### Cloudflare トンネル（gogai-cloudflare.service）
+
+起動時に `cloudflared` でクイックトンネルを作成し、割り当て URL を GitHub Gist に書き込む。
+
+```bash
+# daemon/.env に GitHub classic PAT（gist スコープ必須）を設定
+echo "GITHUB_PAT=ghp_xxxx" > daemon/.env
+chmod 600 daemon/.env
+
+# サービスをインストール
+sudo cp daemon/gogai-cloudflare.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now gogai-cloudflare
+```
+
+- `~/.cloudflared/config.yml` に名前付きトンネルの設定がある場合、`--config` に空の一時ファイルを渡してクイックトンネルとして起動する（既存設定の ingress ルールが干渉するため）
+- Gist URL: `https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47`
+- iOS アプリの「サーバー URL」にこの Gist URL を入力すると、起動時に最新トンネル URL を自動解決して接続する
