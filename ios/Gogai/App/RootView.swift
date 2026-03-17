@@ -9,6 +9,7 @@ struct RootView: View {
     @State private var selectedFeedId: Int?
     @State private var selectedGroupId: Int?
     @State private var selectedArticle: Article?
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
         SwiftUI.Group {
@@ -32,16 +33,18 @@ struct RootView: View {
                     }
                 }
             } else {
-                NavigationStack {
+                NavigationStack(path: $navigationPath) {
                     SidebarView(
                         selectedFeedId: $selectedFeedId,
-                        selectedGroupId: $selectedGroupId
+                        selectedGroupId: $selectedGroupId,
+                        onNavigate: { dest in navigationPath.append(dest) }
                     )
                     .navigationDestination(for: ArticleDestination.self) { dest in
                         ArticleListView(
                             feedId: dest.feedId,
                             groupId: dest.groupId,
-                            selectedArticle: $selectedArticle
+                            selectedArticle: $selectedArticle,
+                            onArticleSelected: { article in navigationPath.append(article) }
                         )
                         .navigationDestination(for: Article.self) { article in
                             ArticleDetailView(article: article)

@@ -1,14 +1,20 @@
 import SwiftUI
-import SafariServices
 
 struct ArticleDetailView: View {
     let article: Article
 
     @EnvironmentObject private var articleStore: ArticleStore
+    @EnvironmentObject private var feedStore: FeedStore
+    @Environment(\.openURL) private var openURL
 
-    @State private var showSafari = false
+    private var isRead: Bool {
+        articleStore.articles.first(where: { $0.id == article.id })?.isRead ?? article.isRead
+    }
+
+    @State private var showBrowser = false
     @State private var showAISummary = false
     @State private var showAITranslation = false
+    @State private var contentHeight: CGFloat = 200
 
     var body: some View {
         ScrollView {
@@ -28,7 +34,7 @@ struct ArticleDetailView: View {
                     Spacer()
                     Button {
                         Task {
-                            if article.isRead {
+                            if isRead {
                                 await articleStore.markAsUnread(id: article.id)
                             } else {
                                 await articleStore.markAsRead(id: article.id)
@@ -36,8 +42,8 @@ struct ArticleDetailView: View {
                         }
                     } label: {
                         Label(
-                            article.isRead ? "未読にする" : "既読にする",
-                            systemImage: article.isRead ? "envelope.badge" : "envelope.open"
+                            isRead ? "未読にする" : "既読にする",
+                            systemImage: isRead ? "envelope.badge" : "envelope.open"
                         )
                         .font(.caption)
                     }
@@ -47,9 +53,8 @@ struct ArticleDetailView: View {
 
                 // Content
                 if let content = article.content ?? article.summary {
-                    Text(content)
-                        .font(.body)
-                        .lineSpacing(6)
+                    HTMLContentView(html: content, height: $contentHeight)
+                        .frame(height: contentHeight)
                 } else {
                     Text("本文がありません")
                         .foregroundStyle(.secondary)
@@ -82,19 +87,28 @@ struct ArticleDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if let link = article.link, URL(string: link) != nil {
+                if let link = article.link, let url = URL(string: link) {
                     Button {
-                        showSafari = true
+                        openURL(url)
                     } label: {
                         Image(systemName: "safari")
                     }
                 }
             }
         }
-        .sheet(isPresented: $showSafari) {
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 80, coordinateSpace: .local)
+                .onEnded { value in
+                    let isUpSwipe = value.translation.height < -80
+                        && abs(value.translation.width) < abs(value.translation.height) * 0.5
+                    if isUpSwipe, let link = article.link, URL(string: link) != nil {
+                        showBrowser = true
+                    }
+                }
+        )
+        .sheet(isPresented: $showBrowser) {
             if let link = article.link, let url = URL(string: link) {
-                SafariView(url: url)
-                    .ignoresSafeArea()
+                BrowserView(url: url)
             }
         }
         .sheet(isPresented: $showAISummary) {
@@ -104,19 +118,9 @@ struct ArticleDetailView: View {
             AISummaryView(article: article, action: .translate)
         }
         .onAppear {
-            if !article.isRead {
+            if !isRead {
                 Task { await articleStore.markAsRead(id: article.id) }
             }
         }
     }
-}
-
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        SFSafariViewController(url: url)
-    }
-
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }

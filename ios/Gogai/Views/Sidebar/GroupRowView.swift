@@ -3,6 +3,7 @@ import SwiftUI
 struct GroupRowView: View {
     let group: Group
     @Binding var selectedGroupId: Int?
+    var onNavigate: ((ArticleDestination) -> Void)?
 
     @EnvironmentObject private var groupStore: GroupStore
     @EnvironmentObject private var feedStore: FeedStore
@@ -14,6 +15,7 @@ struct GroupRowView: View {
     var body: some View {
         Button {
             selectedGroupId = group.id
+            onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
         } label: {
             HStack {
                 Image(systemName: "folder")

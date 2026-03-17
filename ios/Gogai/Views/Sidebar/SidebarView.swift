@@ -7,6 +7,7 @@ struct SidebarView: View {
 
     @Binding var selectedFeedId: Int?
     @Binding var selectedGroupId: Int?
+    var onNavigate: ((ArticleDestination) -> Void)?
 
     @State private var showAddFeed = false
     @State private var showAddGroup = false
@@ -23,6 +24,7 @@ struct SidebarView: View {
                 Button {
                     selectedFeedId = nil
                     selectedGroupId = nil
+                    onNavigate?(ArticleDestination(feedId: nil, groupId: nil))
                 } label: {
                     Label("すべての記事", systemImage: "newspaper")
                 }
@@ -30,25 +32,35 @@ struct SidebarView: View {
             }
 
             ForEach(groupStore.groups) { group in
-                Section {
-                    ForEach(feedStore.feeds(for: group.id)) { feed in
-                        FeedRowView(feed: feed, selectedFeedId: $selectedFeedId)
+                let feeds = feedStore.feeds(for: group.id).filter { feed in
+                    !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
+                }
+                if !feeds.isEmpty {
+                    Section {
+                        ForEach(feeds) { feed in
+                            FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
+                        }
+                    } header: {
+                        GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
                     }
-                } header: {
-                    GroupRowView(group: group, selectedGroupId: $selectedGroupId)
                 }
             }
 
-            let ungroupedFeeds = feedStore.feeds.filter { $0.group_id == nil }
+            let ungroupedFeeds = feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
+                !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
+            }
             if !ungroupedFeeds.isEmpty {
                 Section("未分類") {
                     ForEach(ungroupedFeeds) { feed in
-                        FeedRowView(feed: feed, selectedFeedId: $selectedFeedId)
+                        FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                     }
                 }
             }
         }
-        .navigationTitle("gogai")
+        .safeAreaInset(edge: .bottom) {
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly)
+        }
+        .navigationTitle("Feed list")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
