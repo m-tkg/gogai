@@ -3,6 +3,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import type { Server } from 'http'
 import { getServer } from '../serverInstance.js'
 
 const execAsync = promisify(exec)
@@ -61,16 +62,16 @@ app.post('/restart', async (c) => {
     return c.json({ error: msg }, 500)
   }
 
-  // レスポンスを返してからプロセスを終了する
-  // server.close() で既存コネクションが閉じられた後に process.exit(0)
+  // レスポンスを先に返し、300ms 後に全コネクションを強制クローズしてプロセスを終了する
+  // server.close() だけでは keep-alive コネクションが残り process.exit が呼ばれないため、
+  // closeAllConnections() で強制クローズしてから終了する
   // systemd の Restart=always により自動再起動 → ExecStartPre の npm run build で新コードをビルド
   const response = c.json({ output: gitOutput.trim() })
-  const srv = getServer()
-  if (srv) {
-    srv.close(() => process.exit(0))
-  } else {
-    setTimeout(() => process.exit(0), 1000)
-  }
+  setTimeout(() => {
+    const srv = getServer() as Server | null
+    srv?.closeAllConnections?.()
+    process.exit(0)
+  }, 300)
   return response
 })
 
