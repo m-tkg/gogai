@@ -1,13 +1,14 @@
 import { Hono } from 'hono'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { resolve, dirname } from 'path'
+import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const execAsync = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // backend/src/routes/ → プロジェクトルート（3階層上）
 const PROJECT_ROOT = resolve(__dirname, '../../../')
+const BACKEND_DIR = join(PROJECT_ROOT, 'backend')
 
 const GITHUB_BRANCH = 'main'
 
@@ -60,11 +61,25 @@ app.post('/restart', async (c) => {
     return c.json({ error: msg }, 500)
   }
 
+  // 現プロセスの PATH を引き継いで npm run build を実行する
+  // （systemd の ExecStartPre は PATH が限定されて失敗する場合があるため、ここでビルドする）
+  let buildOutput = ''
+  try {
+    const { stdout, stderr } = await execAsync('npm run build', {
+      cwd: BACKEND_DIR,
+      env: process.env,
+    })
+    buildOutput = stdout || stderr
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[restart] npm run build failed:', msg)
+    return c.json({ error: `ビルドに失敗しました: ${msg}` }, 500)
+  }
+
   // レスポンスを先に返し、500ms 後にプロセスを終了する
-  // process.exit(0) 時に OS がソケットを FIN でクローズするため、
-  // iOS 側へのレスポンスデータがバッファから届いた後にコネクションが閉じられる
-  // systemd の Restart=always により自動再起動 → ExecStartPre の npm run build で新コードをビルド
-  const response = c.json({ output: gitOutput.trim() })
+  // systemd の Restart=always により自動再起動 → dist/ はビルド済みのため即起動
+  const output = [gitOutput, buildOutput].map((s) => s.trim()).filter(Boolean).join('\n---\n')
+  const response = c.json({ output })
   setTimeout(() => process.exit(0), 500)
   return response
 })
