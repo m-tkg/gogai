@@ -56,7 +56,7 @@ async function getFaviconUrl(siteUrl: string): Promise<string | null> {
         return href.startsWith('http') ? href : new URL(href, origin).href
       }
     }
-    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`
+    return `https://www.google.com/s2/favicons?domain_url=${origin}&sz=32`
   } catch {
     return null
   }
