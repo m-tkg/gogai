@@ -60,12 +60,9 @@ app.post('/restart', async (c) => {
     return c.json({ error: msg }, 500)
   }
 
-  // レスポンスを返してから再起動（バックエンド自身も再起動されるため非同期で遅延実行）
-  setTimeout(() => {
-    exec('sudo systemctl restart gogai-backend gogai-frontend', { cwd: PROJECT_ROOT }, (err) => {
-      if (err) console.error('[restart] systemctl failed:', err.message)
-    })
-  }, 1000)
+  // レスポンスを返してからプロセスを終了する
+  // systemd の Restart=always により自動再起動 → ExecStartPre の npm run build で新コードをビルド
+  setTimeout(() => process.exit(0), 1000)
 
   return c.json({ output: gitOutput.trim() })
 })
