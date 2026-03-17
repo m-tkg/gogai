@@ -3,6 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SYSTEMD_DIR="/etc/systemd/system"
+SERVICE_USER="${SUDO_USER:-$(whoami)}"
 
 echo "=== Gogai daemon setup ==="
 
@@ -20,6 +21,13 @@ sudo systemctl enable gogai-frontend
 # サービスを起動
 sudo systemctl start gogai-backend
 sudo systemctl start gogai-frontend
+
+# アプリ内「git pull して再起動」ボタン用: パスワードなしで systemctl restart を許可
+SUDOERS_FILE="/etc/sudoers.d/gogai"
+echo "${SERVICE_USER} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart gogai-backend gogai-frontend" \
+  | sudo tee "$SUDOERS_FILE" > /dev/null
+sudo chmod 440 "$SUDOERS_FILE"
+echo "sudoers: ${SUDOERS_FILE} を設定しました (${SERVICE_USER})"
 
 echo ""
 echo "=== 完了 ==="
