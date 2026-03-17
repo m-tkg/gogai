@@ -46,7 +46,19 @@ final class ArticleStore: ObservableObject {
 
     @MainActor
     func refresh() async {
+        // リフレッシュ前のローカル既読状態を保持（markAsRead の API コールが完了前に
+        // リフレッシュが走った場合、DB がまだ未読のままでも既読が失われないようにする）
+        let localReadIds = Set(articles.filter { $0.isRead }.map { $0.id })
         await fetchArticles(feedId: currentFeedId, groupId: currentGroupId)
+        guard !localReadIds.isEmpty else { return }
+        articles = articles.map { a in
+            guard localReadIds.contains(a.id), !a.isRead else { return a }
+            return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
+                           title: a.title, link: a.link, summary: a.summary,
+                           content: a.content, published_at: a.published_at,
+                           is_read: 1, created_at: a.created_at,
+                           ai_summary: a.ai_summary, ai_translation: a.ai_translation)
+        }
     }
 
     // Optimistic update: immediately update local state, rollback on failure
