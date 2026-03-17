@@ -60,12 +60,15 @@ struct ServerSetupView: View {
         defer { isChecking = false }
 
         do {
-            let healthURL = url.appendingPathComponent("health")
+            // Gist URL の場合はコンテンツから実 URL を解決してからヘルスチェック
+            let resolved = try await ServerURLManager.resolveURL(url)
+            let healthURL = resolved.appendingPathComponent("health")
             let (_, response) = try await URLSession.shared.data(from: healthURL)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 errorMessage = "サーバーに接続できませんでした"
                 return
             }
+            // 元の URL（Gist URL）を保存することで、次回起動時に最新 URL を再取得できる
             serverURLManager.setServerURL(url)
         } catch {
             errorMessage = "接続失敗: \(error.localizedDescription)"
