@@ -10,3 +10,6 @@ frontend/.env.development.local
 frontend/.env.local
 .playwright-mcp/
 *.png
+.build/
+ios/Gogai.xcodeproj/project.xcworkspace/xcuserdata/
+ios/Gogai.xcodeproj/xcuserdata/
