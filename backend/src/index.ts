@@ -14,6 +14,7 @@ import { refreshAllFeeds } from './services/feed-refresher.js'
 import { mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { setServer } from './serverInstance.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 mkdirSync(join(__dirname, '../data'), { recursive: true })
@@ -63,4 +64,4 @@ app.get('/health', (c) => c.json({ status: 'ok' }))
 const port = Number(process.env.PORT ?? 3040)
 console.log(`Server running on http://localhost:${port}`)
 
-serve({ fetch: app.fetch, port, hostname: '0.0.0.0' })
+setServer(serve({ fetch: app.fetch, port, hostname: '0.0.0.0' }))
