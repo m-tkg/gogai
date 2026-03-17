@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct GogaiApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     @StateObject private var serverURLManager = ServerURLManager()
     @StateObject private var groupStore = GroupStore()
     @StateObject private var feedStore = FeedStore()
@@ -31,9 +33,23 @@ struct GogaiApp: App {
                 guard let url = newURL else { return }
                 configureStores(baseURL: url)
             }
+            // バックグラウンドから復帰したら最新記事を取得
+            .onChange(of: scenePhase) { _, newPhase in
+                guard newPhase == .active, serverURLManager.resolvedURL != nil else { return }
+                Task { await articleStore.refresh() }
+            }
             // 起動時に解決（Gist URL の場合は Gist から最新 URL を取得）
             .task {
                 await serverURLManager.resolve()
+            }
+            // 5分ごとに記事を自動更新（resolvedURL が変わるとタスクが再起動される）
+            .task(id: serverURLManager.resolvedURL) {
+                guard serverURLManager.resolvedURL != nil else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(300))
+                    guard !Task.isCancelled else { break }
+                    await articleStore.refresh()
+                }
             }
         }
     }
