@@ -20,10 +20,15 @@ LOGFILE="/tmp/cloudflared-tunnel.log"
 
 rm -f "$LOGFILE"
 
+# ~/.cloudflared/config.yml の名前付きトンネル設定を無視するため、空の一時 config を使用
+# （既存 config があるとそちらの ingress ルールが優先されクイックトンネルにならない）
+TMPCONFIG=$(mktemp --suffix=.yml)
+trap "rm -f '$TMPCONFIG'" EXIT
+
 echo "[cloudflare-tunnel] Starting tunnel -> $TARGET_URL"
 
 # cloudflared をバックグラウンドで起動（stdout/stderr をログファイルへ）
-cloudflared tunnel --url "$TARGET_URL" >> "$LOGFILE" 2>&1 &
+cloudflared tunnel --config "$TMPCONFIG" --url "$TARGET_URL" >> "$LOGFILE" 2>&1 &
 CF_PID=$!
 
 # URL が出力されるまで最大 60 秒待機
