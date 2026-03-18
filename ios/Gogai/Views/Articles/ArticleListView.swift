@@ -53,6 +53,26 @@ struct ArticleListView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Section("ソート") {
+                        ForEach(ArticleSortOrder.allCases, id: \.self) { order in
+                            Button {
+                                articleStore.sortOrder = order
+                                Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId) }
+                            } label: {
+                                if articleStore.sortOrder == order {
+                                    Label(order.label, systemImage: "checkmark")
+                                } else {
+                                    Text(order.label)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showMarkAllConfirm = true
                 } label: {
