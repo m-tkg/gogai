@@ -77,14 +77,21 @@ struct ArticleListView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "arrow.up.arrow.down")
+                    ZStack(alignment: .bottomTrailing) {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.body)
+                        Image(systemName: articleStore.sortOrder.badgeIconName)
+                            .font(.system(size: 9, weight: .semibold))
+                            .offset(x: 6, y: 5)
+                    }
+                    .padding(.trailing, 4)
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showMarkAllConfirm = true
                 } label: {
-                    Image(systemName: "envelope.open")
+                    Image(systemName: "envelope.open.fill")
                 }
                 .disabled(displayedArticles.allSatisfy { $0.isRead })
                 .confirmationDialog("表示中の記事をすべて既読にしますか？", isPresented: $showMarkAllConfirm, titleVisibility: .visible) {
