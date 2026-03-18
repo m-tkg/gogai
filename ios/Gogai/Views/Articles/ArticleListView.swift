@@ -29,8 +29,11 @@ struct ArticleListView: View {
                             Task { await articleStore.markAsRead(id: article.id) }
                         }
                     }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        Button {
+                    .modifier(SwipeRowModifier(
+                        leading: SwipeAction(
+                            systemImage: article.isRead ? "envelope.badge" : "envelope.open",
+                            tint: article.isRead ? .orange : .blue
+                        ) {
                             Task {
                                 if article.isRead {
                                     await articleStore.markAsUnread(id: article.id)
@@ -38,22 +41,11 @@ struct ArticleListView: View {
                                     await articleStore.markAsRead(id: article.id)
                                 }
                             }
-                        } label: {
-                            Label(
-                                article.isRead ? "未読にする" : "既読にする",
-                                systemImage: article.isRead ? "envelope.badge" : "envelope.open"
-                            )
-                        }
-                        .tint(article.isRead ? .orange : .blue)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button {
+                        },
+                        trailing: SwipeAction(systemImage: "sparkles", tint: .purple) {
                             Task { await articleStore.summarize(id: article.id) }
-                        } label: {
-                            Label("AI要約", systemImage: "sparkles")
                         }
-                        .tint(.purple)
-                    }
+                    ))
             }
         }
         .listStyle(.plain)
