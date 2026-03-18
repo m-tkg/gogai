@@ -67,7 +67,7 @@ export function initSchema(db: Database.Database): void {
   `)
 
   // カラムが存在しない場合のみ追加（既存 DB への移行）
-  for (const col of ['ai_summary', 'ai_translation']) {
+  for (const col of ['ai_summary', 'ai_translation', 'read_at']) {
     try {
       db.exec(`ALTER TABLE articles ADD COLUMN ${col} TEXT`)
     } catch {

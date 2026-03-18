@@ -155,9 +155,10 @@ describe('ArticlesService', () => {
       const newArticle = allArticles.find(a => a.title === 'New Article')!
 
       // 古い記事を先に既読にする（read_at が早い）
-      articlesService.markAsRead(oldArticle.id)
-      // 少し待って新しい記事を既読にする
-      articlesService.markAsRead(newArticle.id)
+      const readAtOld = new Date(now.getTime() - 60 * 60 * 1000).toISOString() // 1時間前
+      const readAtNew = new Date(now.getTime() - 30 * 60 * 1000).toISOString() // 30分前
+      articlesService.markAsRead(oldArticle.id, readAtOld)
+      articlesService.markAsRead(newArticle.id, readAtNew)
 
       const articles = articlesService.findAll({ limit: 10, offset: 0, sortBy: 'read_at' })
       // read_at が新しい順なので、後で既読にした New Article が先
