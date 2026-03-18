@@ -21,7 +21,7 @@ final class ArticleStoreTests: XCTestCase {
         Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
                 is_read: isRead, created_at: "2024-01-01T00:00:00Z",
-                ai_summary: nil, ai_translation: nil)
+                ai_summary: nil, ai_translation: nil, read_at: nil)
     }
 
     @MainActor
