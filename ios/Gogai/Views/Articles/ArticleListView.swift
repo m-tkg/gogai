@@ -67,13 +67,13 @@ struct ArticleListView: View {
                     Image(systemName: "envelope.open")
                 }
                 .disabled(displayedArticles.allSatisfy { $0.isRead })
+                .confirmationDialog("表示中の記事をすべて既読にしますか？", isPresented: $showMarkAllConfirm, titleVisibility: .visible) {
+                    Button("すべて既読にする", role: .destructive) {
+                        Task { await articleStore.markAllAsRead() }
+                    }
+                    Button("キャンセル", role: .cancel) {}
+                }
             }
-        }
-        .confirmationDialog("表示中の記事をすべて既読にしますか？", isPresented: $showMarkAllConfirm, titleVisibility: .visible) {
-            Button("すべて既読にする", role: .destructive) {
-                Task { await articleStore.markAllAsRead() }
-            }
-            Button("キャンセル", role: .cancel) {}
         }
         .safeAreaInset(edge: .bottom) {
             FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly)
