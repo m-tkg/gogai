@@ -28,4 +28,12 @@ enum ArticleSortOrder: String, CaseIterable, Sendable {
         case .readAt: return "既読日時順"
         }
     }
+
+    /// ソートアイコンに重ねて表示するバッジ用 SF Symbol 名
+    var badgeIconName: String {
+        switch self {
+        case .publishedAt: return "rss"
+        case .readAt: return "envelope.open"
+        }
+    }
 }
