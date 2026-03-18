@@ -91,7 +91,7 @@ struct ArticleListView: View {
                 Button {
                     showMarkAllConfirm = true
                 } label: {
-                    Image(systemName: "envelope.open")
+                    Image(systemName: "envelope.open.fill")
                 }
                 .disabled(displayedArticles.allSatisfy { $0.isRead })
                 .confirmationDialog("表示中の記事をすべて既読にしますか？", isPresented: $showMarkAllConfirm, titleVisibility: .visible) {
