@@ -75,4 +75,11 @@ export function initSchema(db: Database.Database): void {
     }
   }
 
+  // read_at カラム追加後にインデックスを作成
+  try {
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at DESC)`)
+  } catch {
+    // ignore
+  }
+
 }
