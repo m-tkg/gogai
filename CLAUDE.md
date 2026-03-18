@@ -246,28 +246,37 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - **バックグラウンド復帰時**: `scenePhase == .active` を検知して `articleStore.refresh()`
 - **5 分ごと**: `.task(id: resolvedURL)` でループし `articleStore.refresh()`（バックグラウンド中は iOS がタスクを停止）
 
+### ページ名称
+
+| ページ名 | View | 説明 |
+|----------|------|------|
+| **フィードページ** | `SidebarView` | 起動直後に表示。フィード・グループ一覧 |
+| **記事一覧ページ** | `ArticleListView` | フィード/グループ選択後の記事一覧 |
+| **概要ページ** | `ArticleDetailView` | 記事タイトル・要約・AI 要約を表示 |
+| **記事ページ** | `BrowserView`（SFSafariViewController）| 記事本文を Safari で表示 |
+
 ### 画面・インタラクション仕様
 
-| 画面 | 機能 |
-|------|------|
-| SidebarView | タイトル "Feed list"。フィード名横にアクセントカラーの丸バッジで未読数表示 |
-| SidebarView | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
-| ArticleListView | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
-| ArticleListView | 右スワイプ: 既読/未読トグル（フルスワイプで即実行）|
-| ArticleListView | 左スワイプ: AI 要約生成（フルスワイプで即実行）|
-| ArticleListView | 要約済み記事行に ✦ アイコン、生成中はスピナー表示 |
-| ArticleDetailView | 右上 Safari アイコン: デフォルトブラウザで開く |
-| ArticleDetailView | 上スワイプ: アプリ内ブラウザ（BrowserView）を sheet で開く |
-| FilterFooterView | 「全て」「未読のみ」「要約あり」ボタン（両画面共通）|
-| BrowserView | WKWebView。戻る / 進む / リロード（読込中はキャンセル）ボタン |
+| ページ | 機能 |
+|--------|------|
+| フィードページ（SidebarView） | タイトル "Feed list"。フィード名横にアクセントカラーの丸バッジで未読数表示 |
+| フィードページ（SidebarView） | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
+| 記事一覧ページ（ArticleListView） | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
+| 記事一覧ページ（ArticleListView） | 右スワイプ 12.5% でボタン表示、25% で確定: 既読/未読トグル |
+| 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: AI 要約生成 |
+| 記事一覧ページ（ArticleListView） | 要約済み記事行に ✦ アイコン、生成中はスピナー表示 |
+| 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
+| 概要ページ（ArticleDetailView） | 上スワイプ: 記事ページ（BrowserView）を sheet で開く |
+| FilterFooterView | 「全て」「未読のみ」「要約あり」ボタン（フィードページ・記事一覧ページ共通）|
+| 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
 
 ### ナビゲーション構造
 
-- **iPad**: `NavigationSplitView`（3カラム: Sidebar / ArticleList / ArticleDetail）
+- **iPad**: `NavigationSplitView`（3カラム: フィードページ / 記事一覧ページ / 概要ページ）
 - **iPhone**: `NavigationStack(path: $navigationPath)`
-  - `SidebarView` の各行に `onNavigate` コールバックを渡し、`ArticleDestination` を push
-  - `ArticleListView` の各行に `onArticleSelected` コールバックを渡し、`Article` を push
+  - フィードページ（SidebarView）の各行に `onNavigate` コールバックを渡し、`ArticleDestination` を push
+  - 記事一覧ページ（ArticleListView）の各行に `onArticleSelected` コールバックを渡し、`Article` を push
 
 ### デバッガなしで実機実行（高速化）
 

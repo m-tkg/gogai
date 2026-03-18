@@ -153,6 +153,17 @@ make ios-sync-icons   # appiconset/ → xcassets へコピー
 
 ---
 
+## ページ構成
+
+| ページ名 | View | 説明 |
+|----------|------|------|
+| **フィードページ** | `SidebarView` | 起動直後に表示。フィード・グループ一覧 |
+| **記事一覧ページ** | `ArticleListView` | フィード/グループ選択後の記事一覧 |
+| **概要ページ** | `ArticleDetailView` | 記事タイトル・要約・AI 要約を表示 |
+| **記事ページ** | `BrowserView`（SFSafariViewController）| 記事本文を Safari で表示 |
+
+---
+
 ## プロジェクト構成
 
 ```
@@ -168,10 +179,11 @@ ios/
 │   ├── Views/
 │   │   ├── FilterFooterView.swift   全て / 未読のみ / 要約あり フィルター
 │   │   ├── Onboarding/      ServerSetupView（初回 URL 設定）
-│   │   ├── Sidebar/         SidebarView / FeedRowView / GroupRowView / Add*View
-│   │   ├── Articles/        ArticleListView / ArticleRowView / ArticleDetailView
+│   │   ├── Sidebar/         フィードページ（SidebarView / FeedRowView / GroupRowView / Add*View）
+│   │   ├── Articles/        記事一覧ページ（ArticleListView / ArticleRowView）
+│   │   │                    概要ページ（ArticleDetailView）
+│   │   │                    記事ページ（BrowserView / SFSafariViewController）
 │   │   │                    HTMLContentView（WKWebView HTML レンダリング）
-│   │   │                    BrowserView（アプリ内ブラウザ）
 │   │   ├── AI/              AISummaryView（要約 / 翻訳）
 │   │   └── Settings/        SettingsView / AdminView
 │   ├── ViewModels/
@@ -188,10 +200,10 @@ ios/
 
 | 操作 | 動作 |
 |------|------|
-| 記事一覧 右スワイプ | 既読/未読トグル（フルスワイプで即実行） |
-| 記事一覧 左スワイプ | AI 要約生成（フルスワイプで即実行） |
-| 記事詳細 上スワイプ | アプリ内ブラウザで記事を開く |
-| 記事詳細 右上アイコン | デフォルトブラウザで記事を開く |
+| 記事一覧ページ 右スワイプ（25%） | 既読/未読トグル |
+| 記事一覧ページ 左スワイプ（25%） | AI 要約生成 |
+| 概要ページ 上スワイプ | 記事ページ（Safari）を開く |
+| 概要ページ 右上アイコン | デフォルトブラウザで記事を開く |
 | フッター「要約あり」 | AI 要約済みの記事のみ表示 |
 | リスト下スワイプ | フィード更新（Pull to Refresh） |
 
