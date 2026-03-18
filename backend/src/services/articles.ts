@@ -13,6 +13,7 @@ export interface Article {
   created_at: string
   ai_summary: string | null
   ai_translation: string | null
+  read_at: string | null
 }
 
 export interface ArticleItem {
@@ -24,12 +25,15 @@ export interface ArticleItem {
   publishedAt?: string
 }
 
+export type SortBy = 'published_at' | 'read_at'
+
 export interface FindAllOptions {
   limit: number
   offset: number
   feedId?: number
   groupId?: number
   unreadOnly?: boolean
+  sortBy?: SortBy
 }
 
 export class ArticlesService {
@@ -81,11 +85,15 @@ export class ArticlesService {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     values.push(options.limit, options.offset)
 
+    const orderBy = options.sortBy === 'read_at'
+      ? 'COALESCE(a.read_at, a.published_at) DESC'
+      : 'a.published_at DESC'
+
     return this.db.prepare(`
       SELECT a.* FROM articles a
       JOIN feeds f ON a.feed_id = f.id
       ${where}
-      ORDER BY a.published_at DESC
+      ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `).all(...values) as Article[]
   }
@@ -98,12 +106,12 @@ export class ArticlesService {
     return (this.db.prepare('SELECT * FROM articles WHERE id = ?').get(id) as Article) ?? null
   }
 
-  markAsRead(id: number): void {
-    this.db.prepare('UPDATE articles SET is_read = 1 WHERE id = ?').run(id)
+  markAsRead(id: number, readAt?: string): void {
+    this.db.prepare('UPDATE articles SET is_read = 1, read_at = ? WHERE id = ?').run(readAt ?? new Date().toISOString(), id)
   }
 
   markAsUnread(id: number): void {
-    this.db.prepare('UPDATE articles SET is_read = 0 WHERE id = ?').run(id)
+    this.db.prepare('UPDATE articles SET is_read = 0, read_at = NULL WHERE id = ?').run(id)
   }
 
   saveAiResult(id: number, action: 'summarize' | 'translate', text: string): void {

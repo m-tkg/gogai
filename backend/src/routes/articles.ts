@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { ArticlesService } from '../services/articles.js'
+import { ArticlesService, type SortBy } from '../services/articles.js'
 import { getAIProvider } from '../services/ai-provider.js'
 import { aiConfig } from '../services/ai-config.js'
 import { fetchArticleContent } from '../services/article-content.js'
@@ -13,8 +13,10 @@ app.get('/', (c) => {
   const feedId = c.req.query('feedId') ? Number(c.req.query('feedId')) : undefined
   const groupId = c.req.query('groupId') ? Number(c.req.query('groupId')) : undefined
   const unreadOnly = c.req.query('unreadOnly') === 'true'
+  const sortByParam = c.req.query('sortBy')
+  const sortBy: SortBy = sortByParam === 'read_at' ? 'read_at' : 'published_at'
 
-  const articles = new ArticlesService(getDb()).findAll({ limit, offset, feedId, groupId, unreadOnly })
+  const articles = new ArticlesService(getDb()).findAll({ limit, offset, feedId, groupId, unreadOnly, sortBy })
   return c.json(articles)
 })
 
