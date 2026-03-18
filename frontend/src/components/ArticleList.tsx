@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { articlesApi, feedsApi, type Article } from '../api/client'
+import { articlesApi, feedsApi, type Article, type SortBy } from '../api/client'
 import { useState } from 'react'
 import { marked } from 'marked'
 
@@ -14,10 +14,11 @@ interface ArticleListProps {
 export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId, onOpenSidebar }: ArticleListProps) {
   const qc = useQueryClient()
   const [unreadOnly, setUnreadOnly] = useState(false)
+  const [sortBy, setSortBy] = useState<SortBy>('published_at')
 
   const { data: articles = [], isLoading } = useQuery({
-    queryKey: ['articles', { feedId, groupId, unreadOnly }],
-    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, limit: 100, offset: 0 }),
+    queryKey: ['articles', { feedId, groupId, unreadOnly, sortBy }],
+    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, sortBy, limit: 100, offset: 0 }),
   })
 
   const refresh = useMutation({
@@ -68,6 +69,15 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
             />
             未読のみ
           </label>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as SortBy)}
+            className="text-xs text-gray-600 dark:text-gray-400 bg-transparent border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5 cursor-pointer"
+            aria-label="ソート順"
+          >
+            <option value="published_at">配信日順</option>
+            <option value="read_at">既読日時順</option>
+          </select>
         </div>
         {feedId && (
           <button
