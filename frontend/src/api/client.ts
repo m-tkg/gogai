@@ -21,6 +21,8 @@ export interface Feed {
   created_at: string
 }
 
+export type SortBy = 'published_at' | 'read_at'
+
 export interface Article {
   id: number
   feed_id: number
@@ -34,6 +36,7 @@ export interface Article {
   created_at: string
   ai_summary: string | null
   ai_translation: string | null
+  read_at: string | null
 }
 
 // Groups API
@@ -84,7 +87,7 @@ export const adminApi = {
 
 // Articles API
 export const articlesApi = {
-  list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; limit?: number; offset?: number }) =>
+  list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; sortBy?: SortBy; limit?: number; offset?: number }) =>
     api.get<Article[]>('/api/articles', { params }).then(r => r.data),
   get: (id: number) => api.get<Article>(`/api/articles/${id}`).then(r => r.data),
   markAsRead: (id: number) => api.post(`/api/articles/${id}/read`),

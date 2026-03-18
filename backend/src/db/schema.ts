@@ -67,12 +67,19 @@ export function initSchema(db: Database.Database): void {
   `)
 
   // カラムが存在しない場合のみ追加（既存 DB への移行）
-  for (const col of ['ai_summary', 'ai_translation']) {
+  for (const col of ['ai_summary', 'ai_translation', 'read_at']) {
     try {
       db.exec(`ALTER TABLE articles ADD COLUMN ${col} TEXT`)
     } catch {
       // already exists — ignore
     }
+  }
+
+  // read_at カラム追加後にインデックスを作成
+  try {
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at DESC)`)
+  } catch {
+    // ignore
   }
 
 }

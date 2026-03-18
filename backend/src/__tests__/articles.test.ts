@@ -124,6 +124,94 @@ describe('ArticlesService', () => {
     expect(articlesService.findByFeed(feedId)).toHaveLength(1)
   })
 
+  describe('ソート機能', () => {
+    it('配信日順（デフォルト）でソートできる', () => {
+      const now = new Date()
+      const older = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000) // 2日前
+      const newer = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) // 1日前
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'g-old', title: 'Old Article', link: 'https://example.com/old', summary: '', publishedAt: older.toISOString() },
+        { guid: 'g-new', title: 'New Article', link: 'https://example.com/new', summary: '', publishedAt: newer.toISOString() },
+      ])
+
+      const articles = articlesService.findAll({ limit: 10, offset: 0, sortBy: 'published_at' })
+      expect(articles[0].title).toBe('New Article')
+      expect(articles[1].title).toBe('Old Article')
+    })
+
+    it('既読日時順でソートできる', () => {
+      const now = new Date()
+      const older = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000) // 2日前
+      const newer = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) // 1日前
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'g-old', title: 'Old Article', link: 'https://example.com/old', summary: '', publishedAt: older.toISOString() },
+        { guid: 'g-new', title: 'New Article', link: 'https://example.com/new', summary: '', publishedAt: newer.toISOString() },
+      ])
+
+      const allArticles = articlesService.findByFeed(feedId)
+      const oldArticle = allArticles.find(a => a.title === 'Old Article')!
+      const newArticle = allArticles.find(a => a.title === 'New Article')!
+
+      // 古い記事を先に既読にする（read_at が早い）
+      const readAtOld = new Date(now.getTime() - 60 * 60 * 1000).toISOString() // 1時間前
+      const readAtNew = new Date(now.getTime() - 30 * 60 * 1000).toISOString() // 30分前
+      articlesService.markAsRead(oldArticle.id, readAtOld)
+      articlesService.markAsRead(newArticle.id, readAtNew)
+
+      const articles = articlesService.findAll({ limit: 10, offset: 0, sortBy: 'read_at' })
+      // read_at が新しい順なので、後で既読にした New Article が先
+      expect(articles[0].title).toBe('New Article')
+      expect(articles[1].title).toBe('Old Article')
+    })
+
+    it('既読日時順で未読記事は published_at で扱う', () => {
+      const now = new Date()
+      const recentPublishedAt = new Date(now.getTime() - 30 * 60 * 1000) // 30分前
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'g-read', title: 'Read Article', link: 'https://example.com/read', summary: '', publishedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+        { guid: 'g-unread', title: 'Unread Article', link: 'https://example.com/unread', summary: '', publishedAt: recentPublishedAt.toISOString() },
+      ])
+
+      const allArticles = articlesService.findByFeed(feedId)
+      const readArticle = allArticles.find(a => a.title === 'Read Article')!
+      articlesService.markAsRead(readArticle.id)
+
+      // readArticle の read_at は現在時刻近くなるが、unread の published_at (30分前) より古い
+      // ただし read_at が最新なので Read Article が先のはず
+      const articles = articlesService.findAll({ limit: 10, offset: 0, sortBy: 'read_at' })
+      // read_at が最新（今）の Read Article が先
+      expect(articles[0].title).toBe('Read Article')
+      // 未読の Unread Article は published_at = 30分前 なので後
+      expect(articles[1].title).toBe('Unread Article')
+    })
+
+    it('markAsRead で read_at が記録される', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'guid-1', title: 'Article 1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() }
+      ])
+      const article = articlesService.findByFeed(feedId)[0]
+      expect(article.read_at).toBeNull()
+
+      articlesService.markAsRead(article.id)
+      const updated = articlesService.findById(article.id)
+      expect(updated?.read_at).not.toBeNull()
+    })
+
+    it('markAsUnread で read_at がクリアされる', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'guid-1', title: 'Article 1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() }
+      ])
+      const article = articlesService.findByFeed(feedId)[0]
+      articlesService.markAsRead(article.id)
+      articlesService.markAsUnread(article.id)
+      const updated = articlesService.findById(article.id)
+      expect(updated?.read_at).toBeNull()
+    })
+  })
+
   describe('AI キャッシュ', () => {
     let articleId: number
 
