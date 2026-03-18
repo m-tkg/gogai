@@ -168,7 +168,6 @@ describe('ArticlesService', () => {
 
     it('既読日時順で未読記事は published_at で扱う', () => {
       const now = new Date()
-      const pastReadAt = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) // 1日前
       const recentPublishedAt = new Date(now.getTime() - 30 * 60 * 1000) // 30分前
 
       articlesService.upsertMany(feedId, [
