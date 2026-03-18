@@ -94,8 +94,10 @@ final class ArticleStore: ObservableObject {
 
     @MainActor
     func markAllAsRead() async {
-        let unreadIds = articles.filter { !$0.isRead }.map { $0.id }
-        guard !unreadIds.isEmpty, let client else { return }
+        let unread = articles.filter { !$0.isRead }
+        guard !unread.isEmpty, let client else { return }
+
+        // Optimistic update
         articles = articles.map { a in
             guard !a.isRead else { return a }
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
@@ -104,11 +106,17 @@ final class ArticleStore: ObservableObject {
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation)
         }
         for a in articles { updateAllArticles(a) }
-        await withTaskGroup(of: Void.self) { group in
-            for id in unreadIds {
-                group.addTask {
-                    try? await ArticleRepository(client: client).markAsRead(id: id)
+
+        // API calls with rollback on failure
+        for original in unread {
+            do {
+                try await ArticleRepository(client: client).markAsRead(id: original.id)
+            } catch {
+                if let idx = articles.firstIndex(where: { $0.id == original.id }) {
+                    articles[idx] = original
                 }
+                updateAllArticles(original)
+                self.error = error
             }
         }
     }
