@@ -15,6 +15,9 @@ final class ArticleStore: ObservableObject {
     @Published var summaryOnly: Bool {
         didSet { UserDefaults.standard.set(summaryOnly, forKey: "summaryOnly") }
     }
+    @Published var sortOrder: ArticleSortOrder {
+        didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: "sortOrder") }
+    }
 
     private var client: (any APIClientProtocol)?
     private var currentFeedId: Int?
@@ -23,6 +26,8 @@ final class ArticleStore: ObservableObject {
     init() {
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
         self.summaryOnly = UserDefaults.standard.bool(forKey: "summaryOnly")
+        let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
+        self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -41,7 +46,8 @@ final class ArticleStore: ObservableObject {
             let fetched = try await ArticleRepository(client: client).fetchAll(
                 feedId: feedId,
                 groupId: groupId,
-                unreadOnly: self.unreadOnly
+                unreadOnly: self.unreadOnly,
+                sortOrder: self.sortOrder
             )
             articles = fetched
             mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
@@ -61,7 +67,8 @@ final class ArticleStore: ObservableObject {
                            title: a.title, link: a.link, summary: a.summary,
                            content: a.content, published_at: a.published_at,
                            is_read: 1, created_at: a.created_at,
-                           ai_summary: a.ai_summary, ai_translation: a.ai_translation)
+                           ai_summary: a.ai_summary, ai_translation: a.ai_translation,
+                           read_at: a.read_at)
         }
         articles = articles.map(applyLocalRead)
         allArticles = allArticles.map(applyLocalRead)
@@ -78,7 +85,8 @@ final class ArticleStore: ObservableObject {
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: 1, created_at: original.created_at,
-            ai_summary: original.ai_summary, ai_translation: original.ai_translation
+            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
+            read_at: original.read_at
         )
         articles[idx] = updated
         updateAllArticles(updated)
@@ -103,7 +111,8 @@ final class ArticleStore: ObservableObject {
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
                            link: a.link, summary: a.summary, content: a.content,
                            published_at: a.published_at, is_read: 1, created_at: a.created_at,
-                           ai_summary: a.ai_summary, ai_translation: a.ai_translation)
+                           ai_summary: a.ai_summary, ai_translation: a.ai_translation,
+                           read_at: a.read_at)
         }
         for a in articles { updateAllArticles(a) }
 
@@ -131,7 +140,8 @@ final class ArticleStore: ObservableObject {
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: 0, created_at: original.created_at,
-            ai_summary: original.ai_summary, ai_translation: original.ai_translation
+            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
+            read_at: nil
         )
         articles[idx] = updated
         updateAllArticles(updated)
@@ -158,7 +168,8 @@ final class ArticleStore: ObservableObject {
                     id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
                     link: a.link, summary: a.summary, content: a.content,
                     published_at: a.published_at, is_read: a.is_read, created_at: a.created_at,
-                    ai_summary: result.output, ai_translation: a.ai_translation
+                    ai_summary: result.output, ai_translation: a.ai_translation,
+                    read_at: a.read_at
                 )
                 articles[idx] = updated
                 updateAllArticles(updated)
