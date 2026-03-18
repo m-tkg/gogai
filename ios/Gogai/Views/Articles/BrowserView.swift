@@ -1,4 +1,46 @@
 import SwiftUI
+import SafariServices
+
+// SFSafariViewController 実装（Safari 拡張・広告ブロック対応）
+// WKWebView 実装に戻す場合は末尾の WKBrowserView を参照
+
+struct BrowserView: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        SafariView(url: url, onDismiss: { dismiss() })
+            .ignoresSafeArea()
+    }
+}
+
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    let onDismiss: () -> Void
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let vc = SFSafariViewController(url: url)
+        vc.delegate = context.coordinator
+        return vc
+    }
+
+    func updateUIViewController(_ vc: SFSafariViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onDismiss: onDismiss) }
+
+    final class Coordinator: NSObject, SFSafariViewControllerDelegate {
+        let onDismiss: () -> Void
+        init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
+
+        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+            onDismiss()
+        }
+    }
+}
+
+// MARK: - WKWebView 実装（ロールバック用）
+// BrowserView を下記に差し替えることで元の実装に戻せる
+/*
 import WebKit
 
 struct BrowserView: View {
@@ -53,8 +95,6 @@ struct BrowserView: View {
     }
 }
 
-// MARK: - Model
-
 @MainActor
 final class BrowserModel: ObservableObject {
     @Published var title = ""
@@ -69,8 +109,6 @@ final class BrowserModel: ObservableObject {
         self.webView = WKWebView(frame: .zero, configuration: config)
     }
 }
-
-// MARK: - WebView
 
 struct BrowserWebView: UIViewRepresentable {
     @ObservedObject var model: BrowserModel
@@ -118,3 +156,4 @@ struct BrowserWebView: UIViewRepresentable {
         }
     }
 }
+*/
