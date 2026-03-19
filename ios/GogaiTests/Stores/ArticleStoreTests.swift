@@ -111,10 +111,24 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.unreadCount(forGroupFeedIds: []), 0)
     }
 
-    func test_unreadCount_forGroupFeedIds_usesAllArticlesWhenAvailable() {
+    func test_unreadCount_forGroupFeedIds_fallsBackToArticles_whenAllArticlesEmpty() {
         store.articles = [makeArticle(id: 1, feedId: 10, isRead: 0)]
-        // allArticles への直接書き込みは不可なので、articles を使用するケースをテスト
         // allArticles が空の場合は articles を使う
+        XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10]), 1)
+    }
+
+    @MainActor
+    func test_unreadCount_forGroupFeedIds_usesAllArticles_whenAllArticlesPopulated() async {
+        // fetchArticles で allArticles を feed_id=10 の記事で埋める
+        let feed10Articles = [makeArticle(id: 1, feedId: 10, isRead: 0), makeArticle(id: 2, feedId: 10, isRead: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(feed10Articles)) }
+        await store.fetchArticles(feedId: 10)
+
+        // articles は feed_id=10 のみ、allArticles も feed_id=10 が入っている
+        // articles を feed_id=20 で上書き（allArticles は更新されない）
+        store.articles = [makeArticle(id: 3, feedId: 20, isRead: 0)]
+
+        // allArticles（feed_id=10 の未読1件）を使う
         XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10]), 1)
     }
 }

@@ -199,7 +199,8 @@ final class ArticleStore: ObservableObject {
 
     func unreadCount(forGroupFeedIds feedIds: [Int]) -> Int {
         let source = allArticles.isEmpty ? articles : allArticles
-        return source.filter { feedIds.contains($0.feed_id) && !$0.isRead }.count
+        let feedIdSet = Set(feedIds)
+        return source.filter { feedIdSet.contains($0.feed_id) && !$0.isRead }.count
     }
 
     // MARK: - Private
