@@ -132,20 +132,26 @@ struct ArticleDetailView: View {
                         && abs(value.translation.width) < abs(value.translation.height) * 0.5
                     if isUpSwipe, let link = currentArticle.link, URL(string: link) != nil {
                         showBrowser = true
-                        return
-                    }
-
-                    let isInBottomThird = viewHeight > 0 && value.startLocation.y > viewHeight * 2 / 3
-                    let isHorizontal = abs(value.translation.width) > abs(value.translation.height) * 2
-                    guard isInBottomThird && isHorizontal else { return }
-
-                    if value.translation.width < 0, let next = nextArticle {
-                        currentArticle = next
-                    } else if value.translation.width > 0, let prev = previousArticle {
-                        currentArticle = prev
                     }
                 }
         )
+        .overlay(alignment: .bottom) {
+            Color.clear
+                .frame(height: viewHeight > 0 ? viewHeight / 3 : 0)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 60)
+                        .onEnded { value in
+                            let isHorizontal = abs(value.translation.width) > abs(value.translation.height) * 2
+                            guard isHorizontal else { return }
+                            if value.translation.width < 0, let next = nextArticle {
+                                currentArticle = next
+                            } else if value.translation.width > 0, let prev = previousArticle {
+                                currentArticle = prev
+                            }
+                        }
+                )
+        }
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Button {
