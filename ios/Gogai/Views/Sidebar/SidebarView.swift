@@ -4,6 +4,7 @@ struct SidebarView: View {
     @EnvironmentObject private var groupStore: GroupStore
     @EnvironmentObject private var feedStore: FeedStore
     @EnvironmentObject private var articleStore: ArticleStore
+    @EnvironmentObject private var settingsStore: SettingsStore
     @Environment(\.scenePhase) private var scenePhase
 
     @Binding var selectedFeedId: Int?
@@ -20,6 +21,15 @@ struct SidebarView: View {
 
     private var totalUnreadCount: Int {
         articleStore.unreadCount(for: nil)
+    }
+
+    private var isNetworkActive: Bool {
+        articleStore.isLoading
+            || !articleStore.summarizingIds.isEmpty
+            || feedStore.isLoading
+            || feedStore.isRefreshing
+            || groupStore.isLoading
+            || settingsStore.isLoading
     }
 
     private var visibleUngroupedFeeds: [Feed] {
@@ -152,7 +162,7 @@ struct SidebarView: View {
                 }
             }
 
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItemGroup(placement: .topBarLeading) {
                 Button {
                     showSettings = true
                 } label: {
@@ -166,6 +176,11 @@ struct SidebarView: View {
                 )
                 .accessibilityLabel(groupStore.showSecretGroups ? "設定（シークレット表示中）" : "設定")
                 .accessibilityHint("長押しでシークレットグループの表示を切り替え")
+
+                if isNetworkActive {
+                    ProgressView()
+                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                }
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
