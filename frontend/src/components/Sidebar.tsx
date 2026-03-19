@@ -13,9 +13,10 @@ interface SidebarProps {
   showSettings: boolean
   isOpen: boolean
   onToggle: () => void
+  showSecretGroups: boolean
 }
 
-export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings, isOpen, onToggle }: SidebarProps) {
+export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings, isOpen, onToggle, showSecretGroups }: SidebarProps) {
   const qc = useQueryClient()
   const [addFeedUrl, setAddFeedUrl] = useState('')
   const [addFeedGroupId, setAddFeedGroupId] = useState<number | undefined>()
@@ -113,6 +114,12 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
   })
 
+  const toggleGroupSecret = useMutation({
+    mutationFn: ({ id, name, isSecret }: { id: number; name: string; isSecret: number }) =>
+      groupsApi.update(id, name, isSecret),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+  })
+
   const feedsByGroup = (groupId: number | null) =>
     feeds.filter((f: Feed) => f.group_id === groupId)
 
@@ -199,7 +206,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           </button>
         </div>
 
-        {groups.map((group: Group) => (
+        {groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups).map((group: Group) => (
           <div key={group.id} className="mb-1">
             <div className="flex items-center group/group">
               <button
@@ -210,7 +217,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
-                📁 {group.name}
+                {group.is_secret === 1 ? '🔒' : '📁'} {group.name}
               </button>
               {confirmGroupId === group.id ? (
                 <div className="flex items-center gap-1 px-1">
@@ -237,6 +244,13 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                     title="グループのフィードを更新"
                   >
                     {refreshGroup.isPending && refreshGroup.variables === group.id ? '…' : '↻'}
+                  </button>
+                  <button
+                    onClick={() => toggleGroupSecret.mutate({ id: group.id, name: group.name, isSecret: group.is_secret === 1 ? 0 : 1 })}
+                    className="hidden group-hover/group:block px-1 text-gray-400 hover:text-yellow-500 text-xs"
+                    title={group.is_secret === 1 ? 'シークレットを解除' : 'シークレットに設定'}
+                  >
+                    {group.is_secret === 1 ? '🔓' : '🔒'}
                   </button>
                   <button
                     onClick={() => setConfirmGroupId(group.id)}

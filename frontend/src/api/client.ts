@@ -8,6 +8,7 @@ export const api = axios.create({ baseURL: BASE_URL })
 export interface Group {
   id: number
   name: string
+  is_secret: number
   created_at: string
 }
 
@@ -42,8 +43,8 @@ export interface Article {
 // Groups API
 export const groupsApi = {
   list: () => api.get<Group[]>('/api/groups').then(r => r.data),
-  create: (name: string) => api.post<Group>('/api/groups', { name }).then(r => r.data),
-  update: (id: number, name: string) => api.put<Group>(`/api/groups/${id}`, { name }).then(r => r.data),
+  create: (name: string, isSecret?: number) => api.post<Group>('/api/groups', { name, is_secret: isSecret ?? 0 }).then(r => r.data),
+  update: (id: number, name: string, isSecret?: number) => api.put<Group>(`/api/groups/${id}`, { name, ...(isSecret !== undefined && { is_secret: isSecret }) }).then(r => r.data),
   remove: (id: number) => api.delete(`/api/groups/${id}`),
   refresh: (id: number) => api.post<RefreshResult>(`/api/groups/${id}/refresh`).then(r => r.data),
 }
