@@ -111,6 +111,13 @@ app.delete('/:id', (c) => {
   return c.body(null, 204)
 })
 
+app.patch('/reorder', async (c) => {
+  const { ids } = await c.req.json<{ ids: number[] }>()
+  if (!Array.isArray(ids)) return c.json({ error: 'ids must be an array' }, 400)
+  new FeedsService(getDb()).reorder(ids)
+  return c.body(null, 204)
+})
+
 // 全フィードを一括リフレッシュ
 // NOTE: /:id/refresh より前に定義しないと /refresh-all が id=refresh として解釈されるため順序が重要
 app.post('/refresh-all', async (c) => {

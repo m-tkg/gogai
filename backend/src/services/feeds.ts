@@ -8,6 +8,7 @@ export interface Feed {
   group_id: number | null
   last_fetched_at: string | null
   created_at: string
+  display_order: number
 }
 
 export interface CreateFeedInput {
@@ -29,16 +30,22 @@ export class FeedsService {
   constructor(private db: Database.Database) {}
 
   create(input: CreateFeedInput): Feed {
+    // 同グループ内（または ungrouped）の末尾に追加
+    const maxOrder = (this.db.prepare(
+      'SELECT COALESCE(MAX(display_order), -1) as max_order FROM feeds WHERE group_id IS ?'
+    ).get(input.groupId ?? null) as { max_order: number }).max_order
+    const displayOrder = maxOrder + 1
+
     const stmt = this.db.prepare(`
-      INSERT INTO feeds (url, title, favicon_url, group_id)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO feeds (url, title, favicon_url, group_id, display_order)
+      VALUES (?, ?, ?, ?, ?)
       RETURNING *
     `)
-    return stmt.get(input.url, input.title ?? null, input.faviconUrl ?? null, input.groupId ?? null) as Feed
+    return stmt.get(input.url, input.title ?? null, input.faviconUrl ?? null, input.groupId ?? null, displayOrder) as Feed
   }
 
   findAll(): Feed[] {
-    return this.db.prepare('SELECT * FROM feeds ORDER BY created_at DESC').all() as Feed[]
+    return this.db.prepare('SELECT * FROM feeds ORDER BY display_order ASC, id ASC').all() as Feed[]
   }
 
   findById(id: number): Feed | null {
@@ -50,7 +57,17 @@ export class FeedsService {
   }
 
   findByGroupId(groupId: number): Feed[] {
-    return this.db.prepare('SELECT * FROM feeds WHERE group_id = ? ORDER BY created_at DESC').all(groupId) as Feed[]
+    return this.db.prepare('SELECT * FROM feeds WHERE group_id = ? ORDER BY display_order ASC, id ASC').all(groupId) as Feed[]
+  }
+
+  reorder(ids: number[]): void {
+    const stmt = this.db.prepare('UPDATE feeds SET display_order = ? WHERE id = ?')
+    const updateMany = this.db.transaction((orderedIds: number[]) => {
+      orderedIds.forEach((id, index) => {
+        stmt.run(index, id)
+      })
+    })
+    updateMany(ids)
   }
 
   update(id: number, input: UpdateFeedInput): Feed | null {
