@@ -57,4 +57,36 @@ describe('GroupsService', () => {
     service.create('Tech')
     expect(() => service.create('Tech')).toThrow()
   })
+
+  describe('is_secret フラグ', () => {
+    it('作成時はデフォルトで is_secret が 0 になる', () => {
+      const group = service.create('Tech')
+      expect(group.is_secret).toBe(0)
+    })
+
+    it('is_secret = 1 でグループを作成できる', () => {
+      const group = service.create('Secret Group', 1)
+      expect(group.is_secret).toBe(1)
+    })
+
+    it('update で is_secret を変更できる', () => {
+      const group = service.create('Tech')
+      const updated = service.update(group.id, 'Tech', 1)
+      expect(updated?.is_secret).toBe(1)
+    })
+
+    it('update で is_secret を 0 に戻せる', () => {
+      const group = service.create('Secret', 1)
+      const updated = service.update(group.id, 'Secret', 0)
+      expect(updated?.is_secret).toBe(0)
+    })
+
+    it('findAll で is_secret フィールドが含まれる', () => {
+      service.create('Public')
+      service.create('Secret', 1)
+      const groups = service.findAll()
+      expect(groups[0].is_secret).toBeDefined()
+      expect(groups[1].is_secret).toBeDefined()
+    })
+  })
 })
