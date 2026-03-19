@@ -36,14 +36,14 @@ struct SidebarView: View {
                 let feeds = feedStore.feeds(for: group.id).filter { feed in
                     !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
                 }
-                if !feeds.isEmpty {
-                    Section {
+                Section {
+                    if groupStore.isExpanded(id: group.id) {
                         ForEach(feeds) { feed in
                             FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                         }
-                    } header: {
-                        GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
                     }
+                } header: {
+                    GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
                 }
             }
 
