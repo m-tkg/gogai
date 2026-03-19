@@ -16,11 +16,18 @@ struct GroupRepository: Sendable {
     }
 
     func update(id: Int, name: String, isSecret: Int? = nil) async throws -> Group {
-        struct Body: Encodable, Sendable {
-            let name: String
-            let is_secret: Int?
+        if let isSecret {
+            struct BodyWithSecret: Encodable, Sendable {
+                let name: String
+                let is_secret: Int
+            }
+            return try await client.send(try .put("/api/groups/\(id)", body: BodyWithSecret(name: name, is_secret: isSecret)))
+        } else {
+            struct Body: Encodable, Sendable {
+                let name: String
+            }
+            return try await client.send(try .put("/api/groups/\(id)", body: Body(name: name)))
         }
-        return try await client.send(try .put("/api/groups/\(id)", body: Body(name: name, is_secret: isSecret)))
     }
 
     func delete(id: Int) async throws {
