@@ -12,10 +12,25 @@ struct ArticleListView: View {
 
     @State private var showMarkAllConfirm = false
 
+    private var secretFeedIds: Set<Int> {
+        guard feedId == nil, groupId == nil, !groupStore.showSecretGroups else { return [] }
+        return Set(feedStore.feeds.compactMap { feed -> Int? in
+            guard let gid = feed.group_id,
+                  groupStore.groups.first(where: { $0.id == gid })?.isSecret == true
+            else { return nil }
+            return feed.id
+        })
+    }
+
     private var displayedArticles: [Article] {
-        articleStore.summaryOnly
-            ? articleStore.articles.filter { $0.ai_summary != nil }
-            : articleStore.articles
+        var result = articleStore.articles
+        if !secretFeedIds.isEmpty {
+            result = result.filter { !secretFeedIds.contains($0.feed_id) }
+        }
+        if articleStore.summaryOnly {
+            result = result.filter { $0.ai_summary != nil }
+        }
+        return result
     }
 
     var body: some View {

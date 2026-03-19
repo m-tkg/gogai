@@ -62,7 +62,7 @@ final class ArticleStore: ObservableObject {
     @MainActor
     func refresh() async {
         let localReadIds = Set(articles.filter { $0.isRead }.map { $0.id })
-        await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
+        await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: true)
         guard !localReadIds.isEmpty else { return }
         let applyLocalRead: (Article) -> Article = { a in
             guard localReadIds.contains(a.id), !a.isRead else { return a }
