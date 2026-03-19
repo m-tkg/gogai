@@ -7,15 +7,16 @@ struct ArticleRowView: View {
     @EnvironmentObject private var articleStore: ArticleStore
     @EnvironmentObject private var groupStore: GroupStore
 
-    private var faviconURL: URL? {
+    private var feed: Feed? {
         feedStore.feeds.first(where: { $0.id == article.feed_id })
-            .flatMap { URL(string: $0.favicon_url ?? "") }
+    }
+
+    private var faviconURL: URL? {
+        feed.flatMap { URL(string: $0.favicon_url ?? "") }
     }
 
     private var groupName: String? {
-        guard let groupId = feedStore.feeds.first(where: { $0.id == article.feed_id })?.group_id else {
-            return nil
-        }
+        guard let groupId = feed?.group_id else { return nil }
         return groupStore.groups.first(where: { $0.id == groupId })?.name
     }
 
@@ -91,4 +92,7 @@ struct ArticleRowView: View {
         published_at: "2024-01-01T12:00:00Z", is_read: 0, created_at: "2024-01-01T12:00:00Z",
         ai_summary: nil, ai_translation: nil, read_at: nil
     ))
+    .environmentObject(FeedStore())
+    .environmentObject(ArticleStore())
+    .environmentObject(GroupStore())
 }
