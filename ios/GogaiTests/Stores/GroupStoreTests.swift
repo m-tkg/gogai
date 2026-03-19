@@ -17,8 +17,8 @@ final class GroupStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeGroup(id: Int = 1, name: String = "Tech") -> Group {
-        Group(id: id, name: name, created_at: "2024-01-01T00:00:00Z")
+    private func makeGroup(id: Int = 1, name: String = "Tech", isSecret: Int = 0) -> Group {
+        Group(id: id, name: name, is_secret: isSecret, created_at: "2024-01-01T00:00:00Z")
     }
 
     @MainActor
@@ -74,5 +74,29 @@ final class GroupStoreTests: XCTestCase {
         try await store.updateGroup(id: 1, name: "New")
 
         XCTAssertEqual(store.groups[0].name, "New")
+    }
+
+    // MARK: - showSecretGroups / visibleGroups
+
+    @MainActor
+    func test_visibleGroups_hidesSecretGroups_whenShowSecretGroupsIsFalse() {
+        store.groups = [makeGroup(id: 1, name: "Public"), makeGroup(id: 2, name: "Secret", isSecret: 1)]
+        store.showSecretGroups = false
+
+        XCTAssertEqual(store.visibleGroups.count, 1)
+        XCTAssertEqual(store.visibleGroups[0].name, "Public")
+    }
+
+    @MainActor
+    func test_visibleGroups_showsSecretGroups_whenShowSecretGroupsIsTrue() {
+        store.groups = [makeGroup(id: 1, name: "Public"), makeGroup(id: 2, name: "Secret", isSecret: 1)]
+        store.showSecretGroups = true
+
+        XCTAssertEqual(store.visibleGroups.count, 2)
+    }
+
+    @MainActor
+    func test_showSecretGroups_defaultsToFalse() {
+        XCTAssertFalse(store.showSecretGroups)
     }
 }

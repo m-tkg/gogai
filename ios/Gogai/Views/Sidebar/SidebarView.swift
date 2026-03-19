@@ -4,6 +4,7 @@ struct SidebarView: View {
     @EnvironmentObject private var groupStore: GroupStore
     @EnvironmentObject private var feedStore: FeedStore
     @EnvironmentObject private var articleStore: ArticleStore
+    @Environment(\.scenePhase) private var scenePhase
 
     @Binding var selectedFeedId: Int?
     @Binding var selectedGroupId: Int?
@@ -31,7 +32,7 @@ struct SidebarView: View {
                 .tag("all")
             }
 
-            ForEach(groupStore.groups) { group in
+            ForEach(groupStore.visibleGroups) { group in
                 let feeds = feedStore.feeds(for: group.id).filter { feed in
                     !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
                 }
@@ -94,8 +95,22 @@ struct SidebarView: View {
                 Button {
                     showSettings = true
                 } label: {
-                    Image(systemName: "gear")
+                    Image(systemName: groupStore.showSecretGroups ? "gear.badge" : "gear")
+                        .foregroundStyle(groupStore.showSecretGroups ? .orange : .primary)
                 }
+                .simultaneousGesture(
+                    LongPressGesture().onEnded { _ in
+                        groupStore.showSecretGroups.toggle()
+                    }
+                )
+                .accessibilityLabel(groupStore.showSecretGroups ? "設定（シークレット表示中）" : "設定")
+                .accessibilityHint("長押しでシークレットグループの表示を切り替え")
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            // バックグラウンドから復帰した時のみリセット（初回起動時は除く）
+            if newPhase == .active && oldPhase == .background {
+                groupStore.showSecretGroups = false
             }
         }
         .sheet(isPresented: $showAddFeed) {
