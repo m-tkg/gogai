@@ -20,6 +20,7 @@ export interface Feed {
   group_id: number | null
   last_fetched_at: string | null
   created_at: string
+  display_order: number
 }
 
 export type SortBy = 'published_at' | 'read_at'
@@ -62,6 +63,7 @@ export const feedsApi = {
   remove: (id: number) => api.delete(`/api/feeds/${id}`),
   refresh: (id: number) => api.post(`/api/feeds/${id}/refresh`).then(r => r.data),
   refreshAll: () => api.post<RefreshResult>('/api/feeds/refresh-all').then(r => r.data),
+  reorder: (ids: number[]) => api.patch('/api/feeds/reorder', { ids }),
 }
 
 // Settings API
