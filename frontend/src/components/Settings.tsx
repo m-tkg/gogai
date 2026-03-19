@@ -5,7 +5,12 @@ import { settingsApi, adminApi, type UpdateCheck } from '../api/client'
 const MIN = 3
 const MAX = 180
 
-export function Settings() {
+interface SettingsProps {
+  showSecretGroups: boolean
+  onToggleSecretGroups: () => void
+}
+
+export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsProps) {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['settings'], queryFn: settingsApi.get })
   const { data: updateCheck, isLoading: checkLoading, error: checkError } =
@@ -69,6 +74,28 @@ export function Settings() {
       <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">設定</h2>
 
       <div className="max-w-md space-y-6">
+        <section className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">シークレットグループ</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            シークレットフラグのついたグループを表示します。この設定はリロードするとリセットされます。
+          </p>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div
+              onClick={onToggleSecretGroups}
+              className={`relative w-10 h-6 rounded-full transition-colors ${
+                showSecretGroups ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                showSecretGroups ? 'translate-x-4' : 'translate-x-0'
+              }`} />
+            </div>
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              {showSecretGroups ? '🔓 シークレットグループを表示中' : '🔒 シークレットグループを非表示'}
+            </span>
+          </label>
+        </section>
+
         <section className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">記事の保持期間</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400">

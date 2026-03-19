@@ -30,6 +30,8 @@ function RssReader() {
     if (saved !== null) return saved === 'true'
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
+  // シークレットグループの表示フラグ（保存されない）
+  const [showSecretGroups, setShowSecretGroups] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
@@ -60,9 +62,10 @@ function RssReader() {
         showSettings={showSettings}
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
+        showSecretGroups={showSecretGroups}
       />
       {showSettings ? (
-        <Settings />
+        <Settings showSecretGroups={showSecretGroups} onToggleSecretGroups={() => setShowSecretGroups(v => !v)} />
       ) : (
         <>
           {/* 記事一覧: モバイルでは detail 表示中は隠す */}
