@@ -51,7 +51,9 @@ struct ArticleDetailView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                     .onLongPressGesture {
-                        if currentArticle.link != nil { showShareSheet = true }
+                        if let link = currentArticle.link, URL(string: link) != nil {
+                            showShareSheet = true
+                        }
                     }
 
                 // Meta

@@ -34,7 +34,9 @@ struct ArticleRowView: View {
                     .foregroundStyle(article.isRead ? .secondary : .primary)
                     .lineLimit(2)
                     .onLongPressGesture {
-                        if article.link != nil { showShareSheet = true }
+                        if let link = article.link, URL(string: link) != nil {
+                            showShareSheet = true
+                        }
                     }
 
                 if let published = article.published_at {

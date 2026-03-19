@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
+    let items: [URL]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
