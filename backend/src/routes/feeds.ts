@@ -114,7 +114,12 @@ app.delete('/:id', (c) => {
 app.patch('/reorder', async (c) => {
   const { ids } = await c.req.json<{ ids: number[] }>()
   if (!Array.isArray(ids)) return c.json({ error: 'ids must be an array' }, 400)
-  new FeedsService(getDb()).reorder(ids)
+  try {
+    new FeedsService(getDb()).reorder(ids)
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    return c.json({ error: message }, 400)
+  }
   return c.body(null, 204)
 })
 
