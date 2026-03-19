@@ -76,6 +76,7 @@ function RssReader() {
               onSelectArticle={handleSelectArticle}
               selectedArticleId={selectedArticle?.id ?? null}
               onOpenSidebar={toggleSidebar}
+              showSecretGroups={showSecretGroups}
             />
           </div>
           {/* 記事詳細: モバイルでは list 表示中は隠す */}

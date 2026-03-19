@@ -9,16 +9,17 @@ interface ArticleListProps {
   onSelectArticle: (article: Article) => void
   selectedArticleId: number | null
   onOpenSidebar?: () => void
+  showSecretGroups?: boolean
 }
 
-export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId, onOpenSidebar }: ArticleListProps) {
+export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId, onOpenSidebar, showSecretGroups = false }: ArticleListProps) {
   const qc = useQueryClient()
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>('published_at')
 
   const { data: articles = [], isLoading } = useQuery({
-    queryKey: ['articles', { feedId, groupId, unreadOnly, sortBy }],
-    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, sortBy, limit: 100, offset: 0 }),
+    queryKey: ['articles', { feedId, groupId, unreadOnly, sortBy, showSecretGroups }],
+    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, sortBy, limit: 100, offset: 0, includeSecret: showSecretGroups }),
   })
 
   const refresh = useMutation({

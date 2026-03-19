@@ -13,10 +13,11 @@ app.get('/', (c) => {
   const feedId = c.req.query('feedId') ? Number(c.req.query('feedId')) : undefined
   const groupId = c.req.query('groupId') ? Number(c.req.query('groupId')) : undefined
   const unreadOnly = c.req.query('unreadOnly') === 'true'
+  const includeSecret = c.req.query('includeSecret') === 'true'
   const sortByParam = c.req.query('sortBy')
   const sortBy: SortBy = sortByParam === 'read_at' ? 'read_at' : 'published_at'
 
-  const articles = new ArticlesService(getDb()).findAll({ limit, offset, feedId, groupId, unreadOnly, sortBy })
+  const articles = new ArticlesService(getDb()).findAll({ limit, offset, feedId, groupId, unreadOnly, sortBy, includeSecret })
   return c.json(articles)
 })
 

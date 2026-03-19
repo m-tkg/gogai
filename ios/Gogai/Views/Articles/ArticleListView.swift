@@ -8,6 +8,7 @@ struct ArticleListView: View {
 
     @EnvironmentObject private var articleStore: ArticleStore
     @EnvironmentObject private var feedStore: FeedStore
+    @EnvironmentObject private var groupStore: GroupStore
 
     @State private var showMarkAllConfirm = false
 
@@ -66,7 +67,7 @@ struct ArticleListView: View {
                         ForEach(ArticleSortOrder.allCases, id: \.self) { order in
                             Button {
                                 articleStore.sortOrder = order
-                                Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId) }
+                                Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, includeSecret: groupStore.showSecretGroups) }
                             } label: {
                                 if articleStore.sortOrder == order {
                                     Label(order.label, systemImage: "checkmark")
@@ -106,7 +107,7 @@ struct ArticleListView: View {
             FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly)
         }
         .onChange(of: articleStore.unreadOnly) { _, newVal in
-            Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal) }
+            Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal, includeSecret: groupStore.showSecretGroups) }
         }
         .overlay {
             if articleStore.isLoading {
@@ -119,13 +120,16 @@ struct ArticleListView: View {
             try? await feedStore.refreshAll()
         }
         .task {
-            await articleStore.fetchArticles(feedId: feedId, groupId: groupId)
+            await articleStore.fetchArticles(feedId: feedId, groupId: groupId, includeSecret: groupStore.showSecretGroups)
         }
         .onChange(of: feedId) { _, newId in
-            Task { await articleStore.fetchArticles(feedId: newId, groupId: groupId) }
+            Task { await articleStore.fetchArticles(feedId: newId, groupId: groupId, includeSecret: groupStore.showSecretGroups) }
         }
         .onChange(of: groupId) { _, newId in
-            Task { await articleStore.fetchArticles(feedId: feedId, groupId: newId) }
+            Task { await articleStore.fetchArticles(feedId: feedId, groupId: newId, includeSecret: groupStore.showSecretGroups) }
+        }
+        .onChange(of: groupStore.showSecretGroups) { _, newVal in
+            Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, includeSecret: newVal) }
         }
     }
 

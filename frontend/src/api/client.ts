@@ -88,7 +88,7 @@ export const adminApi = {
 
 // Articles API
 export const articlesApi = {
-  list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; sortBy?: SortBy; limit?: number; offset?: number }) =>
+  list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; sortBy?: SortBy; limit?: number; offset?: number; includeSecret?: boolean }) =>
     api.get<Article[]>('/api/articles', { params }).then(r => r.data),
   get: (id: number) => api.get<Article>(`/api/articles/${id}`).then(r => r.data),
   markAsRead: (id: number) => api.post(`/api/articles/${id}/read`),
