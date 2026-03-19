@@ -71,9 +71,19 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                         .rotationEffect(.degrees(rotationAngle))
-                        .animation(feedStore.isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: rotationAngle)
                 }
                 .disabled(feedStore.isRefreshing)
+                .onChange(of: feedStore.isRefreshing) { _, isRefreshing in
+                    if isRefreshing {
+                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                            rotationAngle = 360
+                        }
+                    } else {
+                        withAnimation(.default) {
+                            rotationAngle = 0
+                        }
+                    }
+                }
 
                 Menu {
                     Button {
@@ -133,18 +143,12 @@ struct SidebarView: View {
     }
 
     private func refreshAll() async {
-        rotationAngle = 0
-        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
-            rotationAngle = 360
-        }
         do {
             _ = try await feedStore.refreshAll()
+            // 未読件数バッジ更新のためフィード一覧を再取得
             await feedStore.fetchFeeds()
         } catch {
             refreshError = error
-        }
-        withAnimation(.default) {
-            rotationAngle = 0
         }
     }
 }
