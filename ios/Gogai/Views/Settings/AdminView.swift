@@ -10,6 +10,7 @@ struct AdminView: View {
     @State private var isChecking = false
     @State private var isRestarting = false
     @State private var isWaitingForRestart = false
+    @State private var restartCheckCount = 0
     @State private var restartOutput: String?
     @State private var errorMessage: String?
 
@@ -61,7 +62,7 @@ struct AdminView: View {
                 if isWaitingForRestart {
                     HStack {
                         ProgressView()
-                        Text("再起動中...")
+                        Text("再起動中... (\(restartCheckCount)回目の確認)")
                             .foregroundStyle(.secondary)
                     }
                 } else if let output = restartOutput {
@@ -119,6 +120,7 @@ struct AdminView: View {
         isRestarting = false
 
         // サーバーが再起動して戻るまでポーリング
+        restartCheckCount = 0
         isWaitingForRestart = true
         await waitForServer()
         isWaitingForRestart = false
@@ -129,16 +131,17 @@ struct AdminView: View {
         await articleStore.fetchArticles()
     }
 
-    /// /health に到達できるまで 3 秒間隔で最大 40 回（約 2 分）ポーリングする
+    /// /health に到達できるまで 1 秒間隔で最大 120 回（約 2 分）ポーリングする
     /// URLSession.shared の stale コネクションを避けるため ephemeral セッションを使用
     private func waitForServer() async {
         guard let baseURL = serverURLManager.serverURL else { return }
         let healthURL = baseURL.appendingPathComponent("health")
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 5
+        config.timeoutIntervalForRequest = 3
         let session = URLSession(configuration: config)
-        for _ in 0..<40 {
-            try? await Task.sleep(for: .seconds(3))
+        for _ in 0..<120 {
+            try? await Task.sleep(for: .seconds(1))
+            restartCheckCount += 1
             if let (_, response) = try? await session.data(from: healthURL),
                (response as? HTTPURLResponse)?.statusCode == 200 {
                 return
