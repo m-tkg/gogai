@@ -114,13 +114,12 @@ struct ArticleDetailView: View {
                 }
         )
         .safeAreaInset(edge: .bottom) {
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 16) {
                 VStack(spacing: 8) {
                     Button {
                         showAISummary = true
                     } label: {
                         Label("AI要約", systemImage: "sparkles")
-                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
 
@@ -128,13 +127,11 @@ struct ArticleDetailView: View {
                         showAITranslation = true
                     } label: {
                         Label("AI翻訳", systemImage: "character.bubble")
-                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                 }
 
-                Divider()
-                    .padding(.vertical, 4)
+                Spacer()
 
                 VStack(spacing: 8) {
                     Button {
@@ -152,6 +149,7 @@ struct ArticleDetailView: View {
                     .disabled(nextArticle == nil)
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal)
             .padding(.vertical, 10)
             .background(.bar)
