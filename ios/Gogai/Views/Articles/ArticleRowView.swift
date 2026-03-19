@@ -5,10 +5,19 @@ struct ArticleRowView: View {
 
     @EnvironmentObject private var feedStore: FeedStore
     @EnvironmentObject private var articleStore: ArticleStore
+    @EnvironmentObject private var groupStore: GroupStore
+
+    private var feed: Feed? {
+        feedStore.feeds.first(where: { $0.id == article.feed_id })
+    }
 
     private var faviconURL: URL? {
-        feedStore.feeds.first(where: { $0.id == article.feed_id })
-            .flatMap { URL(string: $0.favicon_url ?? "") }
+        feed.flatMap { URL(string: $0.favicon_url ?? "") }
+    }
+
+    private var groupName: String? {
+        guard let groupId = feed?.group_id else { return nil }
+        return groupStore.groups.first(where: { $0.id == groupId })?.name
     }
 
     var body: some View {
@@ -24,9 +33,16 @@ struct ArticleRowView: View {
                     .lineLimit(2)
 
                 if let published = article.published_at {
-                    Text(published.displayDate)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    HStack(spacing: 4) {
+                        if let name = groupName {
+                            Text(name)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Text(published.displayDate)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
 
                 if let summary = article.summary {
@@ -76,4 +92,7 @@ struct ArticleRowView: View {
         published_at: "2024-01-01T12:00:00Z", is_read: 0, created_at: "2024-01-01T12:00:00Z",
         ai_summary: nil, ai_translation: nil, read_at: nil
     ))
+    .environmentObject(FeedStore())
+    .environmentObject(ArticleStore())
+    .environmentObject(GroupStore())
 }
