@@ -7,6 +7,7 @@ struct GroupRowView: View {
 
     @EnvironmentObject private var groupStore: GroupStore
     @EnvironmentObject private var feedStore: FeedStore
+    @EnvironmentObject private var articleStore: ArticleStore
 
     @State private var showEditAlert = false
     @State private var editName = ""
@@ -34,10 +35,21 @@ struct GroupRowView: View {
                 selectedGroupId = group.id
                 onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
             } label: {
+                let feedIds = feedStore.feeds(for: group.id).map { $0.id }
+                let unread = articleStore.unreadCount(forGroupFeedIds: feedIds)
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Spacer()
+                if unread > 0 {
+                    Text("\(unread)")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor, in: Capsule())
+                }
             }
             .contentShape(Rectangle())
 

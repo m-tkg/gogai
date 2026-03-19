@@ -197,6 +197,11 @@ final class ArticleStore: ObservableObject {
         return filtered.filter { !$0.isRead }.count
     }
 
+    func unreadCount(forGroupFeedIds feedIds: [Int]) -> Int {
+        let source = allArticles.isEmpty ? articles : allArticles
+        return source.filter { feedIds.contains($0.feed_id) && !$0.isRead }.count
+    }
+
     // MARK: - Private
 
     /// フェッチ結果を allArticles にマージする
