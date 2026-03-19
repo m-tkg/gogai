@@ -43,7 +43,6 @@ struct GroupRowView: View {
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                Spacer()
                 if groupUnreadCount > 0 {
                     Text("\(groupUnreadCount)")
                         .font(.caption2)
