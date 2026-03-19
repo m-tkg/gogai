@@ -15,6 +15,7 @@ struct SidebarView: View {
     @State private var showSettings = false
     @State private var refreshError: Error?
     @State private var rotationAngle: Double = 0
+    @State private var isEditing = false
 
     var body: some View {
         List(selection: Binding(
@@ -42,6 +43,9 @@ struct SidebarView: View {
                             ForEach(feeds) { feed in
                                 FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                             }
+                            .onMove { from, to in
+                                Task { try? await feedStore.reorderFeeds(from: from, to: to, groupId: group.id) }
+                            }
                         }
                     } header: {
                         GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
@@ -57,6 +61,9 @@ struct SidebarView: View {
                     ForEach(ungroupedFeeds) { feed in
                         FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                     }
+                    .onMove { from, to in
+                        Task { try? await feedStore.reorderFeeds(from: from, to: to, groupId: nil) }
+                    }
                 }
             }
         }
@@ -64,8 +71,16 @@ struct SidebarView: View {
             FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly)
         }
         .navigationTitle("Feed list")
+        .environment(\.editMode, .constant(isEditing ? .active : .inactive))
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    isEditing.toggle()
+                } label: {
+                    Text(isEditing ? "完了" : "編集")
+                        .font(.subheadline)
+                }
+
                 Button {
                     Task { await refreshAll() }
                 } label: {
