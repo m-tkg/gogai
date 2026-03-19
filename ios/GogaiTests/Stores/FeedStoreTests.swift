@@ -69,4 +69,30 @@ final class FeedStoreTests: XCTestCase {
 
         XCTAssertTrue(completionCalled)
     }
+
+    // MARK: - isRefreshing
+
+    @MainActor
+    func test_isRefreshing_defaultsToFalse() {
+        XCTAssertFalse(store.isRefreshing)
+    }
+
+    @MainActor
+    func test_isRefreshing_falseAfterRefreshAllCompletes() async throws {
+        let result = RefreshResult(refreshed: 1, failed: 0)
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(result)) }
+
+        _ = try await store.refreshAll()
+
+        XCTAssertFalse(store.isRefreshing)
+    }
+
+    @MainActor
+    func test_isRefreshing_falseAfterRefreshAllFails() async {
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        _ = try? await store.refreshAll()
+
+        XCTAssertFalse(store.isRefreshing)
+    }
 }
