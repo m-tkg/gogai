@@ -13,8 +13,8 @@ struct SidebarView: View {
     @State private var showAddFeed = false
     @State private var showAddGroup = false
     @State private var showSettings = false
-    @State private var isRefreshing = false
     @State private var refreshError: Error?
+    @State private var rotationAngle: Double = 0
 
     var body: some View {
         List(selection: Binding(
@@ -69,13 +69,21 @@ struct SidebarView: View {
                 Button {
                     Task { await refreshAll() }
                 } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .rotationEffect(.degrees(rotationAngle))
+                }
+                .disabled(feedStore.isRefreshing)
+                .onChange(of: feedStore.isRefreshing) { _, isRefreshing in
                     if isRefreshing {
-                        ProgressView()
+                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                            rotationAngle = 360
+                        }
                     } else {
-                        Image(systemName: "arrow.clockwise")
+                        withAnimation(.default) {
+                            rotationAngle = 0
+                        }
                     }
                 }
-                .disabled(isRefreshing)
 
                 Menu {
                     Button {
@@ -135,10 +143,10 @@ struct SidebarView: View {
     }
 
     private func refreshAll() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
         do {
             _ = try await feedStore.refreshAll()
+            // 未読件数バッジ更新のためフィード一覧を再取得
+            await feedStore.fetchFeeds()
         } catch {
             refreshError = error
         }
