@@ -13,6 +13,11 @@ struct GroupRowView: View {
     @State private var editName = ""
     @State private var showDeleteConfirm = false
 
+    private var groupUnreadCount: Int {
+        let feedIds = feedStore.feeds(for: group.id).map { $0.id }
+        return articleStore.unreadCount(forGroupFeedIds: feedIds)
+    }
+
     var body: some View {
         HStack {
             // フォルダアイコン + chevron: タップで展開・折りたたみ
@@ -35,14 +40,12 @@ struct GroupRowView: View {
                 selectedGroupId = group.id
                 onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
             } label: {
-                let feedIds = feedStore.feeds(for: group.id).map { $0.id }
-                let unread = articleStore.unreadCount(forGroupFeedIds: feedIds)
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Spacer()
-                if unread > 0 {
-                    Text("\(unread)")
+                if groupUnreadCount > 0 {
+                    Text("\(groupUnreadCount)")
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
