@@ -18,8 +18,8 @@ struct GroupRowView: View {
             onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
         } label: {
             HStack {
-                Image(systemName: "folder")
-                    .foregroundStyle(.secondary)
+                Image(systemName: group.isSecret ? "folder.badge.minus" : "folder")
+                    .foregroundStyle(group.isSecret ? .orange : .secondary)
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
@@ -32,6 +32,16 @@ struct GroupRowView: View {
                 showEditAlert = true
             } label: {
                 Label("名前を変更", systemImage: "pencil")
+            }
+            Button {
+                Task {
+                    try? await groupStore.updateGroup(id: group.id, name: group.name, isSecret: group.isSecret ? 0 : 1)
+                }
+            } label: {
+                Label(
+                    group.isSecret ? "シークレットを解除" : "シークレットに設定",
+                    systemImage: group.isSecret ? "lock.open" : "lock"
+                )
             }
             Button(role: .destructive) {
                 showDeleteConfirm = true
