@@ -18,6 +18,10 @@ struct SidebarView: View {
     @State private var rotationAngle: Double = 0
     @State private var isEditing = false
 
+    private var totalUnreadCount: Int {
+        articleStore.unreadCount(for: nil)
+    }
+
     private var visibleUngroupedFeeds: [Feed] {
         feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
             !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
@@ -58,6 +62,7 @@ struct SidebarView: View {
                 } label: {
                     Label("すべての記事", systemImage: "newspaper")
                 }
+                .badge(totalUnreadCount)
                 .tag("all")
             }
 
