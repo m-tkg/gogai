@@ -8,11 +8,16 @@ struct AdminView: View {
     @EnvironmentObject private var articleStore: ArticleStore
 
     @State private var isChecking = false
-    @State private var isRestarting = false
     @State private var isWaitingForRestart = false
+    @State private var restartPhase: RestartPhase = .building
     @State private var restartCheckCount = 0
     @State private var restartOutput: String?
     @State private var errorMessage: String?
+
+    private enum RestartPhase {
+        case building   // git pull + npm build 中
+        case waiting    // サーバー再起動待ち（ポーリング中）
+    }
 
     var body: some View {
         Form {
@@ -60,9 +65,11 @@ struct AdminView: View {
 
             Section {
                 if isWaitingForRestart {
-                    HStack {
+                    HStack(spacing: 10) {
                         ProgressView()
-                        Text("再起動中... (\(restartCheckCount)回目の確認)")
+                        Text(restartPhase == .building
+                             ? "git pull・ビルド中..."
+                             : "再起動中... (\(restartCheckCount)回目の確認)")
                             .foregroundStyle(.secondary)
                     }
                 } else if let output = restartOutput {
@@ -74,12 +81,9 @@ struct AdminView: View {
                 Button(role: .destructive) {
                     Task { await restart() }
                 } label: {
-                    HStack {
-                        if isRestarting { ProgressView() }
-                        Text("git pull して再起動")
-                    }
+                    Text("git pull して再起動")
                 }
-                .disabled(isRestarting || isWaitingForRestart)
+                .disabled(isWaitingForRestart)
             } header: {
                 Text("再起動")
             } footer: {
@@ -108,20 +112,21 @@ struct AdminView: View {
     }
 
     private func restart() async {
-        isRestarting = true
+        // ボタンを押した瞬間から「git pull・ビルド中...」を表示
+        restartPhase = .building
+        restartCheckCount = 0
+        isWaitingForRestart = true
         errorMessage = nil
         do {
             restartOutput = try await settingsStore.restart()
         } catch {
-            isRestarting = false
+            isWaitingForRestart = false
             errorMessage = error.localizedDescription
             return
         }
-        isRestarting = false
 
-        // サーバーが再起動して戻るまでポーリング
-        restartCheckCount = 0
-        isWaitingForRestart = true
+        // レスポンスが返ったらサーバー再起動待ちフェーズへ
+        restartPhase = .waiting
         await waitForServer()
         isWaitingForRestart = false
 
