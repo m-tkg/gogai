@@ -127,19 +127,20 @@ struct SidebarView: View {
             }
 
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: groupStore.showSecretGroups ? "gear.badge" : "gear")
-                        .foregroundStyle(groupStore.showSecretGroups ? .orange : .primary)
-                }
-                .simultaneousGesture(
-                    LongPressGesture().onEnded { _ in
-                        groupStore.showSecretGroups.toggle()
-                    }
-                )
-                .accessibilityLabel(groupStore.showSecretGroups ? "設定（シークレット表示中）" : "設定")
-                .accessibilityHint("長押しでシークレットグループの表示を切り替え")
+                Image(systemName: groupStore.showSecretGroups ? "gear.badge" : "gear")
+                    .foregroundStyle(groupStore.showSecretGroups ? .orange : .primary)
+                    .gesture(
+                        ExclusiveGesture(
+                            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                groupStore.showSecretGroups.toggle()
+                            },
+                            TapGesture().onEnded {
+                                showSettings = true
+                            }
+                        )
+                    )
+                    .accessibilityLabel(groupStore.showSecretGroups ? "設定（シークレット表示中）" : "設定")
+                    .accessibilityHint("長押しでシークレットグループの表示を切り替え")
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
