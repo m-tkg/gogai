@@ -3,6 +3,7 @@ import Database from 'better-sqlite3'
 import { initSchema } from '../db/schema.js'
 import { ArticlesService } from '../services/articles.js'
 import { FeedsService } from '../services/feeds.js'
+import { GroupsService } from '../services/groups.js'
 
 let db: Database.Database
 let articlesService: ArticlesService
@@ -209,6 +210,42 @@ describe('ArticlesService', () => {
       articlesService.markAsUnread(article.id)
       const updated = articlesService.findById(article.id)
       expect(updated?.read_at).toBeNull()
+    })
+  })
+
+  describe('シークレットグループのフィルタリング', () => {
+    let secretFeedId: number
+
+    beforeEach(() => {
+      const groupsService = new GroupsService(db)
+      const secretGroup = groupsService.create('SecretGroup', 1)
+      const secretFeed = feedsService.create({ url: 'https://secret.com/feed.xml', title: 'Secret Feed', groupId: secretGroup.id })
+      secretFeedId = secretFeed.id
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'public-1', title: 'Public Article', link: 'https://example.com/1', summary: '' },
+      ])
+      articlesService.upsertMany(secretFeedId, [
+        { guid: 'secret-1', title: 'Secret Article', link: 'https://secret.com/1', summary: '' },
+      ])
+    })
+
+    it('デフォルトではシークレットグループの記事を除外する', () => {
+      const articles = articlesService.findAll({ limit: 10, offset: 0 })
+      expect(articles.map(a => a.title)).not.toContain('Secret Article')
+      expect(articles.map(a => a.title)).toContain('Public Article')
+    })
+
+    it('includeSecret=true のときシークレットグループの記事を含む', () => {
+      const articles = articlesService.findAll({ limit: 10, offset: 0, includeSecret: true })
+      expect(articles.map(a => a.title)).toContain('Secret Article')
+      expect(articles.map(a => a.title)).toContain('Public Article')
+    })
+
+    it('groupId を指定した場合はシークレットグループでも記事を取得できる', () => {
+      const secretGroup = new GroupsService(db).findAll().find(g => g.name === 'SecretGroup')!
+      const articles = articlesService.findAll({ limit: 10, offset: 0, groupId: secretGroup.id })
+      expect(articles.map(a => a.title)).toContain('Secret Article')
     })
   })
 
