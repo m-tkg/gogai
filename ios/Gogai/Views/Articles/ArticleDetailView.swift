@@ -12,6 +12,7 @@ struct ArticleDetailView: View {
     @State private var showAISummary = false
     @State private var showAITranslation = false
     @State private var contentHeight: CGFloat = 200
+    @State private var viewHeight: CGFloat = 0
 
     init(article: Article) {
         self.article = article
@@ -110,6 +111,7 @@ struct ArticleDetailView: View {
             .padding()
         }
         .id(currentArticle.id)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewHeight = $0 }
         .navigationTitle("記事")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -130,6 +132,17 @@ struct ArticleDetailView: View {
                         && abs(value.translation.width) < abs(value.translation.height) * 0.5
                     if isUpSwipe, let link = currentArticle.link, URL(string: link) != nil {
                         showBrowser = true
+                        return
+                    }
+
+                    let isInBottomThird = viewHeight > 0 && value.startLocation.y > viewHeight * 2 / 3
+                    let isHorizontal = abs(value.translation.width) > abs(value.translation.height) * 2
+                    guard isInBottomThird && isHorizontal else { return }
+
+                    if value.translation.width < 0, let next = nextArticle {
+                        currentArticle = next
+                    } else if value.translation.width > 0, let prev = previousArticle {
+                        currentArticle = prev
                     }
                 }
         )
