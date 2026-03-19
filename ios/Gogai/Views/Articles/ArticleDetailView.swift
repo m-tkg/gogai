@@ -51,28 +51,10 @@ struct ArticleDetailView: View {
                     .fontWeight(.bold)
 
                 // Meta
-                HStack {
-                    if let published = currentArticle.published_at {
-                        Label(published.displayDate, systemImage: "clock")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button {
-                        Task {
-                            if isRead {
-                                await articleStore.markAsUnread(id: currentArticle.id)
-                            } else {
-                                await articleStore.markAsRead(id: currentArticle.id)
-                            }
-                        }
-                    } label: {
-                        Label(
-                            isRead ? "未読にする" : "既読にする",
-                            systemImage: isRead ? "envelope.badge" : "envelope.open"
-                        )
+                if let published = currentArticle.published_at {
+                    Label(published.displayDate, systemImage: "clock")
                         .font(.caption)
-                    }
+                        .foregroundStyle(.secondary)
                 }
 
                 Divider()
@@ -129,6 +111,25 @@ struct ArticleDetailView: View {
                         Label("AI翻訳", systemImage: "character.bubble")
                     }
                     .buttonStyle(.bordered)
+                }
+
+                Spacer()
+
+                Button {
+                    Task {
+                        if isRead {
+                            await articleStore.markAsUnread(id: currentArticle.id)
+                        } else {
+                            await articleStore.markAsRead(id: currentArticle.id)
+                        }
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: isRead ? "envelope.badge" : "envelope.open")
+                            .font(.title3)
+                        Text(isRead ? "未読にする" : "既読にする")
+                            .font(.caption2)
+                    }
                 }
 
                 Spacer()
