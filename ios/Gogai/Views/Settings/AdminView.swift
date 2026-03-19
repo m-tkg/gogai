@@ -134,6 +134,7 @@ struct AdminView: View {
         await groupStore.fetchGroups()
         await feedStore.fetchFeeds()
         await articleStore.fetchArticles()
+        await settingsStore.checkUpdate()
     }
 
     /// /health に到達できるまで 1 秒間隔で最大 120 回（約 2 分）ポーリングする
