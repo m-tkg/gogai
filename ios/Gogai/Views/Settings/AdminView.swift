@@ -69,7 +69,7 @@ struct AdminView: View {
                         ProgressView()
                         Text(restartPhase == .building
                              ? "git pull・ビルド中..."
-                             : "再起動中... (\(restartCheckCount)回目の確認)")
+                             : "再起動中... (\(restartCheckCount)秒経過)")
                             .foregroundStyle(.secondary)
                     }
                 } else if let output = restartOutput {
