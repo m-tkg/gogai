@@ -43,6 +43,7 @@
 		FF00000000000000000021AB /* ArticleDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000021AB /* ArticleDetailViewModel.swift */; };
 		FF00000000000000000022AB /* ServerURLManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000022AB /* ServerURLManager.swift */; };
 		FF00000000000000000023AB /* DateFormatter+.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000023AB /* DateFormatter+.swift */; };
+		FF00000000000000000034AB /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000034AB /* ShareSheet.swift */; };
 		FF00000000000000000024AB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000024AB /* Assets.xcassets */; };
 		FF00000000000000000025AB /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000001AB /* APIClientTests.swift */; };
 		FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000002AB /* GroupRepositoryTests.swift */; };
@@ -105,6 +106,7 @@
 		DD00000000000000000021AB /* ArticleDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleDetailViewModel.swift; sourceTree = "<group>"; };
 		DD00000000000000000022AB /* ServerURLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManager.swift; sourceTree = "<group>"; };
 		DD00000000000000000023AB /* DateFormatter+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DateFormatter+.swift"; sourceTree = "<group>"; };
+		DD00000000000000000034AB /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		DD00000000000000000024AB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD00000000000000000025AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DD00000000000000000026AB /* Gogai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gogai.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -240,6 +242,7 @@
 			children = (
 				DD00000000000000000022AB /* ServerURLManager.swift */,
 				DD00000000000000000023AB /* DateFormatter+.swift */,
+				DD00000000000000000034AB /* ShareSheet.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -471,6 +474,7 @@
 				FF00000000000000000021AB /* ArticleDetailViewModel.swift in Sources */,
 				FF00000000000000000022AB /* ServerURLManager.swift in Sources */,
 				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,
+				FF00000000000000000034AB /* ShareSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
