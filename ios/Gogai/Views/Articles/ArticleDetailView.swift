@@ -6,14 +6,12 @@ struct ArticleDetailView: View {
     @EnvironmentObject private var articleStore: ArticleStore
     @EnvironmentObject private var feedStore: FeedStore
     @Environment(\.openURL) private var openURL
-    @Environment(\.dismiss) private var dismiss
 
     @State private var currentArticle: Article
     @State private var showBrowser = false
     @State private var showAISummary = false
     @State private var showAITranslation = false
     @State private var contentHeight: CGFloat = 200
-    @State private var viewHeight: CGFloat = 0
 
     init(article: Article) {
         self.article = article
@@ -112,18 +110,9 @@ struct ArticleDetailView: View {
             .padding()
         }
         .id(currentArticle.id)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewHeight = $0 }
         .navigationTitle("記事")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 if let link = currentArticle.link, let url = URL(string: link) {
                     Button {
@@ -144,50 +133,27 @@ struct ArticleDetailView: View {
                     }
                 }
         )
-        .overlay(alignment: .bottom) {
-            Color.clear
-                .frame(height: viewHeight > 0 ? viewHeight / 3 : 0)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 60)
-                        .onEnded { value in
-                            let isHorizontal = abs(value.translation.width) > abs(value.translation.height) * 2
-                            guard isHorizontal else { return }
-                            if value.translation.width < 0, let next = nextArticle {
-                                currentArticle = next
-                            } else if value.translation.width > 0, let prev = previousArticle {
-                                currentArticle = prev
-                            }
-                        }
-                )
-        }
         .safeAreaInset(edge: .bottom) {
             HStack {
-                Button {
-                    if let prev = previousArticle {
-                        currentArticle = prev
-                    }
-                } label: {
-                    Label("前の記事", systemImage: "chevron.left")
-                }
-                .disabled(previousArticle == nil)
-
                 Spacer()
+                VStack(spacing: 8) {
+                    Button {
+                        if let prev = previousArticle { currentArticle = prev }
+                    } label: {
+                        Label("前の記事", systemImage: "chevron.up")
+                    }
+                    .disabled(previousArticle == nil)
 
-                Button {
-                    if let next = nextArticle {
-                        currentArticle = next
+                    Button {
+                        if let next = nextArticle { currentArticle = next }
+                    } label: {
+                        Label("次の記事", systemImage: "chevron.down")
                     }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("次の記事")
-                        Image(systemName: "chevron.right")
-                    }
+                    .disabled(nextArticle == nil)
                 }
-                .disabled(nextArticle == nil)
+                .padding(.vertical, 10)
+                .padding(.trailing)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
             .background(.bar)
         }
         .sheet(isPresented: $showBrowser) {
