@@ -6,6 +6,7 @@ struct ArticleDetailView: View {
     @EnvironmentObject private var articleStore: ArticleStore
     @EnvironmentObject private var feedStore: FeedStore
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
 
     @State private var currentArticle: Article
     @State private var showBrowser = false
@@ -114,7 +115,15 @@ struct ArticleDetailView: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewHeight = $0 }
         .navigationTitle("記事")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 if let link = currentArticle.link, let url = URL(string: link) {
                     Button {
