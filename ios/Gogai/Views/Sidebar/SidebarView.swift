@@ -133,8 +133,8 @@ struct SidebarView: View {
                     Image(systemName: groupStore.showSecretGroups ? "gear.badge" : "gear")
                         .foregroundStyle(groupStore.showSecretGroups ? .orange : .primary)
                 }
-                .simultaneousGesture(
-                    LongPressGesture().onEnded { _ in
+                .highPriorityGesture(
+                    LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                         groupStore.showSecretGroups.toggle()
                     }
                 )
