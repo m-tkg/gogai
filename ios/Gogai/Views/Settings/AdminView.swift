@@ -133,11 +133,14 @@ struct AdminView: View {
 
     /// /health に到達できるまで 1 秒間隔で最大 120 回（約 2 分）ポーリングする
     /// URLSession.shared の stale コネクションを避けるため ephemeral セッションを使用
+    @MainActor
     private func waitForServer() async {
-        guard let baseURL = serverURLManager.serverURL else { return }
+        // resolvedURL（Gist URL 解決済みの実際のサーバー URL）を使う
+        guard let baseURL = serverURLManager.resolvedURL else { return }
         let healthURL = baseURL.appendingPathComponent("health")
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 3
+        // 応答待ちはタイムアウトを短くして素早くリトライ
+        config.timeoutIntervalForRequest = 1
         let session = URLSession(configuration: config)
         for _ in 0..<120 {
             try? await Task.sleep(for: .seconds(1))
