@@ -27,22 +27,24 @@ struct GroupRowView: View {
                     Spacer()
                 }
             }
-            Button {
-                Task {
-                    try? await groupStore.updateGroup(id: group.id, name: group.name, isSecret: group.isSecret ? 0 : 1)
+            if groupStore.showSecretGroups {
+                Button {
+                    Task {
+                        try? await groupStore.updateGroup(id: group.id, name: group.name, isSecret: group.isSecret ? 0 : 1)
+                    }
+                } label: {
+                    Image(systemName: group.isSecret ? "lock.fill" : "lock.open")
+                        .foregroundStyle(group.isSecret ? .orange : .secondary)
+                        .font(.caption)
                 }
-            } label: {
-                Image(systemName: group.isSecret ? "lock.fill" : "lock.open")
-                    .foregroundStyle(group.isSecret ? .orange : .secondary)
-                    .font(.caption)
-            }
-            Button {
-                editName = group.name
-                showEditAlert = true
-            } label: {
-                Image(systemName: "pencil")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                Button {
+                    editName = group.name
+                    showEditAlert = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
             }
         }
         .contextMenu {
