@@ -89,4 +89,25 @@ describe('GroupsService', () => {
       expect(groups[1].is_secret).toBeDefined()
     })
   })
+
+  describe('並び替え', () => {
+    it('新規グループは末尾に追加される', () => {
+      const g1 = service.create('A')
+      const g2 = service.create('B')
+      expect(g2.display_order).toBeGreaterThan(g1.display_order)
+    })
+
+    it('reorderでグループの並び順を変更できる', () => {
+      const g1 = service.create('A')
+      const g2 = service.create('B')
+      const g3 = service.create('C')
+
+      service.reorder([g3.id, g1.id, g2.id])
+
+      const groups = service.findAll()
+      const ids = groups.map(g => g.id)
+      expect(ids.indexOf(g3.id)).toBeLessThan(ids.indexOf(g1.id))
+      expect(ids.indexOf(g1.id)).toBeLessThan(ids.indexOf(g2.id))
+    })
+  })
 })
