@@ -26,6 +26,8 @@ struct GroupRowView: View {
                         .font(.caption2)
                 }
             }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
 
             // グループ名: タップでグループ記事一覧へ
             Button {

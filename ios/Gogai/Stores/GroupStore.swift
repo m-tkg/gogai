@@ -19,10 +19,12 @@ final class GroupStore: ObservableObject {
         showSecretGroups ? groups : groups.filter { !$0.isSecret }
     }
 
+    @MainActor
     func isExpanded(id: Int) -> Bool {
         !collapsedGroupIds.contains(id)
     }
 
+    @MainActor
     func toggleExpanded(id: Int) {
         if collapsedGroupIds.contains(id) {
             collapsedGroupIds.remove(id)
@@ -64,6 +66,7 @@ final class GroupStore: ObservableObject {
         guard let client else { return }
         try await GroupRepository(client: client).delete(id: id)
         groups.removeAll { $0.id == id }
+        collapsedGroupIds.remove(id)
     }
 
     @MainActor
