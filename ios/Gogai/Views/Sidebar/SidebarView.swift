@@ -107,9 +107,9 @@ struct SidebarView: View {
                 .accessibilityHint("長押しでシークレットグループの表示を切り替え")
             }
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            // バックグラウンドから復帰した時のみリセット（初回起動時は除く）
-            if newPhase == .active && oldPhase == .background {
+        .onChange(of: scenePhase) { _, newPhase in
+            // バックグラウンド移行時にシークレットモードをオフ
+            if newPhase == .background {
                 groupStore.showSecretGroups = false
             }
         }
