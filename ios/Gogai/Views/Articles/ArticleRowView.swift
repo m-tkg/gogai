@@ -20,6 +20,8 @@ struct ArticleRowView: View {
         return groupStore.groups.first(where: { $0.id == groupId })?.name
     }
 
+    @State private var showShareSheet = false
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             faviconView
@@ -31,6 +33,11 @@ struct ArticleRowView: View {
                     .font(.headline)
                     .foregroundStyle(article.isRead ? .secondary : .primary)
                     .lineLimit(2)
+                    .onLongPressGesture {
+                        if let link = article.link, URL(string: link) != nil {
+                            showShareSheet = true
+                        }
+                    }
 
                 if let published = article.published_at {
                     HStack(spacing: 4) {
@@ -67,6 +74,11 @@ struct ArticleRowView: View {
         }
         .padding(.vertical, 4)
         .listRowBackground(article.isRead ? Color.clear : Color.accentColor.opacity(0.05))
+        .sheet(isPresented: $showShareSheet) {
+            if let link = article.link, let url = URL(string: link) {
+                ShareSheet(items: [url])
+            }
+        }
     }
 
     @ViewBuilder

@@ -11,6 +11,7 @@ struct ArticleDetailView: View {
     @State private var showBrowser = false
     @State private var showAISummary = false
     @State private var showAITranslation = false
+    @State private var showShareSheet = false
     @State private var contentHeight: CGFloat = 200
 
     init(article: Article) {
@@ -49,6 +50,11 @@ struct ArticleDetailView: View {
                 Text(currentArticle.title ?? "（タイトルなし）")
                     .font(.title2)
                     .fontWeight(.bold)
+                    .onLongPressGesture {
+                        if let link = currentArticle.link, URL(string: link) != nil {
+                            showShareSheet = true
+                        }
+                    }
 
                 // Meta
                 if let published = currentArticle.published_at {
@@ -155,6 +161,11 @@ struct ArticleDetailView: View {
             .padding(.vertical, 10)
             .background(.bar)
         }
+        .sheet(isPresented: $showShareSheet) {
+            if let link = currentArticle.link, let url = URL(string: link) {
+                ShareSheet(items: [url])
+            }
+        }
         .sheet(isPresented: $showBrowser) {
             if let link = currentArticle.link, let url = URL(string: link) {
                 BrowserView(url: url)
@@ -176,6 +187,7 @@ struct ArticleDetailView: View {
             showBrowser = false
             showAISummary = false
             showAITranslation = false
+            showShareSheet = false
             Task {
                 if let next = articleStore.articles.first(where: { $0.id == newId }), !next.isRead {
                     await articleStore.markAsRead(id: newId)
