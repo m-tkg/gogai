@@ -14,6 +14,7 @@ struct SidebarView: View {
     @State private var showAddGroup = false
     @State private var showSettings = false
     @State private var refreshError: Error?
+    @State private var reorderError: Error?
     @State private var rotationAngle: Double = 0
 
     var body: some View {
@@ -49,7 +50,13 @@ struct SidebarView: View {
                 }
             }
             .onMove { from, to in
-                Task { try? await groupStore.reorderGroups(from: from, to: to) }
+                Task {
+                    do {
+                        try await groupStore.reorderGroups(from: from, to: to)
+                    } catch {
+                        reorderError = error
+                    }
+                }
             }
 
             let ungroupedFeeds = feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
@@ -142,6 +149,14 @@ struct SidebarView: View {
             Button("OK") { refreshError = nil }
         } message: {
             Text(refreshError?.localizedDescription ?? "")
+        }
+        .alert("並び替えエラー", isPresented: Binding(
+            get: { reorderError != nil },
+            set: { if !$0 { reorderError = nil } }
+        )) {
+            Button("OK") { reorderError = nil }
+        } message: {
+            Text(reorderError?.localizedDescription ?? "")
         }
     }
 
