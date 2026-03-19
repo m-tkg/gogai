@@ -10,6 +10,7 @@ export interface Group {
   name: string
   is_secret: number
   created_at: string
+  display_order: number
 }
 
 export interface Feed {
@@ -47,6 +48,7 @@ export const groupsApi = {
   update: (id: number, name: string, isSecret?: number) => api.put<Group>(`/api/groups/${id}`, { name, ...(isSecret !== undefined && { is_secret: isSecret }) }).then(r => r.data),
   remove: (id: number) => api.delete(`/api/groups/${id}`),
   refresh: (id: number) => api.post<RefreshResult>(`/api/groups/${id}/refresh`).then(r => r.data),
+  reorder: (ids: number[]) => api.patch('/api/groups/reorder', { ids }),
 }
 
 export interface RefreshResult {
