@@ -77,13 +77,12 @@ final class FeedStore: ObservableObject {
     @MainActor
     func reorderFeeds(from source: IndexSet, to destination: Int, groupId: Int?) async throws {
         guard let client else { return }
-        var groupFeeds = feeds(for: groupId)
+        // feeds(for: nil) は全フィードを返すため、group_id で直接フィルタする
+        var groupFeeds = feeds.filter { $0.group_id == groupId }
+        let otherFeeds = feeds.filter { $0.group_id != groupId }
         groupFeeds.move(fromOffsets: source, toOffset: destination)
         let ids = groupFeeds.map { $0.id }
         try await FeedRepository(client: client).reorder(ids: ids)
-        // ローカルの feeds 配列も並び替えに合わせて更新
-        var updatedFeeds = feeds.filter { $0.group_id != groupId }
-        updatedFeeds.append(contentsOf: groupFeeds)
-        feeds = updatedFeeds
+        feeds = otherFeeds + groupFeeds
     }
 }

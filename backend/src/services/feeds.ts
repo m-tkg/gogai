@@ -61,6 +61,16 @@ export class FeedsService {
   }
 
   reorder(ids: number[]): void {
+    if (ids.length === 0) return
+    // 全 ID が同一グループに属することを検証
+    const placeholders = ids.map(() => '?').join(', ')
+    const feeds = this.db.prepare(
+      `SELECT DISTINCT group_id FROM feeds WHERE id IN (${placeholders})`
+    ).all(...ids) as { group_id: number | null }[]
+    if (feeds.length > 1) {
+      throw new Error('All feeds must belong to the same group')
+    }
+
     const stmt = this.db.prepare('UPDATE feeds SET display_order = ? WHERE id = ?')
     const updateMany = this.db.transaction((orderedIds: number[]) => {
       orderedIds.forEach((id, index) => {
