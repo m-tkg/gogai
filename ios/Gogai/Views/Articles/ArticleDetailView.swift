@@ -86,26 +86,6 @@ struct ArticleDetailView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Divider()
-
-                // AI Actions
-                HStack(spacing: 12) {
-                    Button {
-                        showAISummary = true
-                    } label: {
-                        Label("AI要約", systemImage: "sparkles")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button {
-                        showAITranslation = true
-                    } label: {
-                        Label("AI翻訳", systemImage: "character.bubble")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
             .padding()
         }
@@ -134,8 +114,28 @@ struct ArticleDetailView: View {
                 }
         )
         .safeAreaInset(edge: .bottom) {
-            HStack {
-                Spacer()
+            HStack(alignment: .center) {
+                VStack(spacing: 8) {
+                    Button {
+                        showAISummary = true
+                    } label: {
+                        Label("AI要約", systemImage: "sparkles")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
+                        showAITranslation = true
+                    } label: {
+                        Label("AI翻訳", systemImage: "character.bubble")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Divider()
+                    .padding(.vertical, 4)
+
                 VStack(spacing: 8) {
                     Button {
                         if let prev = previousArticle { currentArticle = prev }
@@ -151,9 +151,9 @@ struct ArticleDetailView: View {
                     }
                     .disabled(nextArticle == nil)
                 }
-                .padding(.vertical, 10)
-                .padding(.trailing)
             }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
             .background(.bar)
         }
         .sheet(isPresented: $showBrowser) {
