@@ -82,6 +82,15 @@ export function initSchema(db: Database.Database): void {
     // already exists — ignore
   }
 
+  // feeds テーブルへの移行: 並び順カラムを追加
+  try {
+    db.exec(`ALTER TABLE feeds ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0`)
+    // 既存フィードの display_order を id 順で初期化（挿入順を維持）
+    db.exec(`UPDATE feeds SET display_order = id`)
+  } catch {
+    // already exists — ignore
+  }
+
   // groups テーブルへの移行: 並び順カラムを追加
   try {
     db.exec(`ALTER TABLE groups ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0`)
