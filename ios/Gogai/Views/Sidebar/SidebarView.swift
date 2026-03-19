@@ -56,7 +56,19 @@ struct SidebarView: View {
                     selectedGroupId = nil
                     onNavigate?(ArticleDestination(feedId: nil, groupId: nil))
                 } label: {
-                    Label("すべての記事", systemImage: "newspaper")
+                    HStack {
+                        Label("すべての記事", systemImage: "newspaper")
+                        let totalUnread = articleStore.unreadCount(for: nil)
+                        if totalUnread > 0 {
+                            Text("\(totalUnread)")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.accentColor, in: Capsule())
+                        }
+                    }
                 }
                 .tag("all")
             }
