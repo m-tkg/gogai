@@ -54,6 +54,9 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     }
   }
 
+  const [dragFeedId, setDragFeedId] = useState<number | null>(null)
+  const [dragOverFeedId, setDragOverFeedId] = useState<number | null>(null)
+
   const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list })
   const { data: feeds = [] } = useQuery({ queryKey: ['feeds'], queryFn: feedsApi.list })
 
@@ -102,6 +105,11 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     },
   })
 
+  const reorderFeeds = useMutation({
+    mutationFn: (ids: number[]) => feedsApi.reorder(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
+  })
+
   const refreshGroup = useMutation({
     mutationFn: (id: number) => groupsApi.refresh(id),
     onSuccess: () => {
@@ -132,6 +140,32 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
 
   const feedsByGroup = (groupId: number | null) =>
     feeds.filter((f: Feed) => f.group_id === groupId)
+
+  const handleDragStart = (feedId: number) => setDragFeedId(feedId)
+  const handleDragOver = (e: React.DragEvent, feedId: number) => {
+    e.preventDefault()
+    setDragOverFeedId(feedId)
+  }
+  const handleDrop = (groupFeeds: Feed[]) => {
+    if (dragFeedId === null || dragOverFeedId === null || dragFeedId === dragOverFeedId) {
+      setDragFeedId(null)
+      setDragOverFeedId(null)
+      return
+    }
+    const reordered = [...groupFeeds]
+    const fromIdx = reordered.findIndex(f => f.id === dragFeedId)
+    const toIdx = reordered.findIndex(f => f.id === dragOverFeedId)
+    if (fromIdx === -1 || toIdx === -1) return
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+    reorderFeeds.mutate(reordered.map(f => f.id))
+    setDragFeedId(null)
+    setDragOverFeedId(null)
+  }
+  const handleDragEnd = () => {
+    setDragFeedId(null)
+    setDragOverFeedId(null)
+  }
 
   const ungroupedFeeds = feedsByGroup(null)
 
@@ -283,20 +317,29 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 </>
               )}
             </div>
-            {isExpanded(group.id) && feedsByGroup(group.id).map((feed: Feed) => (
-              <FeedItem
-                key={feed.id}
-                feed={feed}
-                groups={groups}
-                selected={selectedFeedId === feed.id}
-                onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
-                onRemove={(onSuccess) => removeFeed.mutate(feed.id, { onSuccess })}
-                onRefresh={() => refreshFeed.mutate(feed.id)}
-                onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
-                isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
-                isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
-              />
-            ))}
+            {isExpanded(group.id) && (() => {
+              const groupFeeds = feedsByGroup(group.id)
+              return groupFeeds.map((feed: Feed) => (
+                <FeedItem
+                  key={feed.id}
+                  feed={feed}
+                  groups={groups}
+                  selected={selectedFeedId === feed.id}
+                  onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
+                  onRemove={(onSuccess) => removeFeed.mutate(feed.id, { onSuccess })}
+                  onRefresh={() => refreshFeed.mutate(feed.id)}
+                  onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
+                  isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
+                  isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
+                  isDragging={dragFeedId === feed.id}
+                  isDragOver={dragOverFeedId === feed.id}
+                  onDragStart={() => handleDragStart(feed.id)}
+                  onDragOver={(e) => handleDragOver(e, feed.id)}
+                  onDrop={() => handleDrop(groupFeeds)}
+                  onDragEnd={handleDragEnd}
+                />
+              ))
+            })()}
           </div>
         ))}
 
@@ -315,6 +358,12 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
                 isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
                 isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
+                isDragging={dragFeedId === feed.id}
+                isDragOver={dragOverFeedId === feed.id}
+                onDragStart={() => handleDragStart(feed.id)}
+                onDragOver={(e) => handleDragOver(e, feed.id)}
+                onDrop={() => handleDrop(ungroupedFeeds)}
+                onDragEnd={handleDragEnd}
               />
             ))}
           </div>
@@ -410,7 +459,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   )
 }
 
-function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpdate, isRefreshing, isUpdating }: {
+function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpdate, isRefreshing, isUpdating, isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd }: {
   feed: Feed
   groups: Group[]
   selected: boolean
@@ -420,6 +469,12 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
   onUpdate: (data: { url?: string; groupId?: number | null }, onSuccess: () => void, onError: () => void) => void
   isRefreshing: boolean
   isUpdating: boolean
+  isDragging?: boolean
+  isDragOver?: boolean
+  onDragStart?: () => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDrop?: () => void
+  onDragEnd?: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -485,7 +540,20 @@ function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpd
   }
 
   return (
-    <div className="flex items-center group/feed pl-3">
+    <div
+      className={`flex items-center group/feed pl-3 ${isDragOver ? 'border-t-2 border-blue-400' : ''} ${isDragging ? 'opacity-40' : ''}`}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
+      <span
+        className="hidden group-hover/feed:flex cursor-grab text-gray-300 dark:text-gray-600 text-xs px-0.5 select-none"
+        title="ドラッグして並び替え"
+      >
+        ⠿
+      </span>
       <button
         onClick={onSelect}
         className={`flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-sm ${

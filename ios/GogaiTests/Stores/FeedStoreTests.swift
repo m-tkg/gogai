@@ -17,9 +17,10 @@ final class FeedStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeFeed(id: Int = 1, groupId: Int? = nil) -> Feed {
+    private func makeFeed(id: Int = 1, groupId: Int? = nil, displayOrder: Int = 0) -> Feed {
         Feed(id: id, url: "https://example.com/feed.xml", title: "Example \(id)",
-             favicon_url: nil, group_id: groupId, last_fetched_at: nil, created_at: "2024-01-01T00:00:00Z")
+             favicon_url: nil, group_id: groupId, last_fetched_at: nil, created_at: "2024-01-01T00:00:00Z",
+             display_order: displayOrder)
     }
 
     @MainActor
@@ -68,6 +69,23 @@ final class FeedStoreTests: XCTestCase {
         _ = try await store.refreshAll()
 
         XCTAssertTrue(completionCalled)
+    }
+
+    // MARK: - reorderFeeds
+
+    @MainActor
+    func test_reorderFeeds_updatesLocalOrder() async throws {
+        store.feeds = [makeFeed(id: 1, groupId: 1, displayOrder: 0),
+                       makeFeed(id: 2, groupId: 1, displayOrder: 1),
+                       makeFeed(id: 3, groupId: 1, displayOrder: 2)]
+        MockURLProtocol.requestHandler = { _ in (204, Data()) }
+
+        try await store.reorderFeeds(from: IndexSet(integer: 0), to: 3, groupId: 1)
+
+        let groupFeeds = store.feeds(for: 1)
+        XCTAssertEqual(groupFeeds[0].id, 2)
+        XCTAssertEqual(groupFeeds[1].id, 3)
+        XCTAssertEqual(groupFeeds[2].id, 1)
     }
 
     // MARK: - isRefreshing

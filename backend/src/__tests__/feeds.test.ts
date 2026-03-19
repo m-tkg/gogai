@@ -82,4 +82,25 @@ describe('FeedsService', () => {
     const updated = feedsService.update(feed.id, { groupId: null })
     expect(updated?.group_id).toBeNull()
   })
+
+  it('新規フィードはグループ内で末尾に追加される', () => {
+    const group = groupsService.create('Tech')
+    const feed1 = feedsService.create({ url: 'https://a.com/feed.xml', groupId: group.id })
+    const feed2 = feedsService.create({ url: 'https://b.com/feed.xml', groupId: group.id })
+    expect(feed2.display_order).toBeGreaterThan(feed1.display_order)
+  })
+
+  it('reorderでフィードの並び順を変更できる', () => {
+    const group = groupsService.create('Tech')
+    const feed1 = feedsService.create({ url: 'https://a.com/feed.xml', groupId: group.id })
+    const feed2 = feedsService.create({ url: 'https://b.com/feed.xml', groupId: group.id })
+    const feed3 = feedsService.create({ url: 'https://c.com/feed.xml', groupId: group.id })
+
+    feedsService.reorder([feed3.id, feed1.id, feed2.id])
+
+    const feeds = feedsService.findAll()
+    const ids = feeds.map(f => f.id)
+    expect(ids.indexOf(feed3.id)).toBeLessThan(ids.indexOf(feed1.id))
+    expect(ids.indexOf(feed1.id)).toBeLessThan(ids.indexOf(feed2.id))
+  })
 })
