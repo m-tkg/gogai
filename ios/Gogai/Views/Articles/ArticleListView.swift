@@ -132,7 +132,7 @@ struct ArticleListView: View {
             }
         }
         .refreshable {
-            try? await feedStore.refreshAll()
+            _ = try? await feedStore.refreshAll()
         }
         .task {
             await articleStore.fetchArticles(feedId: feedId, groupId: groupId, includeSecret: groupStore.showSecretGroups)
