@@ -75,6 +75,13 @@ export function initSchema(db: Database.Database): void {
     }
   }
 
+  // groups テーブルへの移行
+  try {
+    db.exec(`ALTER TABLE groups ADD COLUMN is_secret INTEGER NOT NULL DEFAULT 0`)
+  } catch {
+    // already exists — ignore
+  }
+
   // read_at カラム追加後にインデックスを作成
   try {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at DESC)`)
