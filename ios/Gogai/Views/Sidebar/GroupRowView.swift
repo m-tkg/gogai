@@ -39,6 +39,7 @@ struct GroupRowView: View {
                     .foregroundStyle(.primary)
                 Spacer()
             }
+            .contentShape(Rectangle())
 
             if groupStore.showSecretGroups {
                 Button {

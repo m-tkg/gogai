@@ -130,4 +130,16 @@ final class GroupStoreTests: XCTestCase {
         XCTAssertFalse(store.isExpanded(id: 1))
         XCTAssertTrue(store.isExpanded(id: 2))
     }
+
+    @MainActor
+    func test_deleteGroup_clearsCollapsedState() async throws {
+        store.groups = [makeGroup(id: 1)]
+        store.toggleExpanded(id: 1)
+        XCTAssertFalse(store.isExpanded(id: 1))
+
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+        try await store.deleteGroup(id: 1)
+
+        XCTAssertTrue(store.isExpanded(id: 1))
+    }
 }
