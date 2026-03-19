@@ -231,10 +231,10 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               {/* グループ名: クリックでグループ記事一覧へ */}
               <button
                 onClick={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile(); setConfirmGroupId(null) }}
-                className={`flex-1 text-left py-1.5 rounded-md text-sm font-medium ${
+                className={`flex-1 text-left px-2 py-1.5 rounded-md text-sm font-medium ${
                   selectedGroupId === group.id
-                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 px-2'
+                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 {group.name}
