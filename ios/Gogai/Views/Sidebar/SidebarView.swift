@@ -4,6 +4,7 @@ struct SidebarView: View {
     @EnvironmentObject private var groupStore: GroupStore
     @EnvironmentObject private var feedStore: FeedStore
     @EnvironmentObject private var articleStore: ArticleStore
+    @Environment(\.scenePhase) private var scenePhase
 
     @Binding var selectedFeedId: Int?
     @Binding var selectedGroupId: Int?
@@ -31,7 +32,7 @@ struct SidebarView: View {
                 .tag("all")
             }
 
-            ForEach(groupStore.groups) { group in
+            ForEach(groupStore.visibleGroups) { group in
                 let feeds = feedStore.feeds(for: group.id).filter { feed in
                     !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
                 }
@@ -91,11 +92,19 @@ struct SidebarView: View {
             }
 
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gear")
-                }
+                Image(systemName: groupStore.showSecretGroups ? "gear.badge" : "gear")
+                    .foregroundStyle(groupStore.showSecretGroups ? .orange : .primary)
+                    .onTapGesture {
+                        showSettings = true
+                    }
+                    .onLongPressGesture {
+                        groupStore.showSecretGroups.toggle()
+                    }
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                groupStore.showSecretGroups = false
             }
         }
         .sheet(isPresented: $showAddFeed) {

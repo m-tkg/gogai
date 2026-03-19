@@ -4,11 +4,17 @@ final class GroupStore: ObservableObject {
     @Published var groups: [Group] = []
     @Published private(set) var isLoading = false
     @Published var error: Error?
+    /// シークレットグループの表示フラグ（保存されない、バックグラウンド復帰でリセット）
+    @Published var showSecretGroups = false
 
     private var client: (any APIClientProtocol)?
 
     func configure(with client: any APIClientProtocol) {
         self.client = client
+    }
+
+    var visibleGroups: [Group] {
+        showSecretGroups ? groups : groups.filter { !$0.isSecret }
     }
 
     @MainActor
@@ -31,9 +37,9 @@ final class GroupStore: ObservableObject {
     }
 
     @MainActor
-    func updateGroup(id: Int, name: String) async throws {
+    func updateGroup(id: Int, name: String, isSecret: Int? = nil) async throws {
         guard let client else { return }
-        let updated = try await GroupRepository(client: client).update(id: id, name: name)
+        let updated = try await GroupRepository(client: client).update(id: id, name: name, isSecret: isSecret)
         if let idx = groups.firstIndex(where: { $0.id == id }) {
             groups[idx] = updated
         }

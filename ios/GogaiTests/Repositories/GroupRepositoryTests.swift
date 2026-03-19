@@ -18,8 +18,8 @@ final class GroupRepositoryTests: XCTestCase {
 
     func test_fetchAll_returnsGroups() async throws {
         let expected = [
-            Group(id: 1, name: "Tech", created_at: "2024-01-01T00:00:00Z"),
-            Group(id: 2, name: "News", created_at: "2024-01-02T00:00:00Z"),
+            Group(id: 1, name: "Tech", is_secret: 0, created_at: "2024-01-01T00:00:00Z"),
+            Group(id: 2, name: "News", is_secret: 0, created_at: "2024-01-02T00:00:00Z"),
         ]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(expected)) }
 
@@ -30,7 +30,7 @@ final class GroupRepositoryTests: XCTestCase {
     }
 
     func test_create_sendsNameAndReturnsGroup() async throws {
-        let created = Group(id: 3, name: "Sports", created_at: "2024-01-03T00:00:00Z")
+        let created = Group(id: 3, name: "Sports", is_secret: 0, created_at: "2024-01-03T00:00:00Z")
         MockURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
             return (200, try JSONEncoder().encode(created))
@@ -42,7 +42,7 @@ final class GroupRepositoryTests: XCTestCase {
     }
 
     func test_update_sendsNameAndReturnsUpdatedGroup() async throws {
-        let updated = Group(id: 1, name: "Technology", created_at: "2024-01-01T00:00:00Z")
+        let updated = Group(id: 1, name: "Technology", is_secret: 0, created_at: "2024-01-01T00:00:00Z")
         MockURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "PUT")
             XCTAssertTrue(request.url?.path.hasSuffix("/api/groups/1") == true)
@@ -51,6 +51,17 @@ final class GroupRepositoryTests: XCTestCase {
 
         let group = try await repository.update(id: 1, name: "Technology")
         XCTAssertEqual(group.name, "Technology")
+    }
+
+    func test_update_withIsSecret_returnsGroupWithIsSecret() async throws {
+        let updated = Group(id: 1, name: "Secret Group", is_secret: 1, created_at: "2024-01-01T00:00:00Z")
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "PUT")
+            return (200, try JSONEncoder().encode(updated))
+        }
+
+        let group = try await repository.update(id: 1, name: "Secret Group", isSecret: 1)
+        XCTAssertEqual(group.is_secret, 1)
     }
 
     func test_delete_sendsDeleteRequest() async throws {
