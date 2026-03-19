@@ -3,6 +3,7 @@ import Foundation
 final class FeedStore: ObservableObject {
     @Published var feeds: [Feed] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isRefreshing = false
     @Published var error: Error?
 
     private var client: (any APIClientProtocol)?
@@ -59,6 +60,8 @@ final class FeedStore: ObservableObject {
     @MainActor
     func refreshAll() async throws -> RefreshResult {
         guard let client else { throw APIError.invalidURL }
+        isRefreshing = true
+        defer { isRefreshing = false }
         let result = try await FeedRepository(client: client).refreshAll()
         onRefreshComplete?()
         return result
