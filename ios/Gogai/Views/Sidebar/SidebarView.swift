@@ -48,6 +48,9 @@ struct SidebarView: View {
                     }
                 }
             }
+            .onMove { from, to in
+                Task { try? await groupStore.reorderGroups(from: from, to: to) }
+            }
 
             let ungroupedFeeds = feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
                 !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0

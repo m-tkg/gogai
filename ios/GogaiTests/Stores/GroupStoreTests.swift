@@ -17,8 +17,8 @@ final class GroupStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeGroup(id: Int = 1, name: String = "Tech", isSecret: Int = 0) -> Group {
-        Group(id: id, name: name, is_secret: isSecret, created_at: "2024-01-01T00:00:00Z")
+    private func makeGroup(id: Int = 1, name: String = "Tech", isSecret: Int = 0, displayOrder: Int = 0) -> Group {
+        Group(id: id, name: name, is_secret: isSecret, created_at: "2024-01-01T00:00:00Z", display_order: displayOrder)
     }
 
     @MainActor
@@ -141,5 +141,21 @@ final class GroupStoreTests: XCTestCase {
         try await store.deleteGroup(id: 1)
 
         XCTAssertTrue(store.isExpanded(id: 1))
+    }
+
+    // MARK: - reorderGroups
+
+    @MainActor
+    func test_reorderGroups_updatesLocalOrder() async throws {
+        store.groups = [makeGroup(id: 1, name: "A", displayOrder: 0),
+                        makeGroup(id: 2, name: "B", displayOrder: 1),
+                        makeGroup(id: 3, name: "C", displayOrder: 2)]
+        MockURLProtocol.requestHandler = { _ in (204, Data()) }
+
+        try await store.reorderGroups(from: IndexSet(integer: 0), to: 3)
+
+        XCTAssertEqual(store.groups[0].id, 2)
+        XCTAssertEqual(store.groups[1].id, 3)
+        XCTAssertEqual(store.groups[2].id, 1)
     }
 }

@@ -37,4 +37,9 @@ struct GroupRepository: Sendable {
     func refresh(id: Int) async throws -> RefreshResult {
         try await client.send(.post("/api/groups/\(id)/refresh"))
     }
+
+    func reorder(ids: [Int]) async throws {
+        struct Body: Encodable, Sendable { let ids: [Int] }
+        try await client.sendVoid(try .patch("/api/groups/reorder", body: Body(ids: ids)))
+    }
 }
