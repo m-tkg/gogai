@@ -46,4 +46,9 @@ struct FeedRepository: Sendable {
     func refreshAll() async throws -> RefreshResult {
         try await client.send(.post("/api/feeds/refresh-all"))
     }
+
+    func reorder(ids: [Int]) async throws {
+        struct Body: Encodable, Sendable { let ids: [Int] }
+        try await client.sendVoid(try .patch("/api/feeds/reorder", body: Body(ids: ids)))
+    }
 }
