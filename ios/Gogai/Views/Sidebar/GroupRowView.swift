@@ -13,17 +13,36 @@ struct GroupRowView: View {
     @State private var showDeleteConfirm = false
 
     var body: some View {
-        Button {
-            selectedGroupId = group.id
-            onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
-        } label: {
-            HStack {
-                Image(systemName: group.isSecret ? "folder.badge.minus" : "folder")
+        HStack {
+            Button {
+                selectedGroupId = group.id
+                onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
+            } label: {
+                HStack {
+                    Image(systemName: group.isSecret ? "folder.badge.minus" : "folder")
+                        .foregroundStyle(group.isSecret ? .orange : .secondary)
+                    Text(group.name)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                }
+            }
+            Button {
+                Task {
+                    try? await groupStore.updateGroup(id: group.id, name: group.name, isSecret: group.isSecret ? 0 : 1)
+                }
+            } label: {
+                Image(systemName: group.isSecret ? "lock.fill" : "lock.open")
                     .foregroundStyle(group.isSecret ? .orange : .secondary)
-                Text(group.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Spacer()
+                    .font(.caption)
+            }
+            Button {
+                editName = group.name
+                showEditAlert = true
+            } label: {
+                Image(systemName: "pencil")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
             }
         }
         .contextMenu {
