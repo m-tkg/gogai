@@ -99,4 +99,47 @@ final class GroupStoreTests: XCTestCase {
     func test_showSecretGroups_defaultsToFalse() {
         XCTAssertFalse(store.showSecretGroups)
     }
+
+    // MARK: - expandedGroupIds / isExpanded / toggleExpanded
+
+    @MainActor
+    func test_isExpanded_defaultsToTrue() {
+        XCTAssertTrue(store.isExpanded(id: 1))
+        XCTAssertTrue(store.isExpanded(id: 99))
+    }
+
+    @MainActor
+    func test_toggleExpanded_collapsesExpandedGroup() {
+        store.toggleExpanded(id: 1)
+
+        XCTAssertFalse(store.isExpanded(id: 1))
+    }
+
+    @MainActor
+    func test_toggleExpanded_expandsCollapsedGroup() {
+        store.toggleExpanded(id: 1)
+        store.toggleExpanded(id: 1)
+
+        XCTAssertTrue(store.isExpanded(id: 1))
+    }
+
+    @MainActor
+    func test_toggleExpanded_doesNotAffectOtherGroups() {
+        store.toggleExpanded(id: 1)
+
+        XCTAssertFalse(store.isExpanded(id: 1))
+        XCTAssertTrue(store.isExpanded(id: 2))
+    }
+
+    @MainActor
+    func test_deleteGroup_clearsCollapsedState() async throws {
+        store.groups = [makeGroup(id: 1)]
+        store.toggleExpanded(id: 1)
+        XCTAssertFalse(store.isExpanded(id: 1))
+
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+        try await store.deleteGroup(id: 1)
+
+        XCTAssertTrue(store.isExpanded(id: 1))
+    }
 }

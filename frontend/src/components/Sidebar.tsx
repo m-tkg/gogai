@@ -25,6 +25,16 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmGroupId, setConfirmGroupId] = useState<number | null>(null)
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<number>>(new Set())
+
+  const isExpanded = (id: number) => !collapsedGroupIds.has(id)
+  const toggleExpanded = (id: number) => {
+    setCollapsedGroupIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   // モバイルでオーバーレイ表示中に Escape キーで閉じる
   useEffect(() => {
@@ -209,15 +219,25 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
         {groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups).map((group: Group) => (
           <div key={group.id} className="mb-1">
             <div className="flex items-center group/group">
+              {/* フォルダアイコン: クリックで展開・折りたたみ */}
+              <button
+                onClick={() => toggleExpanded(group.id)}
+                className="px-2 py-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm flex items-center gap-0.5"
+                title={isExpanded(group.id) ? '折りたたむ' : '展開する'}
+              >
+                <span>{group.is_secret === 1 ? '🔒' : '📁'}</span>
+                <span className="text-xs">{isExpanded(group.id) ? '▾' : '▸'}</span>
+              </button>
+              {/* グループ名: クリックでグループ記事一覧へ */}
               <button
                 onClick={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile(); setConfirmGroupId(null) }}
-                className={`flex-1 text-left px-3 py-1.5 rounded-md text-sm font-medium ${
+                className={`flex-1 text-left px-2 py-1.5 rounded-md text-sm font-medium ${
                   selectedGroupId === group.id
                     ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
-                {group.is_secret === 1 ? '🔒' : '📁'} {group.name}
+                {group.name}
               </button>
               {confirmGroupId === group.id ? (
                 <div className="flex items-center gap-1 px-1">
@@ -263,7 +283,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
                 </>
               )}
             </div>
-            {feedsByGroup(group.id).map((feed: Feed) => (
+            {isExpanded(group.id) && feedsByGroup(group.id).map((feed: Feed) => (
               <FeedItem
                 key={feed.id}
                 feed={feed}

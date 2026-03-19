@@ -38,8 +38,10 @@ struct SidebarView: View {
                 }
                 if !feeds.isEmpty {
                     Section {
-                        ForEach(feeds) { feed in
-                            FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
+                        if groupStore.isExpanded(id: group.id) {
+                            ForEach(feeds) { feed in
+                                FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
+                            }
                         }
                     } header: {
                         GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)

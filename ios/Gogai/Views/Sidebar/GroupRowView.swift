@@ -14,19 +14,33 @@ struct GroupRowView: View {
 
     var body: some View {
         HStack {
+            // フォルダアイコン + chevron: タップで展開・折りたたみ
+            Button {
+                groupStore.toggleExpanded(id: group.id)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: group.isSecret ? "folder.badge.minus" : "folder")
+                        .foregroundStyle(group.isSecret ? .orange : .secondary)
+                    Image(systemName: groupStore.isExpanded(id: group.id) ? "chevron.down" : "chevron.right")
+                        .foregroundStyle(.secondary)
+                        .font(.caption2)
+                }
+            }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+
+            // グループ名: タップでグループ記事一覧へ
             Button {
                 selectedGroupId = group.id
                 onNavigate?(ArticleDestination(feedId: nil, groupId: group.id))
             } label: {
-                HStack {
-                    Image(systemName: group.isSecret ? "folder.badge.minus" : "folder")
-                        .foregroundStyle(group.isSecret ? .orange : .secondary)
-                    Text(group.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                }
+                Text(group.name)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
             }
+            .contentShape(Rectangle())
+
             if groupStore.showSecretGroups {
                 Button {
                     Task {
@@ -90,4 +104,5 @@ struct GroupRowView: View {
             Text("このグループのフィードはグループなしになります")
         }
     }
+
 }
