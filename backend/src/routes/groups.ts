@@ -36,6 +36,15 @@ app.delete('/:id', (c) => {
   return c.body(null, 204)
 })
 
+app.patch('/reorder', async (c) => {
+  const { ids } = await c.req.json<{ ids: number[] }>()
+  if (!Array.isArray(ids) || !ids.every(Number.isInteger)) {
+    return c.json({ error: 'ids must be an array of integers' }, 400)
+  }
+  new GroupsService(getDb()).reorder(ids)
+  return c.body(null, 204)
+})
+
 // グループ内の全フィードを一括リフレッシュ
 app.post('/:id/refresh', async (c) => {
   const id = Number(c.req.param('id'))

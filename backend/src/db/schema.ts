@@ -91,6 +91,14 @@ export function initSchema(db: Database.Database): void {
     // already exists — ignore
   }
 
+  // groups テーブルへの移行: 並び順カラムを追加
+  try {
+    db.exec(`ALTER TABLE groups ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0`)
+    db.exec(`UPDATE groups SET display_order = id`)
+  } catch {
+    // already exists — ignore
+  }
+
   // read_at カラム追加後にインデックスを作成
   try {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at DESC)`)

@@ -14,6 +14,7 @@ struct SidebarView: View {
     @State private var showAddGroup = false
     @State private var showSettings = false
     @State private var refreshError: Error?
+    @State private var reorderError: Error?
     @State private var rotationAngle: Double = 0
     @State private var isEditing = false
 
@@ -49,6 +50,15 @@ struct SidebarView: View {
                         }
                     } header: {
                         GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
+                    }
+                }
+            }
+            .onMove { from, to in
+                Task {
+                    do {
+                        try await groupStore.reorderGroups(from: from, to: to)
+                    } catch {
+                        reorderError = error
                     }
                 }
             }
@@ -154,6 +164,14 @@ struct SidebarView: View {
             Button("OK") { refreshError = nil }
         } message: {
             Text(refreshError?.localizedDescription ?? "")
+        }
+        .alert("並び替えエラー", isPresented: Binding(
+            get: { reorderError != nil },
+            set: { if !$0 { reorderError = nil } }
+        )) {
+            Button("OK") { reorderError = nil }
+        } message: {
+            Text(reorderError?.localizedDescription ?? "")
         }
     }
 

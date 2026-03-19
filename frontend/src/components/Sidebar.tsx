@@ -26,6 +26,8 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const [error, setError] = useState<string | null>(null)
   const [confirmGroupId, setConfirmGroupId] = useState<number | null>(null)
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<number>>(new Set())
+  const [dragGroupId, setDragGroupId] = useState<number | null>(null)
+  const [dragOverGroupId, setDragOverGroupId] = useState<number | null>(null)
 
   const isExpanded = (id: number) => !collapsedGroupIds.has(id)
   const toggleExpanded = (id: number) => {
@@ -117,6 +119,37 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
       qc.invalidateQueries({ queryKey: ['articles'] })
     },
   })
+
+  const reorderGroups = useMutation({
+    mutationFn: (ids: number[]) => groupsApi.reorder(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+  })
+
+  const handleGroupDragStart = (groupId: number) => setDragGroupId(groupId)
+  const handleGroupDragOver = (e: React.DragEvent, groupId: number) => {
+    e.preventDefault()
+    setDragOverGroupId(groupId)
+  }
+  const handleGroupDrop = (visibleGroups: Group[]) => {
+    if (dragGroupId === null || dragOverGroupId === null || dragGroupId === dragOverGroupId) {
+      setDragGroupId(null)
+      setDragOverGroupId(null)
+      return
+    }
+    const reordered = [...visibleGroups]
+    const fromIdx = reordered.findIndex(g => g.id === dragGroupId)
+    const toIdx = reordered.findIndex(g => g.id === dragOverGroupId)
+    if (fromIdx === -1 || toIdx === -1) return
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+    reorderGroups.mutate(reordered.map(g => g.id))
+    setDragGroupId(null)
+    setDragOverGroupId(null)
+  }
+  const handleGroupDragEnd = () => {
+    setDragGroupId(null)
+    setDragOverGroupId(null)
+  }
 
   const addGroup = useMutation({
     mutationFn: () => groupsApi.create(addGroupName),
@@ -250,9 +283,26 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           </button>
         </div>
 
-        {groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups).map((group: Group) => (
-          <div key={group.id} className="mb-1">
+        {(() => {
+          const visibleGroups = groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups)
+          return visibleGroups.map((group: Group) => (
+          <div
+            key={group.id}
+            className={`mb-1 ${dragOverGroupId === group.id ? 'border-t-2 border-blue-400' : ''} ${dragGroupId === group.id ? 'opacity-40' : ''}`}
+            draggable
+            onDragStart={() => handleGroupDragStart(group.id)}
+            onDragOver={(e) => handleGroupDragOver(e, group.id)}
+            onDrop={() => handleGroupDrop(visibleGroups)}
+            onDragEnd={handleGroupDragEnd}
+          >
             <div className="flex items-center group/group">
+              {/* ドラッグハンドル */}
+              <span
+                className="hidden group-hover/group:flex cursor-grab text-gray-300 dark:text-gray-600 text-xs px-0.5 select-none"
+                title="ドラッグして並び替え"
+              >
+                ⠿
+              </span>
               {/* フォルダアイコン: クリックで展開・折りたたみ */}
               <button
                 onClick={() => toggleExpanded(group.id)}
@@ -341,7 +391,8 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
               ))
             })()}
           </div>
-        ))}
+          ))
+        })()}
 
         {ungroupedFeeds.length > 0 && (
           <div className="mt-2">

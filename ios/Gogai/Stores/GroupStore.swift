@@ -74,4 +74,12 @@ final class GroupStore: ObservableObject {
         guard let client else { throw APIError.invalidURL }
         return try await GroupRepository(client: client).refresh(id: id)
     }
+
+    @MainActor
+    func reorderGroups(from source: IndexSet, to destination: Int) async throws {
+        guard let client else { return }
+        groups.move(fromOffsets: source, toOffset: destination)
+        let ids = groups.map { $0.id }
+        try await GroupRepository(client: client).reorder(ids: ids)
+    }
 }
