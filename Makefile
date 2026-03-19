@@ -99,6 +99,7 @@ restart-daemon: daemon-restart
 # appiconset/ のアイコンを xcassets へ同期
 ios-sync-icons:
 	cp ios/appiconset/*.png ios/Gogai/Assets.xcassets/AppIcon.appiconset/
+	rm -f ios/Gogai/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png
 	cp ios/appiconset/Contents.json ios/Gogai/Assets.xcassets/AppIcon.appiconset/
 
 # アイコン同期してビルド（シミュレーター）
