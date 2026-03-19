@@ -34,6 +34,7 @@ export interface FindAllOptions {
   groupId?: number
   unreadOnly?: boolean
   sortBy?: SortBy
+  includeSecret?: boolean
 }
 
 export class ArticlesService {
@@ -81,6 +82,10 @@ export class ArticlesService {
     if (options.unreadOnly) {
       conditions.push('a.is_read = 0')
     }
+    // groupId 未指定かつ includeSecret でなければシークレットグループを除外
+    if (options.groupId === undefined && !options.includeSecret) {
+      conditions.push('(f.group_id IS NULL OR g.is_secret = 0)')
+    }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     values.push(options.limit, options.offset)
@@ -92,6 +97,7 @@ export class ArticlesService {
     return this.db.prepare(`
       SELECT a.* FROM articles a
       JOIN feeds f ON a.feed_id = f.id
+      LEFT JOIN groups g ON f.group_id = g.id
       ${where}
       ORDER BY ${orderBy}
       LIMIT ? OFFSET ?

@@ -22,6 +22,7 @@ final class ArticleStore: ObservableObject {
     private var client: (any APIClientProtocol)?
     private var currentFeedId: Int?
     private var currentGroupId: Int?
+    private var currentIncludeSecret: Bool = false
 
     init() {
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
@@ -35,10 +36,11 @@ final class ArticleStore: ObservableObject {
     }
 
     @MainActor
-    func fetchArticles(feedId: Int? = nil, groupId: Int? = nil, unreadOnly: Bool? = nil) async {
+    func fetchArticles(feedId: Int? = nil, groupId: Int? = nil, unreadOnly: Bool? = nil, includeSecret: Bool = false) async {
         guard let client else { return }
         currentFeedId = feedId
         currentGroupId = groupId
+        currentIncludeSecret = includeSecret
         if let unreadOnly { self.unreadOnly = unreadOnly }
         isLoading = true
         defer { isLoading = false }
@@ -47,7 +49,8 @@ final class ArticleStore: ObservableObject {
                 feedId: feedId,
                 groupId: groupId,
                 unreadOnly: self.unreadOnly,
-                sortOrder: self.sortOrder
+                sortOrder: self.sortOrder,
+                includeSecret: includeSecret
             )
             articles = fetched
             mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
@@ -59,7 +62,7 @@ final class ArticleStore: ObservableObject {
     @MainActor
     func refresh() async {
         let localReadIds = Set(articles.filter { $0.isRead }.map { $0.id })
-        await fetchArticles(feedId: currentFeedId, groupId: currentGroupId)
+        await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
         guard !localReadIds.isEmpty else { return }
         let applyLocalRead: (Article) -> Article = { a in
             guard localReadIds.contains(a.id), !a.isRead else { return a }
