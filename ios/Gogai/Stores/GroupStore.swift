@@ -6,6 +6,8 @@ final class GroupStore: ObservableObject {
     @Published var error: Error?
     /// シークレットグループの表示フラグ（保存されない、バックグラウンド復帰でリセット）
     @Published var showSecretGroups = false
+    /// 折りたたまれているグループIDのセット（未含有 = 展開済み）
+    @Published private var collapsedGroupIds: Set<Int> = []
 
     private var client: (any APIClientProtocol)?
 
@@ -15,6 +17,20 @@ final class GroupStore: ObservableObject {
 
     var visibleGroups: [Group] {
         showSecretGroups ? groups : groups.filter { !$0.isSecret }
+    }
+
+    @MainActor
+    func isExpanded(id: Int) -> Bool {
+        !collapsedGroupIds.contains(id)
+    }
+
+    @MainActor
+    func toggleExpanded(id: Int) {
+        if collapsedGroupIds.contains(id) {
+            collapsedGroupIds.remove(id)
+        } else {
+            collapsedGroupIds.insert(id)
+        }
     }
 
     @MainActor
@@ -50,6 +66,7 @@ final class GroupStore: ObservableObject {
         guard let client else { return }
         try await GroupRepository(client: client).delete(id: id)
         groups.removeAll { $0.id == id }
+        collapsedGroupIds.remove(id)
     }
 
     @MainActor
