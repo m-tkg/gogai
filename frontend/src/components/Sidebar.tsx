@@ -206,7 +206,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
           </button>
         </div>
 
-        {groups.filter((g: Group) => g.is_secret === 0 || showSecretGroups).map((group: Group) => (
+        {groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups).map((group: Group) => (
           <div key={group.id} className="mb-1">
             <div className="flex items-center group/group">
               <button

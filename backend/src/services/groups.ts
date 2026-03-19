@@ -24,12 +24,10 @@ export class GroupsService {
   }
 
   update(id: number, name: string, isSecret?: number): Group | null {
-    if (isSecret !== undefined) {
-      const stmt = this.db.prepare('UPDATE groups SET name = ?, is_secret = ? WHERE id = ? RETURNING *')
-      return (stmt.get(name, isSecret, id) as Group) ?? null
-    }
-    const stmt = this.db.prepare('UPDATE groups SET name = ? WHERE id = ? RETURNING *')
-    return (stmt.get(name, id) as Group) ?? null
+    const current = this.findById(id)
+    if (!current) return null
+    const stmt = this.db.prepare('UPDATE groups SET name = ?, is_secret = ? WHERE id = ? RETURNING *')
+    return (stmt.get(name, isSecret ?? current.is_secret, id) as Group) ?? null
   }
 
   remove(id: number): void {
