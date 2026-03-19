@@ -18,6 +18,33 @@ struct SidebarView: View {
     @State private var rotationAngle: Double = 0
     @State private var isEditing = false
 
+    private var visibleUngroupedFeeds: [Feed] {
+        feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
+            !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
+        }
+    }
+
+    @ViewBuilder
+    private func groupSection(for group: Group) -> some View {
+        let feeds = feedStore.feeds(for: group.id).filter { feed in
+            !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
+        }
+        if !feeds.isEmpty {
+            Section {
+                if groupStore.isExpanded(id: group.id) {
+                    ForEach(feeds) { feed in
+                        FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
+                    }
+                    .onMove { from, to in
+                        Task { try? await feedStore.reorderFeeds(from: from, to: to, groupId: group.id) }
+                    }
+                }
+            } header: {
+                GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
+            }
+        }
+    }
+
     var body: some View {
         List(selection: Binding(
             get: { selectedFeedId.map { "feed-\($0)" } ?? selectedGroupId.map { "group-\($0)" } ?? "all" },
@@ -35,23 +62,7 @@ struct SidebarView: View {
             }
 
             ForEach(groupStore.visibleGroups) { group in
-                let feeds = feedStore.feeds(for: group.id).filter { feed in
-                    !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
-                }
-                if !feeds.isEmpty {
-                    Section {
-                        if groupStore.isExpanded(id: group.id) {
-                            ForEach(feeds) { feed in
-                                FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
-                            }
-                            .onMove { from, to in
-                                Task { try? await feedStore.reorderFeeds(from: from, to: to, groupId: group.id) }
-                            }
-                        }
-                    } header: {
-                        GroupRowView(group: group, selectedGroupId: $selectedGroupId, onNavigate: onNavigate)
-                    }
-                }
+                groupSection(for: group)
             }
             .onMove { from, to in
                 Task {
@@ -63,12 +74,9 @@ struct SidebarView: View {
                 }
             }
 
-            let ungroupedFeeds = feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
-                !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
-            }
-            if !ungroupedFeeds.isEmpty {
+            if !visibleUngroupedFeeds.isEmpty {
                 Section("未分類") {
-                    ForEach(ungroupedFeeds) { feed in
+                    ForEach(visibleUngroupedFeeds) { feed in
                         FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                     }
                     .onMove { from, to in
