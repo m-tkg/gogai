@@ -61,7 +61,22 @@ struct ArticleRowView: View {
             }
 
             Spacer()
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
+                Button {
+                    Task {
+                        if article.isRead {
+                            await articleStore.markAsUnread(id: article.id)
+                        } else {
+                            await articleStore.markAsRead(id: article.id)
+                        }
+                    }
+                } label: {
+                    Image(systemName: article.isRead ? "envelope" : "envelope.open")
+                        .foregroundStyle(article.isRead ? Color.secondary : Color.accentColor)
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+
                 if articleStore.summarizingIds.contains(article.id) {
                     ProgressView()
                 } else if article.ai_summary != nil {
