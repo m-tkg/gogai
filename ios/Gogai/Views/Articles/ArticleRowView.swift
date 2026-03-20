@@ -76,6 +76,7 @@ struct ArticleRowView: View {
                         .font(.body)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(article.isRead ? "未読にする" : "既読にする")
 
                 if articleStore.summarizingIds.contains(article.id) {
                     ProgressView()
