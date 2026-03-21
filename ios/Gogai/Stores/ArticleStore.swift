@@ -61,10 +61,18 @@ final class ArticleStore: ObservableObject {
 
     @MainActor
     func refresh() async {
-        let localReadIds = Set(articles.filter { $0.isRead }.map { $0.id })
-        await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: true)
-        guard !localReadIds.isEmpty else { return }
-        let applyLocalRead: (Article) -> Article = { a in
+        // refresh 前に既読になっていた記事を保存する
+        // unreadOnly: true の場合、fetchArticles はサーバーから未読のみ返すため
+        // このセッションで既読にした記事がリストから消えないよう、後で復元するために使う
+        let previouslyReadArticles = articles.filter { $0.isRead }
+
+        await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
+
+        guard !previouslyReadArticles.isEmpty else { return }
+
+        // API レスポンス遅延による未読状態の不一致を修正（fetch 結果に含まれている場合）
+        let localReadIds = Set(previouslyReadArticles.map { $0.id })
+        articles = articles.map { a in
             guard localReadIds.contains(a.id), !a.isRead else { return a }
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
                            title: a.title, link: a.link, summary: a.summary,
@@ -73,8 +81,37 @@ final class ArticleStore: ObservableObject {
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation,
                            read_at: a.read_at)
         }
-        articles = articles.map(applyLocalRead)
-        allArticles = allArticles.map(applyLocalRead)
+        allArticles = allArticles.map { a in
+            guard localReadIds.contains(a.id), !a.isRead else { return a }
+            return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
+                           title: a.title, link: a.link, summary: a.summary,
+                           content: a.content, published_at: a.published_at,
+                           is_read: 1, created_at: a.created_at,
+                           ai_summary: a.ai_summary, ai_translation: a.ai_translation,
+                           read_at: a.read_at)
+        }
+
+        // unreadOnly: true の場合、fetch 結果に含まれなかった既読記事をリストに保持する
+        // （このセッションで読んだ記事が自動 refresh で消えないようにするため）
+        // allArticles は未読バッジ計算用のため、既読になった記事は追加不要
+        if unreadOnly {
+            let newIds = Set(articles.map { $0.id })
+            let toPreserve = previouslyReadArticles.filter { !newIds.contains($0.id) }
+            if !toPreserve.isEmpty {
+                articles = (articles + toPreserve).sorted { a, b in
+                    switch sortOrder {
+                    case .publishedAt:
+                        let aDate = a.published_at ?? a.created_at
+                        let bDate = b.published_at ?? b.created_at
+                        return aDate > bDate
+                    case .readAt:
+                        let aDate = a.read_at ?? a.published_at ?? a.created_at
+                        let bDate = b.read_at ?? b.published_at ?? b.created_at
+                        return aDate > bDate
+                    }
+                }
+            }
+        }
     }
 
     // Optimistic update: immediately update local state, rollback on failure
