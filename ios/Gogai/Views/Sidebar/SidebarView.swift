@@ -189,6 +189,12 @@ struct SidebarView: View {
                 groupStore.showSecretGroups = false
             }
         }
+        .onChange(of: groupStore.showSecretGroups) { _, newVal in
+            // シークレットモードON時に即座にバッジ用キャッシュを更新する
+            if newVal {
+                Task { await articleStore.refreshAllArticlesCache() }
+            }
+        }
         .sheet(isPresented: $showAddFeed) {
             AddFeedView()
         }
