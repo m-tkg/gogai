@@ -66,6 +66,8 @@ struct GogaiApp: App {
             await groupStore.fetchGroups()
             await feedStore.fetchFeeds()
             await articleStore.fetchArticles()
+            // シークレット記事を含む全記事でバッジ用キャッシュを更新する
+            await articleStore.refreshAllArticlesCache()
         }
     }
 }
