@@ -23,6 +23,10 @@ final class ArticleStore: ObservableObject {
     private var currentFeedId: Int?
     private var currentGroupId: Int?
     private var currentIncludeSecret: Bool = false
+    /// 最後の fetchArticles が unreadOnly=true で実行されたかどうか
+    /// refresh() での既読記事保持の判定に使用する
+    /// unreadOnly=false で読み込まれた記事は「既読になった記事」と区別できないため保持しない
+    private var loadedWithUnreadOnly: Bool = false
 
     init() {
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
@@ -42,6 +46,7 @@ final class ArticleStore: ObservableObject {
         currentGroupId = groupId
         currentIncludeSecret = includeSecret
         if let unreadOnly { self.unreadOnly = unreadOnly }
+        loadedWithUnreadOnly = self.unreadOnly
         isLoading = true
         defer { isLoading = false }
         do {
@@ -62,9 +67,10 @@ final class ArticleStore: ObservableObject {
     @MainActor
     func refresh() async {
         // refresh 前に既読になっていた記事を保存する
-        // unreadOnly: true の場合、fetchArticles はサーバーから未読のみ返すため
-        // このセッションで既読にした記事がリストから消えないよう、後で復元するために使う
-        let previouslyReadArticles = articles.filter { $0.isRead }
+        // unreadOnly=true かつ前回フェッチも unreadOnly=true だった場合のみ保存する
+        // （unreadOnly=false で読み込まれた記事は既読・未読が混在しており、
+        //   「このセッションで読んだ記事」と区別できないため保持しない）
+        let previouslyReadArticles = loadedWithUnreadOnly ? articles.filter { $0.isRead } : []
 
         await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
 

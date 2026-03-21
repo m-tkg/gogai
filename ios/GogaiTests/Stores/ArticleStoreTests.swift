@@ -184,6 +184,31 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_refresh_doesNotPreserveReadArticle_whenLoadedWithUnreadOnlyFalse() async {
+        // unreadOnly=false で読み込んだ後に unreadOnly=true に切り替えても
+        // refresh() は既読記事を保持しない（全表示モードで読んだ記事は保持対象外）
+        store.unreadOnly = false
+        // unreadOnly=false でフェッチ（loadedWithUnreadOnly=false が記録される）
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 1, isRead: 1), self.makeArticle(id: 2, isRead: 0)]))
+        }
+        await store.fetchArticles()
+
+        // unreadOnly を true に切り替える（onChange 相当の fetchArticles はここでは省略）
+        store.unreadOnly = true
+
+        // refresh() が走る（バックグラウンド復帰など）
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)]))
+        }
+        await store.refresh()
+
+        // id:1（既読）は保持しない（全表示モードで読み込まれた記事のため）
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "全表示モードで読み込まれた既読記事は保持しない")
+        XCTAssertEqual(store.articles.count, 1)
+    }
+
+    @MainActor
     func test_refresh_preservedArticles_areSortedByPublishedAt() async {
         // published_at でソートされた状態で保持されること
         store.unreadOnly = true
