@@ -362,10 +362,31 @@ final class ArticleStoreTests: XCTestCase {
 
         await store.refresh()
 
-        // fetchArticles 自体が includeSecret=true を送るため 1 回は含まれる
-        // refreshAllArticlesCache による追加の呼び出しはない（2 回以上にはならない）
-        XCTAssertLessThanOrEqual(includeSecretRequestCount, 1,
-                                 "includeSecret=true 取得済みの場合は refreshAllArticlesCache を追加で呼ばない")
+        // fetchArticles 自体が includeSecret=true を 1 回送るのみ
+        // refreshAllArticlesCache による追加の呼び出しはない
+        XCTAssertEqual(includeSecretRequestCount, 1,
+                       "includeSecret=true 取得済みの場合は refreshAllArticlesCache を追加で呼ばない")
+    }
+
+    @MainActor
+    func test_refresh_doesNotCallRefreshAllArticlesCache_whenGroupIdIsSet() async {
+        // 特定グループの更新時は refreshAllArticlesCache を呼ばない
+        let articles = [makeArticle(id: 1, feedId: 5, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+        await store.fetchArticles(groupId: 10, includeSecret: false)
+
+        var includeSecretRequestCount = 0
+        MockURLProtocol.requestHandler = { req in
+            if req.url?.query?.contains("includeSecret=true") == true {
+                includeSecretRequestCount += 1
+            }
+            return (200, try JSONEncoder().encode(articles))
+        }
+
+        await store.refresh()
+
+        XCTAssertEqual(includeSecretRequestCount, 0,
+                       "特定グループのフル更新時は refreshAllArticlesCache を呼ばない")
     }
 
     @MainActor
