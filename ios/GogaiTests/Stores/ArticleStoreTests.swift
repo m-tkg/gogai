@@ -267,6 +267,84 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.articles.count, 1)
     }
 
+    // MARK: - refreshAllArticlesCache()
+
+    @MainActor
+    func test_refreshAllArticlesCache_updatesAllArticlesWithoutChangingArticles() async {
+        // articles を先に設定しておく
+        store.articles = [makeArticle(id: 99, feedId: 1, isRead: 0)]
+
+        let secretArticles = [makeArticle(id: 1, feedId: 10, isRead: 0), makeArticle(id: 2, feedId: 20, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(secretArticles)) }
+
+        await store.refreshAllArticlesCache()
+
+        // allArticles は更新される
+        XCTAssertEqual(store.allArticles.count, 2)
+        // articles は変わらない
+        XCTAssertEqual(store.articles.count, 1)
+        XCTAssertEqual(store.articles[0].id, 99)
+    }
+
+    @MainActor
+    func test_refreshAllArticlesCache_sendsIncludeSecretTrue() async {
+        var capturedURL: URL?
+        MockURLProtocol.requestHandler = { req in
+            capturedURL = req.url
+            return (200, try JSONEncoder().encode([self.makeArticle()]))
+        }
+
+        await store.refreshAllArticlesCache()
+
+        XCTAssertTrue(capturedURL?.query?.contains("includeSecret=true") ?? false,
+                      "refreshAllArticlesCache はシークレット記事も取得するため includeSecret=true を送信すること")
+    }
+
+    @MainActor
+    func test_refresh_updatesAllArticlesWithSecretArticles_whenFullFetchWithoutSecret() async {
+        // includeSecret=false で全記事フェッチ（currentIncludeSecret=false を確立）
+        store.unreadOnly = false
+        let nonSecretArticles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(nonSecretArticles)) }
+        await store.fetchArticles(includeSecret: false)
+
+        // refresh() でシークレット記事もキャッシュされる
+        let secretFeedArticle = makeArticle(id: 2, feedId: 100, isRead: 0)
+        MockURLProtocol.requestHandler = { req in
+            if req.url?.query?.contains("includeSecret=true") == true {
+                return (200, try JSONEncoder().encode([self.makeArticle(id: 1, feedId: 1, isRead: 0), secretFeedArticle]))
+            }
+            return (200, try JSONEncoder().encode(nonSecretArticles))
+        }
+
+        await store.refresh()
+
+        // allArticles にシークレットフィード（feedId=100）の記事が含まれる
+        XCTAssertTrue(store.allArticles.contains { $0.feed_id == 100 },
+                      "シークレットなしのフル更新後、allArticles にシークレット記事が含まれること")
+    }
+
+    @MainActor
+    func test_refresh_doesNotCallRefreshAllArticlesCache_whenFeedIdIsSet() async {
+        // 特定フィードの更新時は refreshAllArticlesCache を呼ばない
+        let articles = [makeArticle(id: 1, feedId: 5, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+        await store.fetchArticles(feedId: 5, includeSecret: false)
+
+        var includeSecretRequestCount = 0
+        MockURLProtocol.requestHandler = { req in
+            if req.url?.query?.contains("includeSecret=true") == true {
+                includeSecretRequestCount += 1
+            }
+            return (200, try JSONEncoder().encode(articles))
+        }
+
+        await store.refresh()
+
+        XCTAssertEqual(includeSecretRequestCount, 0,
+                       "特定フィードのフル更新時は refreshAllArticlesCache を呼ばない")
+    }
+
     @MainActor
     func test_refresh_preservedArticles_areSortedByPublishedAt() async {
         // published_at でソートされた状態で保持されること
