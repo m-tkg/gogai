@@ -84,8 +84,13 @@ final class ArticleStore: ObservableObject {
         //   「このセッションで読んだ記事」と区別できないため保持しない）
         let previouslyReadArticles = loadedWithUnreadOnly ? articles.filter { $0.isRead } : []
 
+        // refresh 開始時の世代を記録し、fetch 中に外部から fetchArticles が呼ばれたか検知する
+        let genBefore = fetchGeneration
         await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
 
+        // 自分の fetchArticles 以外にも呼び出しがあった場合はその結果を尊重し保持ロジックをスキップ
+        // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
+        guard fetchGeneration == genBefore + 1 else { return }
         guard !previouslyReadArticles.isEmpty else { return }
 
         // API レスポンス遅延による未読状態の不一致を修正（fetch 結果に含まれている場合）

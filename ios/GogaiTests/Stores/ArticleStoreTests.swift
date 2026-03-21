@@ -210,6 +210,39 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_refresh_doesNotPreserveReadArticle_whenFetchArticlesCalledConcurrently() async {
+        // refresh() 中に fetchArticles が外部から呼ばれた場合は保持ロジックをスキップする
+        // （「全て→未読のみ」切り替え中に refresh が割り込むシナリオ）
+        store.unreadOnly = true
+        let initial = [makeArticle(id: 1, isRead: 0), makeArticle(id: 2, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        // ユーザーが id:1 を既読にした状態
+        store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
+
+        // refresh() の内部 fetchArticles の後に fetchArticles(unreadOnly:false) が呼ばれることをシミュレート
+        // （実際は並行だが、テストでは sequentialに再現する）
+        // refresh() を模倣: previouslyReadArticles を保存後、外部 fetchArticles を先に呼ぶ
+        // → genBefore + 1 != fetchGeneration になるため保持ロジックがスキップされる
+
+        // まず「全て」fetch を実行（refresh の内部呼び出しより後に世代が進む状況を作る）
+        store.unreadOnly = false
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 1, isRead: 1), self.makeArticle(id: 2, isRead: 0)]))
+        }
+        await store.fetchArticles()  // gen が進む
+
+        // 「未読のみ」に戻す
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)])) }
+        await store.fetchArticles(unreadOnly: true)
+
+        // 最終結果: 未読のみ（id:1 は表示されない）
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "全て→未読のみ切り替え後は既読記事を保持しない")
+        XCTAssertEqual(store.articles.count, 1)
+    }
+
+    @MainActor
     func test_refresh_doesNotPreserveReadArticle_whenLoadedWithUnreadOnlyFalse() async {
         // unreadOnly=false で読み込んだ後に unreadOnly=true に切り替えても
         // refresh() は既読記事を保持しない（全表示モードで読んだ記事は保持対象外）
