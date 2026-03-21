@@ -131,4 +131,56 @@ final class ArticleStoreTests: XCTestCase {
         // allArticles（feed_id=10 の未読1件）を使う
         XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10]), 1)
     }
+
+    // MARK: - refresh() + unreadOnly 既読記事保持
+
+    @MainActor
+    func test_refresh_preservesCurrentlyReadArticle_whenUnreadOnly() async {
+        // unreadOnly: true の状態で記事を2件表示（id:1 が既読、id:2 が未読）
+        store.unreadOnly = true
+        store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
+        // サーバーは未読のみ返す（id:1 は返さない）
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)]))
+        }
+
+        await store.refresh()
+
+        // id:1（既読）は引き続きリストに残っていること
+        XCTAssertTrue(store.articles.contains { $0.id == 1 }, "既読記事がリストから消えてはいけない")
+        XCTAssertTrue(store.articles.contains { $0.id == 2 }, "未読記事は引き続き表示される")
+    }
+
+    @MainActor
+    func test_refresh_doesNotPreserveReadArticle_whenNotUnreadOnly() async {
+        // unreadOnly: false の場合はサーバー結果をそのまま使う
+        store.unreadOnly = false
+        store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
+        // サーバーは未読のみ返す（id:1 は返さない）
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)]))
+        }
+
+        await store.refresh()
+
+        // unreadOnly が false の場合は保持しない（サーバー結果を信頼）
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "unreadOnly=false では既読記事を保持しない")
+    }
+
+    @MainActor
+    func test_fetchArticles_clearsReadArticles_whenUnreadOnly() async {
+        // fetchArticles（明示的なフェッチ）は常にクリーンなサーバー結果を使う
+        store.unreadOnly = true
+        store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
+        // サーバーは未読のみ返す
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)]))
+        }
+
+        await store.fetchArticles()
+
+        // fetchArticles は既読記事を保持しない（クリーンなフェッチ）
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "明示的フェッチでは既読記事を保持しない")
+        XCTAssertEqual(store.articles.count, 1)
+    }
 }
