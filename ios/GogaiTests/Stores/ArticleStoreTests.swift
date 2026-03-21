@@ -36,6 +36,27 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_fetchArticles_laterCallWins_whenCalledConcurrently() async {
+        // 「全て→未読のみ」切り替えで2つのfetchArticlesが並行した場合、
+        // 新しい方の結果が採用されること（世代カウンターによる保護）
+        let allArticles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
+        let unreadArticles = [makeArticle(id: 2, isRead: 0)]
+
+        // 1回目: unreadOnly=false で全記事フェッチ開始（結果は後で上書きされる想定）
+        store.unreadOnly = false
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticles)) }
+        await store.fetchArticles()
+
+        // 2回目: unreadOnly=true で未読のみフェッチ（こちらが最新）
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(unreadArticles)) }
+        await store.fetchArticles(unreadOnly: true)
+
+        // 最後のフェッチ結果（未読のみ）が適用されていること
+        XCTAssertEqual(store.articles.count, 1)
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "既読記事は未読のみモードでは表示しない")
+    }
+
+    @MainActor
     func test_markAsRead_optimisticallyUpdates() async {
         store.articles = [makeArticle(id: 1, isRead: 0)]
         var requestReceived = false
