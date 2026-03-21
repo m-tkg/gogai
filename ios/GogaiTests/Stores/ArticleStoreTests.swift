@@ -168,20 +168,54 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
-    func test_fetchArticles_clearsReadArticles_whenUnreadOnly() async {
-        // fetchArticles（明示的なフェッチ）は常にクリーンなサーバー結果を使う
+    func test_fetchArticles_preservesReadArticles_whenContextUnchanged() async {
+        // 同一コンテキスト（feedId/groupId/unreadOnly が変わらない）の再フェッチでは既読記事を保持する
+        // （戻るボタンで記事一覧に戻った際の .task 再実行に対応）
         store.unreadOnly = true
         store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
-        // サーバーは未読のみ返す
         MockURLProtocol.requestHandler = { _ in
             (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)]))
         }
 
+        // feedId/groupId を変えずに再フェッチ（ビュー再表示時と同じ状況）
         await store.fetchArticles()
 
-        // fetchArticles は既読記事を保持しない（クリーンなフェッチ）
-        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "明示的フェッチでは既読記事を保持しない")
-        XCTAssertEqual(store.articles.count, 1)
+        XCTAssertTrue(store.articles.contains { $0.id == 1 }, "同一コンテキストの再フェッチでは既読記事を保持する")
+        XCTAssertTrue(store.articles.contains { $0.id == 2 })
+    }
+
+    @MainActor
+    func test_fetchArticles_clearsReadArticles_whenFeedIdChanges() async {
+        // feedId が変わった場合（別フィードを選択）はクリーンなフェッチを行う
+        store.unreadOnly = true
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 1, feedId: 1, isRead: 0)]))
+        }
+        await store.fetchArticles(feedId: 1)
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 1), makeArticle(id: 2, feedId: 1, isRead: 0)]
+
+        // feedId=2 に切り替え（コンテキスト変更）
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 3, feedId: 2, isRead: 0)]))
+        }
+        await store.fetchArticles(feedId: 2)
+
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "feedId変更時は既読記事を保持しない")
+        XCTAssertTrue(store.articles.contains { $0.id == 3 })
+    }
+
+    @MainActor
+    func test_fetchArticles_clearsReadArticles_whenUnreadOnlyToggled() async {
+        // unreadOnly を切り替えた場合はクリーンなフェッチを行う
+        store.unreadOnly = true
+        store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 2, isRead: 0)]))
+        }
+
+        await store.fetchArticles(unreadOnly: false)
+
+        XCTAssertFalse(store.articles.contains { $0.id == 1 }, "unreadOnly切り替え時は既読記事を保持しない")
     }
 
     @MainActor
