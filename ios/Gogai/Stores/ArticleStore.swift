@@ -91,6 +91,16 @@ final class ArticleStore: ObservableObject {
         // 自分の fetchArticles 以外にも呼び出しがあった場合はその結果を尊重し保持ロジックをスキップ
         // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
         guard fetchGeneration == genBefore + 1 else { return }
+
+        // シークレットなしのフル更新の場合、バッジ用にシークレット記事も取得して allArticles を更新する
+        // （fetchArticles が includeSecret=false だと allArticles からシークレット記事が抜けるため）
+        // 注: 保持ロジックの前に実行することで、以降の既読状態補正がシークレット記事にも適用される
+        if currentFeedId == nil && currentGroupId == nil && !currentIncludeSecret {
+            await refreshAllArticlesCache()
+            // refreshAllArticlesCache の await 中に外部 fetchArticles が呼ばれた場合は保持ロジックをスキップ
+            guard fetchGeneration == genBefore + 1 else { return }
+        }
+
         guard !previouslyReadArticles.isEmpty else { return }
 
         // API レスポンス遅延による未読状態の不一致を修正（fetch 結果に含まれている場合）
@@ -261,6 +271,24 @@ final class ArticleStore: ObservableObject {
         let source = allArticles.isEmpty ? articles : allArticles
         let feedIdSet = Set(feedIds)
         return source.filter { feedIdSet.contains($0.feed_id) && !$0.isRead }.count
+    }
+
+    /// allArticles のキャッシュをシークレット記事を含む全件で更新する
+    /// articles（表示中の記事リスト）は変更しない
+    /// SidebarView の未読バッジ計算に使用する
+    @MainActor
+    func refreshAllArticlesCache() async {
+        guard let client else { return }
+        do {
+            let fetched = try await ArticleRepository(client: client).fetchAll(
+                unreadOnly: unreadOnly,
+                sortOrder: sortOrder,
+                includeSecret: true
+            )
+            allArticles = fetched
+        } catch {
+            // ベストエフォート: キャッシュ更新失敗は無視する
+        }
     }
 
     // MARK: - Private
