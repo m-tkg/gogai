@@ -94,8 +94,11 @@ final class ArticleStore: ObservableObject {
 
         // シークレットなしのフル更新の場合、バッジ用にシークレット記事も取得して allArticles を更新する
         // （fetchArticles が includeSecret=false だと allArticles からシークレット記事が抜けるため）
+        // 注: 保持ロジックの前に実行することで、以降の既読状態補正がシークレット記事にも適用される
         if currentFeedId == nil && currentGroupId == nil && !currentIncludeSecret {
             await refreshAllArticlesCache()
+            // refreshAllArticlesCache の await 中に外部 fetchArticles が呼ばれた場合は保持ロジックをスキップ
+            guard fetchGeneration == genBefore + 1 else { return }
         }
 
         guard !previouslyReadArticles.isEmpty else { return }

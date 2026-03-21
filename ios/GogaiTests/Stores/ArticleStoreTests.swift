@@ -346,6 +346,29 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_refresh_doesNotCallRefreshAllArticlesCache_whenIncludeSecretTrue() async {
+        // includeSecret=true で取得済みの場合は refreshAllArticlesCache を呼ばない
+        let articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+        await store.fetchArticles(includeSecret: true)
+
+        var includeSecretRequestCount = 0
+        MockURLProtocol.requestHandler = { req in
+            if req.url?.query?.contains("includeSecret=true") == true {
+                includeSecretRequestCount += 1
+            }
+            return (200, try JSONEncoder().encode(articles))
+        }
+
+        await store.refresh()
+
+        // fetchArticles 自体が includeSecret=true を送るため 1 回は含まれる
+        // refreshAllArticlesCache による追加の呼び出しはない（2 回以上にはならない）
+        XCTAssertLessThanOrEqual(includeSecretRequestCount, 1,
+                                 "includeSecret=true 取得済みの場合は refreshAllArticlesCache を追加で呼ばない")
+    }
+
+    @MainActor
     func test_refresh_preservedArticles_areSortedByPublishedAt() async {
         // published_at でソートされた状態で保持されること
         // id:1 は新しい記事（既読）、id:2 は古い記事（未読）
