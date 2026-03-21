@@ -38,15 +38,6 @@ final class ArticleStore: ObservableObject {
     @MainActor
     func fetchArticles(feedId: Int? = nil, groupId: Int? = nil, unreadOnly: Bool? = nil, includeSecret: Bool = false) async {
         guard let client else { return }
-
-        // feedId/groupId/unreadOnly が変わっていない場合（ビュー再表示時の再フェッチ等）は
-        // unreadOnly モードで既読になった記事をセッション内で保持する
-        let contextChanging = feedId != currentFeedId
-            || groupId != currentGroupId
-            || (unreadOnly != nil && unreadOnly != self.unreadOnly)
-        let readArticlesToPreserve: [Article] =
-            (self.unreadOnly && !contextChanging) ? articles.filter { $0.isRead } : []
-
         currentFeedId = feedId
         currentGroupId = groupId
         currentIncludeSecret = includeSecret
@@ -63,25 +54,6 @@ final class ArticleStore: ObservableObject {
             )
             articles = fetched
             mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
-
-            // 同一コンテキストの再フェッチの場合、既読記事をリストに戻す
-            // （戻るボタン等でビューが再表示されても記事が消えないようにするため）
-            // allArticles は未読バッジ計算用のため既読記事は追加不要
-            if !readArticlesToPreserve.isEmpty {
-                let newIds = Set(articles.map { $0.id })
-                let toPreserve = readArticlesToPreserve.filter { !newIds.contains($0.id) }
-                if !toPreserve.isEmpty {
-                    articles = (articles + toPreserve).sorted { a, b in
-                        switch sortOrder {
-                        case .publishedAt:
-                            return (a.published_at ?? a.created_at) > (b.published_at ?? b.created_at)
-                        case .readAt:
-                            return (a.read_at ?? a.published_at ?? a.created_at)
-                                > (b.read_at ?? b.published_at ?? b.created_at)
-                        }
-                    }
-                }
-            }
         } catch {
             self.error = error
         }
