@@ -136,8 +136,13 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_refresh_preservesCurrentlyReadArticle_whenUnreadOnly() async {
-        // unreadOnly: true の状態で記事を2件表示（id:1 が既読、id:2 が未読）
+        // unreadOnly: true で先にフェッチして loadedWithUnreadOnly=true を確立する
         store.unreadOnly = true
+        let initial = [makeArticle(id: 1, isRead: 0), makeArticle(id: 2, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        // ユーザーが id:1 を既読にした状態を再現（楽観的更新後）
         store.articles = [makeArticle(id: 1, isRead: 1), makeArticle(id: 2, isRead: 0)]
         // サーバーは未読のみ返す（id:1 は返さない）
         MockURLProtocol.requestHandler = { _ in
@@ -211,7 +216,6 @@ final class ArticleStoreTests: XCTestCase {
     @MainActor
     func test_refresh_preservedArticles_areSortedByPublishedAt() async {
         // published_at でソートされた状態で保持されること
-        store.unreadOnly = true
         // id:1 は新しい記事（既読）、id:2 は古い記事（未読）
         let newerReadArticle = Article(
             id: 1, feed_id: 1, guid: "guid-1", title: "Newer (read)",
@@ -227,6 +231,13 @@ final class ArticleStoreTests: XCTestCase {
             created_at: "2024-01-01T00:00:00Z",
             ai_summary: nil, ai_translation: nil, read_at: nil
         )
+
+        // loadedWithUnreadOnly=true を確立するため先にフェッチする
+        store.unreadOnly = true
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode([newerReadArticle, olderUnreadArticle])) }
+        await store.fetchArticles()
+
+        // ユーザーが id:1 を既読にした状態を再現
         store.articles = [newerReadArticle, olderUnreadArticle]
         MockURLProtocol.requestHandler = { _ in
             (200, try JSONEncoder().encode([olderUnreadArticle]))
