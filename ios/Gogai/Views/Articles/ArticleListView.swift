@@ -11,6 +11,10 @@ struct ArticleListView: View {
     @EnvironmentObject private var groupStore: GroupStore
 
     @State private var showMarkAllConfirm = false
+    /// true になると .task の再フェッチをスキップする
+    /// ArticleDetailView から戻るとき（ビュー再表示）は再フェッチしない
+    /// フィード一覧から記事一覧を新たに開いたときは新インスタンスなので false にリセットされる
+    @State private var hasAppeared = false
 
     private var secretFeedIds: Set<Int> {
         guard feedId == nil, groupId == nil, !groupStore.showSecretGroups else { return [] }
@@ -135,6 +139,11 @@ struct ArticleListView: View {
             _ = try? await feedStore.refreshAll()
         }
         .task {
+            // 初回表示のみフェッチする
+            // ArticleDetailView から戻る際は再フェッチしない（既読記事を消さないため）
+            // フィード一覧から記事一覧を開き直した場合は新インスタンスなので hasAppeared=false
+            guard !hasAppeared else { return }
+            hasAppeared = true
             await articleStore.fetchArticles(feedId: feedId, groupId: groupId, includeSecret: groupStore.showSecretGroups)
         }
         .onChange(of: feedId) { _, newId in
