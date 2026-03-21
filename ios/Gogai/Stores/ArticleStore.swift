@@ -46,7 +46,6 @@ final class ArticleStore: ObservableObject {
         currentGroupId = groupId
         currentIncludeSecret = includeSecret
         if let unreadOnly { self.unreadOnly = unreadOnly }
-        loadedWithUnreadOnly = self.unreadOnly
         isLoading = true
         defer { isLoading = false }
         do {
@@ -58,6 +57,7 @@ final class ArticleStore: ObservableObject {
                 includeSecret: includeSecret
             )
             articles = fetched
+            loadedWithUnreadOnly = self.unreadOnly
             mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
         } catch {
             self.error = error
