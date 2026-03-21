@@ -183,4 +183,36 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertFalse(store.articles.contains { $0.id == 1 }, "明示的フェッチでは既読記事を保持しない")
         XCTAssertEqual(store.articles.count, 1)
     }
+
+    @MainActor
+    func test_refresh_preservedArticles_areSortedByPublishedAt() async {
+        // published_at でソートされた状態で保持されること
+        store.unreadOnly = true
+        // id:1 は新しい記事（既読）、id:2 は古い記事（未読）
+        let newerReadArticle = Article(
+            id: 1, feed_id: 1, guid: "guid-1", title: "Newer (read)",
+            link: nil, summary: nil, content: nil,
+            published_at: "2024-02-01T00:00:00Z", is_read: 1,
+            created_at: "2024-01-01T00:00:00Z",
+            ai_summary: nil, ai_translation: nil, read_at: nil
+        )
+        let olderUnreadArticle = Article(
+            id: 2, feed_id: 1, guid: "guid-2", title: "Older (unread)",
+            link: nil, summary: nil, content: nil,
+            published_at: "2024-01-01T00:00:00Z", is_read: 0,
+            created_at: "2024-01-01T00:00:00Z",
+            ai_summary: nil, ai_translation: nil, read_at: nil
+        )
+        store.articles = [newerReadArticle, olderUnreadArticle]
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([olderUnreadArticle]))
+        }
+
+        await store.refresh()
+
+        XCTAssertEqual(store.articles.count, 2)
+        // 新しい記事（id:1）が先に来ること（published_at 降順）
+        XCTAssertEqual(store.articles[0].id, 1, "新しい既読記事が先頭に来るべき")
+        XCTAssertEqual(store.articles[1].id, 2, "古い未読記事が後に来るべき")
+    }
 }

@@ -93,11 +93,23 @@ final class ArticleStore: ObservableObject {
 
         // unreadOnly: true の場合、fetch 結果に含まれなかった既読記事をリストに保持する
         // （このセッションで読んだ記事が自動 refresh で消えないようにするため）
+        // allArticles は未読バッジ計算用のため、既読になった記事は追加不要
         if unreadOnly {
             let newIds = Set(articles.map { $0.id })
             let toPreserve = previouslyReadArticles.filter { !newIds.contains($0.id) }
             if !toPreserve.isEmpty {
-                articles += toPreserve
+                articles = (articles + toPreserve).sorted { a, b in
+                    switch sortOrder {
+                    case .publishedAt:
+                        let aDate = a.published_at ?? a.created_at
+                        let bDate = b.published_at ?? b.created_at
+                        return aDate > bDate
+                    case .readAt:
+                        let aDate = a.read_at ?? a.published_at ?? a.created_at
+                        let bDate = b.read_at ?? b.published_at ?? b.created_at
+                        return aDate > bDate
+                    }
+                }
             }
         }
     }
