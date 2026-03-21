@@ -27,6 +27,10 @@ final class ArticleStore: ObservableObject {
     /// refresh() での既読記事保持の判定に使用する
     /// unreadOnly=false で読み込まれた記事は「既読になった記事」と区別できないため保持しない
     private var loadedWithUnreadOnly: Bool = false
+    /// 並行する fetchArticles 呼び出しで古い結果が上書きしないよう管理する世代カウンター
+    private var fetchGeneration = 0
+    /// isLoading を正確に管理するための実行中タスク数
+    private var loadingTaskCount = 0
 
     init() {
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
@@ -46,8 +50,14 @@ final class ArticleStore: ObservableObject {
         currentGroupId = groupId
         currentIncludeSecret = includeSecret
         if let unreadOnly { self.unreadOnly = unreadOnly }
+        fetchGeneration += 1
+        let myGeneration = fetchGeneration
+        loadingTaskCount += 1
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            loadingTaskCount -= 1
+            if loadingTaskCount == 0 { isLoading = false }
+        }
         do {
             let fetched = try await ArticleRepository(client: client).fetchAll(
                 feedId: feedId,
@@ -56,11 +66,13 @@ final class ArticleStore: ObservableObject {
                 sortOrder: self.sortOrder,
                 includeSecret: includeSecret
             )
+            // 新しいフェッチが始まっていれば古い結果は破棄する
+            guard myGeneration == fetchGeneration else { return }
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
             mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
         } catch {
-            self.error = error
+            if myGeneration == fetchGeneration { self.error = error }
         }
     }
 
