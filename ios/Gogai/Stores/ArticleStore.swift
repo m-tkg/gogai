@@ -15,6 +15,9 @@ final class ArticleStore: ObservableObject {
     @Published var summaryOnly: Bool {
         didSet { UserDefaults.standard.set(summaryOnly, forKey: "summaryOnly") }
     }
+    @Published var favoriteOnly: Bool {
+        didSet { UserDefaults.standard.set(favoriteOnly, forKey: "favoriteOnly") }
+    }
     @Published var sortOrder: ArticleSortOrder {
         didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: "sortOrder") }
     }
@@ -35,6 +38,7 @@ final class ArticleStore: ObservableObject {
     init() {
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
         self.summaryOnly = UserDefaults.standard.bool(forKey: "summaryOnly")
+        self.favoriteOnly = UserDefaults.standard.bool(forKey: "favoriteOnly")
         let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
     }
@@ -110,7 +114,7 @@ final class ArticleStore: ObservableObject {
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
                            title: a.title, link: a.link, summary: a.summary,
                            content: a.content, published_at: a.published_at,
-                           is_read: 1, created_at: a.created_at,
+                           is_read: 1, is_favorite: a.is_favorite, created_at: a.created_at,
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation,
                            read_at: a.read_at)
         }
@@ -119,7 +123,7 @@ final class ArticleStore: ObservableObject {
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
                            title: a.title, link: a.link, summary: a.summary,
                            content: a.content, published_at: a.published_at,
-                           is_read: 1, created_at: a.created_at,
+                           is_read: 1, is_favorite: a.is_favorite, created_at: a.created_at,
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation,
                            read_at: a.read_at)
         }
@@ -158,7 +162,7 @@ final class ArticleStore: ObservableObject {
             id: original.id, feed_id: original.feed_id, guid: original.guid,
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
-            is_read: 1, created_at: original.created_at,
+            is_read: 1, is_favorite: original.is_favorite, created_at: original.created_at,
             ai_summary: original.ai_summary, ai_translation: original.ai_translation,
             read_at: nowISO
         )
@@ -185,7 +189,8 @@ final class ArticleStore: ObservableObject {
             guard !a.isRead else { return a }
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
                            link: a.link, summary: a.summary, content: a.content,
-                           published_at: a.published_at, is_read: 1, created_at: a.created_at,
+                           published_at: a.published_at, is_read: 1, is_favorite: a.is_favorite,
+                           created_at: a.created_at,
                            ai_summary: a.ai_summary, ai_translation: a.ai_translation,
                            read_at: nowISO)
         }
@@ -214,7 +219,7 @@ final class ArticleStore: ObservableObject {
             id: original.id, feed_id: original.feed_id, guid: original.guid,
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
-            is_read: 0, created_at: original.created_at,
+            is_read: 0, is_favorite: original.is_favorite, created_at: original.created_at,
             ai_summary: original.ai_summary, ai_translation: original.ai_translation,
             read_at: nil
         )
@@ -223,6 +228,56 @@ final class ArticleStore: ObservableObject {
 
         do {
             try await ArticleRepository(client: client).markAsUnread(id: id)
+        } catch {
+            articles[idx] = original
+            updateAllArticles(original)
+            self.error = error
+        }
+    }
+
+    @MainActor
+    func favorite(id: Int) async {
+        guard let client else { return }
+        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
+        let original = articles[idx]
+        let updated = Article(
+            id: original.id, feed_id: original.feed_id, guid: original.guid,
+            title: original.title, link: original.link, summary: original.summary,
+            content: original.content, published_at: original.published_at,
+            is_read: original.is_read, is_favorite: 1, created_at: original.created_at,
+            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
+            read_at: original.read_at
+        )
+        articles[idx] = updated
+        updateAllArticles(updated)
+
+        do {
+            try await ArticleRepository(client: client).markAsFavorite(id: id)
+        } catch {
+            articles[idx] = original
+            updateAllArticles(original)
+            self.error = error
+        }
+    }
+
+    @MainActor
+    func unfavorite(id: Int) async {
+        guard let client else { return }
+        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
+        let original = articles[idx]
+        let updated = Article(
+            id: original.id, feed_id: original.feed_id, guid: original.guid,
+            title: original.title, link: original.link, summary: original.summary,
+            content: original.content, published_at: original.published_at,
+            is_read: original.is_read, is_favorite: 0, created_at: original.created_at,
+            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
+            read_at: original.read_at
+        )
+        articles[idx] = updated
+        updateAllArticles(updated)
+
+        do {
+            try await ArticleRepository(client: client).markAsUnfavorite(id: id)
         } catch {
             articles[idx] = original
             updateAllArticles(original)
@@ -242,7 +297,8 @@ final class ArticleStore: ObservableObject {
                 let updated = Article(
                     id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
                     link: a.link, summary: a.summary, content: a.content,
-                    published_at: a.published_at, is_read: a.is_read, created_at: a.created_at,
+                    published_at: a.published_at, is_read: a.is_read, is_favorite: a.is_favorite,
+                    created_at: a.created_at,
                     ai_summary: result.output, ai_translation: a.ai_translation,
                     read_at: a.read_at
                 )

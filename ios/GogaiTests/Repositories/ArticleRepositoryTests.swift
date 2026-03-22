@@ -19,7 +19,7 @@ final class ArticleRepositoryTests: XCTestCase {
     private func makeArticle(id: Int = 1, isRead: Int = 0) -> Article {
         Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
                 link: "https://example.com/\(id)", summary: "Summary", content: nil,
-                published_at: "2024-01-01T00:00:00Z", is_read: isRead,
+                published_at: "2024-01-01T00:00:00Z", is_read: isRead, is_favorite: 0,
                 created_at: "2024-01-01T00:00:00Z", ai_summary: nil, ai_translation: nil,
                 read_at: nil)
     }
