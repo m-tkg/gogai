@@ -329,6 +329,11 @@ final class ArticleStore: ObservableObject {
         return source.filter { feedIdSet.contains($0.feed_id) && !$0.isRead }.count
     }
 
+    func unreadCount(excludingFeedIds feedIds: Set<Int>) -> Int {
+        let source = allArticles.isEmpty ? articles : allArticles
+        return source.filter { !feedIds.contains($0.feed_id) && !$0.isRead }.count
+    }
+
     /// allArticles のキャッシュをシークレット記事を含む全件で更新する
     /// articles（表示中の記事リスト）は変更しない
     /// SidebarView の未読バッジ計算に使用する

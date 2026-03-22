@@ -20,7 +20,18 @@ struct SidebarView: View {
     @State private var isEditing = false
 
     private var totalUnreadCount: Int {
-        articleStore.unreadCount(for: nil)
+        guard !groupStore.showSecretGroups else {
+            return articleStore.unreadCount(for: nil)
+        }
+        let secretFeedIds = Set(feedStore.feeds.compactMap { feed -> Int? in
+            guard let gid = feed.group_id,
+                  groupStore.groups.first(where: { $0.id == gid })?.isSecret == true
+            else { return nil }
+            return feed.id
+        })
+        return secretFeedIds.isEmpty
+            ? articleStore.unreadCount(for: nil)
+            : articleStore.unreadCount(excludingFeedIds: secretFeedIds)
     }
 
     private var isNetworkActive: Bool {
