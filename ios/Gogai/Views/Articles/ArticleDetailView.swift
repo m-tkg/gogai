@@ -82,14 +82,12 @@ struct ArticleDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                if let link = currentArticle.link, URL(string: link) != nil {
+                if let link = currentArticle.link, let url = URL(string: link) {
                     Button {
                         showShareSheet = true
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
-                }
-                if let link = currentArticle.link, let url = URL(string: link) {
                     Button {
                         openURL(url)
                     } label: {
