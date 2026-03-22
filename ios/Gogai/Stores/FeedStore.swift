@@ -12,7 +12,8 @@ final class FeedStore: ObservableObject {
 
     init(cache: AppCache = .shared) {
         self.cache = cache
-        // スタブ: キャッシュ読み込みは未実装
+        // 起動時にキャッシュからフィード一覧を読み込む
+        self.feeds = cache.loadFeeds()
     }
 
     func configure(with client: any APIClientProtocol, onRefreshComplete: (() -> Void)? = nil) {
@@ -27,6 +28,7 @@ final class FeedStore: ObservableObject {
         defer { isLoading = false }
         do {
             feeds = try await FeedRepository(client: client).fetchAll()
+            cache.saveFeeds(feeds)
         } catch {
             self.error = error
         }

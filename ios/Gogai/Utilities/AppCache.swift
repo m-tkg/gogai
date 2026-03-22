@@ -13,34 +13,53 @@ final class AppCache: @unchecked Sendable {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 
+    // MARK: - Articles
+
     func saveAllArticles(_ articles: [Article]) {
-        // stub
+        save(articles, to: "allArticles.json")
     }
 
     func loadAllArticles() -> [Article] {
-        // stub
-        return []
+        load([Article].self, from: "allArticles.json") ?? []
     }
 
+    // MARK: - Feeds
+
     func saveFeeds(_ feeds: [Feed]) {
-        // stub
+        save(feeds, to: "feeds.json")
     }
 
     func loadFeeds() -> [Feed] {
-        // stub
-        return []
+        load([Feed].self, from: "feeds.json") ?? []
     }
 
+    // MARK: - Groups
+
     func saveGroups(_ groups: [Group]) {
-        // stub
+        save(groups, to: "groups.json")
     }
 
     func loadGroups() -> [Group] {
-        // stub
-        return []
+        load([Group].self, from: "groups.json") ?? []
     }
 
+    // MARK: - Clear
+
     func clearAll() {
-        // stub
+        try? FileManager.default.removeItem(at: directory)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    // MARK: - Private
+
+    private func save<T: Encodable>(_ value: T, to filename: String) {
+        let url = directory.appendingPathComponent(filename)
+        try? JSONEncoder().encode(value).write(to: url, options: .atomic)
+    }
+
+    private func load<T: Decodable>(_ type: T.Type, from filename: String) -> T? {
+        let url = directory.appendingPathComponent(filename)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
     }
 }

@@ -14,7 +14,8 @@ final class GroupStore: ObservableObject {
 
     init(cache: AppCache = .shared) {
         self.cache = cache
-        // スタブ: キャッシュ読み込みは未実装
+        // 起動時にキャッシュからグループ一覧を読み込む
+        self.groups = cache.loadGroups()
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -46,6 +47,7 @@ final class GroupStore: ObservableObject {
         defer { isLoading = false }
         do {
             groups = try await GroupRepository(client: client).fetchAll()
+            cache.saveGroups(groups)
         } catch {
             self.error = error
         }

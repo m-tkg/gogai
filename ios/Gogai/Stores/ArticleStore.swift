@@ -43,7 +43,8 @@ final class ArticleStore: ObservableObject {
         self.favoriteOnly = UserDefaults.standard.bool(forKey: "favoriteOnly")
         let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
-        // スタブ: キャッシュ読み込みは未実装
+        // 起動時にキャッシュから allArticles を読み込み、未読カウントを即座に表示する
+        self.allArticles = cache.loadAllArticles()
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -350,6 +351,7 @@ final class ArticleStore: ObservableObject {
                 includeSecret: true
             )
             allArticles = fetched
+            cache.saveAllArticles(fetched)
         } catch {
             // ベストエフォート: キャッシュ更新失敗は無視する
         }
@@ -366,6 +368,7 @@ final class ArticleStore: ObservableObject {
             let fetchedFeedIds = Set(fetched.map { $0.feed_id })
             allArticles = allArticles.filter { !fetchedFeedIds.contains($0.feed_id) } + fetched
         }
+        cache.saveAllArticles(allArticles)
     }
 
     /// allArticles 内の該当記事を更新する
