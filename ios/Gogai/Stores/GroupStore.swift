@@ -9,7 +9,14 @@ final class GroupStore: ObservableObject {
     /// 折りたたまれているグループIDのセット（未含有 = 展開済み）
     @Published private var collapsedGroupIds: Set<Int> = []
 
+    private let cache: AppCache
     private var client: (any APIClientProtocol)?
+
+    init(cache: AppCache = .shared) {
+        self.cache = cache
+        // 起動時にキャッシュからグループ一覧を読み込む
+        self.groups = cache.loadGroups()
+    }
 
     func configure(with client: any APIClientProtocol) {
         self.client = client
@@ -40,6 +47,7 @@ final class GroupStore: ObservableObject {
         defer { isLoading = false }
         do {
             groups = try await GroupRepository(client: client).fetchAll()
+            cache.saveGroups(groups)
         } catch {
             self.error = error
         }

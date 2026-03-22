@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var retentionDaysText = ""
     @State private var isSaving = false
     @State private var saveError: Error?
+    @State private var isCacheCleared = false
 
     var body: some View {
         NavigationStack {
@@ -42,10 +43,23 @@ struct SettingsView: View {
                             .frame(width: 60)
                         Text("日")
                     }
+
+                    Button(role: .destructive) {
+                        AppCache.shared.clearAll()
+                        isCacheCleared = true
+                    } label: {
+                        if isCacheCleared {
+                            Label("キャッシュを削除しました", systemImage: "checkmark.circle")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("ローカルキャッシュを削除")
+                        }
+                    }
+                    .disabled(isCacheCleared)
                 } header: {
                     Text("データ管理")
                 } footer: {
-                    Text("指定した日数より古い記事は自動的に削除されます")
+                    Text("指定した日数より古い記事は自動的に削除されます。ローカルキャッシュを削除すると、次回起動時にサーバーから再取得します。")
                 }
 
                 if let saveError {
