@@ -174,7 +174,13 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
     mutationFn: () => article.is_favorite
       ? articlesApi.markAsUnfavorite(article.id)
       : articlesApi.markAsFavorite(article.id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['articles'] }),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['articles'] })
+      qc.setQueriesData<Article[]>({ queryKey: ['articles'] }, old =>
+        old?.map(a => a.id === article.id ? { ...a, is_favorite: article.is_favorite ? 0 : 1 } : a)
+      )
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['articles'] }),
   })
 
   const claudeMutation = useMutation({
