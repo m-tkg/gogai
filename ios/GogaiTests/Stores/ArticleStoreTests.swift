@@ -17,10 +17,10 @@ final class ArticleStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0) -> Article {
+    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, isFavorite: Int = 0) -> Article {
         Article(id: id, feed_id: feedId, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
-                is_read: isRead, created_at: "2024-01-01T00:00:00Z",
+                is_read: isRead, is_favorite: isFavorite, created_at: "2024-01-01T00:00:00Z",
                 ai_summary: nil, ai_translation: nil, read_at: nil)
     }
 
@@ -396,14 +396,14 @@ final class ArticleStoreTests: XCTestCase {
         let newerReadArticle = Article(
             id: 1, feed_id: 1, guid: "guid-1", title: "Newer (read)",
             link: nil, summary: nil, content: nil,
-            published_at: "2024-02-01T00:00:00Z", is_read: 1,
+            published_at: "2024-02-01T00:00:00Z", is_read: 1, is_favorite: 0,
             created_at: "2024-01-01T00:00:00Z",
             ai_summary: nil, ai_translation: nil, read_at: nil
         )
         let olderUnreadArticle = Article(
             id: 2, feed_id: 1, guid: "guid-2", title: "Older (unread)",
             link: nil, summary: nil, content: nil,
-            published_at: "2024-01-01T00:00:00Z", is_read: 0,
+            published_at: "2024-01-01T00:00:00Z", is_read: 0, is_favorite: 0,
             created_at: "2024-01-01T00:00:00Z",
             ai_summary: nil, ai_translation: nil, read_at: nil
         )
@@ -425,5 +425,52 @@ final class ArticleStoreTests: XCTestCase {
         // 新しい記事（id:1）が先に来ること（published_at 降順）
         XCTAssertEqual(store.articles[0].id, 1, "新しい既読記事が先頭に来るべき")
         XCTAssertEqual(store.articles[1].id, 2, "古い未読記事が後に来るべき")
+    }
+
+    // MARK: - お気に入り機能
+
+    @MainActor
+    func test_favorite_optimisticallyUpdates() async {
+        store.articles = [makeArticle(id: 1, isFavorite: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.favorite(id: 1)
+
+        XCTAssertTrue(store.articles[0].isFavorite)
+    }
+
+    @MainActor
+    func test_favorite_rollsBackOnFailure() async {
+        store.articles = [makeArticle(id: 1, isFavorite: 0)]
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        await store.favorite(id: 1)
+
+        XCTAssertFalse(store.articles[0].isFavorite)
+        XCTAssertNotNil(store.error)
+    }
+
+    @MainActor
+    func test_unfavorite_optimisticallyUpdates() async {
+        store.articles = [makeArticle(id: 1, isFavorite: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.unfavorite(id: 1)
+
+        XCTAssertFalse(store.articles[0].isFavorite)
+    }
+
+    @MainActor
+    func test_favorite_updatesAllArticles() async {
+        let favoriteArticle = makeArticle(id: 1, isFavorite: 0)
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode([favoriteArticle])) }
+        await store.fetchArticles(feedId: 1)
+
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+        await store.favorite(id: 1)
+
+        // allArticles も更新されていること
+        XCTAssertTrue(store.allArticles.first(where: { $0.id == 1 })?.isFavorite ?? false,
+                      "favorite 後は allArticles にも反映される")
     }
 }

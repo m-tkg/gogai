@@ -10,12 +10,14 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
     let content: String?
     let published_at: String?
     let is_read: Int
+    let is_favorite: Int
     let created_at: String
     let ai_summary: String?
     let ai_translation: String?
     let read_at: String?
 
     var isRead: Bool { is_read == 1 }
+    var isFavorite: Bool { is_favorite == 1 }
 }
 
 enum ArticleSortOrder: String, CaseIterable, Sendable {
