@@ -372,6 +372,9 @@ final class ArticleStore: ObservableObject {
     }
 
     /// allArticles 内の該当記事を更新する
+    /// ファイルキャッシュへの書き込みは行わない（ベストエフォート設計）。
+    /// markAsRead/markAsUnread/favorite/unfavorite 等の楽観的更新はメモリのみ更新し、
+    /// 次回 fetchArticles/refreshAllArticlesCache 時にキャッシュが上書きされる。
     private func updateAllArticles(_ article: Article) {
         if let idx = allArticles.firstIndex(where: { $0.id == article.id }) {
             allArticles[idx] = article

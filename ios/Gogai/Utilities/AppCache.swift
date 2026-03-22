@@ -2,6 +2,9 @@ import Foundation
 
 /// アプリのローカルキャッシュを管理するクラス
 /// 記事・フィード・グループをCachesディレクトリにJSONファイルとして保存する
+///
+/// `@unchecked Sendable` の根拠: 内部状態は初期化後に変更されない `directory: URL` のみ。
+/// 将来可変プロパティを追加する場合は `NSLock` 等によるスレッド安全性の確保が必要。
 final class AppCache: @unchecked Sendable {
     static let shared = AppCache()
 
