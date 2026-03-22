@@ -113,4 +113,42 @@ final class FeedStoreTests: XCTestCase {
 
         XCTAssertFalse(store.isRefreshing)
     }
+
+    // MARK: - キャッシュ
+
+    private func makeTmpCache() -> (AppCache, URL) {
+        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try! FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        return (AppCache(directory: tmpDir), tmpDir)
+    }
+
+    func test_init_loadsFeedsFromCache() {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let cachedFeeds = [makeFeed(id: 42)]
+        testCache.saveFeeds(cachedFeeds)
+
+        let storeWithCache = FeedStore(cache: testCache)
+
+        XCTAssertEqual(storeWithCache.feeds.count, 1, "起動時にキャッシュからフィードを読み込むこと")
+        XCTAssertEqual(storeWithCache.feeds[0].id, 42)
+    }
+
+    @MainActor
+    func test_fetchFeeds_savesToCache() async {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let storeWithCache = FeedStore(cache: testCache)
+        storeWithCache.configure(with: client)
+
+        let feeds = [makeFeed(id: 1), makeFeed(id: 2)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(feeds)) }
+
+        await storeWithCache.fetchFeeds()
+
+        let cached = testCache.loadFeeds()
+        XCTAssertEqual(cached.count, 2, "fetchFeeds 後にキャッシュが保存されること")
+    }
 }

@@ -6,8 +6,15 @@ final class FeedStore: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published var error: Error?
 
+    private let cache: AppCache
     private var client: (any APIClientProtocol)?
     private var onRefreshComplete: (() -> Void)?
+
+    init(cache: AppCache = .shared) {
+        self.cache = cache
+        // 起動時にキャッシュからフィード一覧を読み込む
+        self.feeds = cache.loadFeeds()
+    }
 
     func configure(with client: any APIClientProtocol, onRefreshComplete: (() -> Void)? = nil) {
         self.client = client
@@ -21,6 +28,7 @@ final class FeedStore: ObservableObject {
         defer { isLoading = false }
         do {
             feeds = try await FeedRepository(client: client).fetchAll()
+            cache.saveFeeds(feeds)
         } catch {
             self.error = error
         }

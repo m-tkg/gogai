@@ -22,6 +22,7 @@ final class ArticleStore: ObservableObject {
         didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: "sortOrder") }
     }
 
+    private let cache: AppCache
     private var client: (any APIClientProtocol)?
     private var currentFeedId: Int?
     private var currentGroupId: Int?
@@ -35,12 +36,15 @@ final class ArticleStore: ObservableObject {
     /// isLoading を正確に管理するための実行中タスク数
     private var loadingTaskCount = 0
 
-    init() {
+    init(cache: AppCache = .shared) {
+        self.cache = cache
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
         self.summaryOnly = UserDefaults.standard.bool(forKey: "summaryOnly")
         self.favoriteOnly = UserDefaults.standard.bool(forKey: "favoriteOnly")
         let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
+        // 起動時にキャッシュから allArticles を読み込み、未読カウントを即座に表示する
+        self.allArticles = cache.loadAllArticles()
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -347,6 +351,7 @@ final class ArticleStore: ObservableObject {
                 includeSecret: true
             )
             allArticles = fetched
+            cache.saveAllArticles(fetched)
         } catch {
             // ベストエフォート: キャッシュ更新失敗は無視する
         }
@@ -363,9 +368,13 @@ final class ArticleStore: ObservableObject {
             let fetchedFeedIds = Set(fetched.map { $0.feed_id })
             allArticles = allArticles.filter { !fetchedFeedIds.contains($0.feed_id) } + fetched
         }
+        cache.saveAllArticles(allArticles)
     }
 
     /// allArticles 内の該当記事を更新する
+    /// ファイルキャッシュへの書き込みは行わない（ベストエフォート設計）。
+    /// markAsRead/markAsUnread/favorite/unfavorite 等の楽観的更新はメモリのみ更新し、
+    /// 次回 fetchArticles/refreshAllArticlesCache 時にキャッシュが上書きされる。
     private func updateAllArticles(_ article: Article) {
         if let idx = allArticles.firstIndex(where: { $0.id == article.id }) {
             allArticles[idx] = article

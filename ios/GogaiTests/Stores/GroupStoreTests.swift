@@ -158,4 +158,42 @@ final class GroupStoreTests: XCTestCase {
         XCTAssertEqual(store.groups[1].id, 3)
         XCTAssertEqual(store.groups[2].id, 1)
     }
+
+    // MARK: - キャッシュ
+
+    private func makeTmpCache() -> (AppCache, URL) {
+        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try! FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        return (AppCache(directory: tmpDir), tmpDir)
+    }
+
+    func test_init_loadsGroupsFromCache() {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let cachedGroups = [makeGroup(id: 42, name: "Cached Group")]
+        testCache.saveGroups(cachedGroups)
+
+        let storeWithCache = GroupStore(cache: testCache)
+
+        XCTAssertEqual(storeWithCache.groups.count, 1, "起動時にキャッシュからグループを読み込むこと")
+        XCTAssertEqual(storeWithCache.groups[0].id, 42)
+    }
+
+    @MainActor
+    func test_fetchGroups_savesToCache() async {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let storeWithCache = GroupStore(cache: testCache)
+        storeWithCache.configure(with: client)
+
+        let groups = [makeGroup(id: 1), makeGroup(id: 2)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(groups)) }
+
+        await storeWithCache.fetchGroups()
+
+        let cached = testCache.loadGroups()
+        XCTAssertEqual(cached.count, 2, "fetchGroups 後にキャッシュが保存されること")
+    }
 }
