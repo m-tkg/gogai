@@ -85,6 +85,12 @@ struct ArticleRowView: View {
                         .foregroundStyle(.purple)
                         .font(.caption)
                 }
+
+                if article.isFavorite {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(.yellow)
+                        .font(.caption)
+                }
             }
             .padding(.top, 2)
         }
@@ -117,7 +123,8 @@ struct ArticleRowView: View {
     ArticleRowView(article: Article(
         id: 1, feed_id: 1, guid: "guid", title: "記事タイトル",
         link: "https://example.com", summary: "要約テキスト", content: nil,
-        published_at: "2024-01-01T12:00:00Z", is_read: 0, created_at: "2024-01-01T12:00:00Z",
+        published_at: "2024-01-01T12:00:00Z", is_read: 0, is_favorite: 0,
+        created_at: "2024-01-01T12:00:00Z",
         ai_summary: nil, ai_translation: nil, read_at: nil
     ))
     .environmentObject(FeedStore())

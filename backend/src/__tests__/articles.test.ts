@@ -279,4 +279,62 @@ describe('ArticlesService', () => {
       expect(articlesService.findById(articleId)?.ai_summary).toBe('更新した要約')
     })
   })
+
+  describe('お気に入り機能', () => {
+    let articleId: number
+
+    beforeEach(() => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'fav-1', title: 'Article 1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() },
+        { guid: 'fav-2', title: 'Article 2', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articleId = articlesService.findByFeed(feedId)[0].id
+    })
+
+    it('記事をお気に入りに追加できる', () => {
+      articlesService.markAsFavorite(articleId)
+      const article = articlesService.findById(articleId)
+      expect(article?.is_favorite).toBe(1)
+    })
+
+    it('記事のお気に入りを解除できる', () => {
+      articlesService.markAsFavorite(articleId)
+      articlesService.markAsUnfavorite(articleId)
+      const article = articlesService.findById(articleId)
+      expect(article?.is_favorite).toBe(0)
+    })
+
+    it('デフォルトは is_favorite=0 である', () => {
+      const article = articlesService.findById(articleId)
+      expect(article?.is_favorite).toBe(0)
+    })
+
+    it('favoriteOnly=true でお気に入り記事のみ返す', () => {
+      const articles = articlesService.findByFeed(feedId)
+      articlesService.markAsFavorite(articles[0].id)
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, favoriteOnly: true })
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe(articles[0].id)
+    })
+
+    it('favoriteOnly=false で全記事を返す', () => {
+      const articles = articlesService.findByFeed(feedId)
+      articlesService.markAsFavorite(articles[0].id)
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, favoriteOnly: false })
+      expect(result).toHaveLength(2)
+    })
+
+    it('unreadOnly と favoriteOnly を同時に使える', () => {
+      const articles = articlesService.findByFeed(feedId)
+      articlesService.markAsFavorite(articles[0].id)
+      articlesService.markAsRead(articles[0].id)
+      // articles[1] はお気に入りではない・未読
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, favoriteOnly: true, unreadOnly: true })
+      // お気に入りかつ未読は 0 件
+      expect(result).toHaveLength(0)
+    })
+  })
 })

@@ -106,4 +106,11 @@ export function initSchema(db: Database.Database): void {
     // ignore
   }
 
+  // articles テーブルへの移行: お気に入りカラムを追加
+  try {
+    db.exec(`ALTER TABLE articles ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0`)
+  } catch {
+    // already exists — ignore
+  }
+
 }

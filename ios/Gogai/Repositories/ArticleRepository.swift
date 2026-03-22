@@ -32,6 +32,14 @@ struct ArticleRepository: Sendable {
         try await client.sendVoid(.post("/api/articles/\(id)/unread"))
     }
 
+    func markAsFavorite(id: Int) async throws {
+        try await client.sendVoid(.post("/api/articles/\(id)/favorite"))
+    }
+
+    func markAsUnfavorite(id: Int) async throws {
+        try await client.sendVoid(.post("/api/articles/\(id)/unfavorite"))
+    }
+
     struct AIResult: Codable, Sendable {
         let output: String
         let cached: Bool

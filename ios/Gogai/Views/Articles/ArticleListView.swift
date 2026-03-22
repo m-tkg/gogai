@@ -34,6 +34,9 @@ struct ArticleListView: View {
         if articleStore.summaryOnly {
             result = result.filter { $0.ai_summary != nil }
         }
+        if articleStore.favoriteOnly {
+            result = result.filter { $0.isFavorite }
+        }
         return result
     }
 
@@ -73,6 +76,21 @@ struct ArticleListView: View {
                             Label("要約", systemImage: "sparkles")
                         }
                         .tint(.purple)
+                        Button {
+                            Task {
+                                if article.isFavorite {
+                                    await articleStore.unfavorite(id: article.id)
+                                } else {
+                                    await articleStore.favorite(id: article.id)
+                                }
+                            }
+                        } label: {
+                            Label(
+                                article.isFavorite ? "お気に入り解除" : "お気に入り",
+                                systemImage: article.isFavorite ? "star.slash" : "star"
+                            )
+                        }
+                        .tint(.yellow)
                     }
             }
         }
@@ -123,7 +141,7 @@ struct ArticleListView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly, favoriteOnly: $articleStore.favoriteOnly)
         }
         .onChange(of: articleStore.unreadOnly) { _, newVal in
             Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal, includeSecret: groupStore.showSecretGroups) }
