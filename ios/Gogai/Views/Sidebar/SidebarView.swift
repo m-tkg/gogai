@@ -29,9 +29,7 @@ struct SidebarView: View {
             else { return nil }
             return feed.id
         })
-        return secretFeedIds.isEmpty
-            ? articleStore.unreadCount(for: nil)
-            : articleStore.unreadCount(excludingFeedIds: secretFeedIds)
+        return articleStore.unreadCount(excludingFeedIds: secretFeedIds)
     }
 
     private var isNetworkActive: Bool {
