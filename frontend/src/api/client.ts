@@ -36,6 +36,7 @@ export interface Article {
   content: string | null
   published_at: string | null
   is_read: number
+  is_favorite: number
   created_at: string
   ai_summary: string | null
   ai_translation: string | null
@@ -92,11 +93,13 @@ export const adminApi = {
 
 // Articles API
 export const articlesApi = {
-  list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; sortBy?: SortBy; limit?: number; offset?: number; includeSecret?: boolean }) =>
+  list: (params: { feedId?: number; groupId?: number; unreadOnly?: boolean; favoriteOnly?: boolean; sortBy?: SortBy; limit?: number; offset?: number; includeSecret?: boolean }) =>
     api.get<Article[]>('/api/articles', { params }).then(r => r.data),
   get: (id: number) => api.get<Article>(`/api/articles/${id}`).then(r => r.data),
   markAsRead: (id: number) => api.post(`/api/articles/${id}/read`),
   markAsUnread: (id: number) => api.post(`/api/articles/${id}/unread`),
+  markAsFavorite: (id: number) => api.post(`/api/articles/${id}/favorite`),
+  markAsUnfavorite: (id: number) => api.post(`/api/articles/${id}/unfavorite`),
   claude: (id: number, action: 'summarize' | 'translate', force?: boolean) =>
     api.post<{ output: string; cached: boolean }>(`/api/articles/${id}/claude`, { action, force }).then(r => r.data),
 }
