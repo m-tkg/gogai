@@ -427,6 +427,44 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.articles[1].id, 2, "古い未読記事が後に来るべき")
     }
 
+    // MARK: - unreadCount(excludingFeedIds:)
+
+    func test_unreadCount_excludingFeedIds_excludesSpecifiedFeeds() {
+        store.articles = [
+            makeArticle(id: 1, feedId: 10, isRead: 0), // secret feed
+            makeArticle(id: 2, feedId: 10, isRead: 0), // secret feed
+            makeArticle(id: 3, feedId: 20, isRead: 0), // normal feed
+            makeArticle(id: 4, feedId: 20, isRead: 1), // normal feed (read)
+        ]
+
+        // feedId=10（シークレット）を除外した未読数は 1
+        XCTAssertEqual(store.unreadCount(excludingFeedIds: [10]), 1)
+    }
+
+    func test_unreadCount_excludingFeedIds_emptyExcludeSet_returnsAllUnread() {
+        store.articles = [
+            makeArticle(id: 1, feedId: 10, isRead: 0),
+            makeArticle(id: 2, feedId: 20, isRead: 0),
+        ]
+
+        // 除外なしの場合は全未読を返す
+        XCTAssertEqual(store.unreadCount(excludingFeedIds: []), 2)
+    }
+
+    @MainActor
+    func test_unreadCount_excludingFeedIds_usesAllArticles_whenPopulated() async {
+        let feed10Articles = [makeArticle(id: 1, feedId: 10, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(feed10Articles)) }
+        await store.fetchArticles(feedId: 10)
+
+        // allArticles には feedId=10 の未読1件がある
+        // articles を別フィードで上書き
+        store.articles = [makeArticle(id: 2, feedId: 20, isRead: 0)]
+
+        // feedId=10 を除外 → 残るは feedId=20 だが allArticles には feedId=20 がないので 0
+        XCTAssertEqual(store.unreadCount(excludingFeedIds: [10]), 0)
+    }
+
     // MARK: - お気に入り機能
 
     @MainActor
