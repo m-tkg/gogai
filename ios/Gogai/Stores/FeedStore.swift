@@ -6,8 +6,14 @@ final class FeedStore: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published var error: Error?
 
+    private let cache: AppCache
     private var client: (any APIClientProtocol)?
     private var onRefreshComplete: (() -> Void)?
+
+    init(cache: AppCache = .shared) {
+        self.cache = cache
+        // スタブ: キャッシュ読み込みは未実装
+    }
 
     func configure(with client: any APIClientProtocol, onRefreshComplete: (() -> Void)? = nil) {
         self.client = client

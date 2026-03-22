@@ -22,6 +22,7 @@ final class ArticleStore: ObservableObject {
         didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: "sortOrder") }
     }
 
+    private let cache: AppCache
     private var client: (any APIClientProtocol)?
     private var currentFeedId: Int?
     private var currentGroupId: Int?
@@ -35,12 +36,14 @@ final class ArticleStore: ObservableObject {
     /// isLoading を正確に管理するための実行中タスク数
     private var loadingTaskCount = 0
 
-    init() {
+    init(cache: AppCache = .shared) {
+        self.cache = cache
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
         self.summaryOnly = UserDefaults.standard.bool(forKey: "summaryOnly")
         self.favoriteOnly = UserDefaults.standard.bool(forKey: "favoriteOnly")
         let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
+        // スタブ: キャッシュ読み込みは未実装
     }
 
     func configure(with client: any APIClientProtocol) {

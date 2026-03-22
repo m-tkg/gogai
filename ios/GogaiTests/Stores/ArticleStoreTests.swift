@@ -511,4 +511,59 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertTrue(store.allArticles.first(where: { $0.id == 1 })?.isFavorite ?? false,
                       "favorite 後は allArticles にも反映される")
     }
+
+    // MARK: - キャッシュ
+
+    private func makeTmpCache() -> (AppCache, URL) {
+        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try! FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        return (AppCache(directory: tmpDir), tmpDir)
+    }
+
+    func test_init_loadsAllArticlesFromCache() {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let cachedArticles = [makeArticle(id: 99, feedId: 5, isRead: 0)]
+        testCache.saveAllArticles(cachedArticles)
+
+        let storeWithCache = ArticleStore(cache: testCache)
+
+        XCTAssertEqual(storeWithCache.allArticles.count, 1, "起動時にキャッシュから allArticles を読み込むこと")
+        XCTAssertEqual(storeWithCache.allArticles[0].id, 99)
+    }
+
+    @MainActor
+    func test_fetchArticles_savesAllArticlesToCache() async {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let storeWithCache = ArticleStore(cache: testCache)
+        storeWithCache.configure(with: client)
+
+        let articles = [makeArticle(id: 1), makeArticle(id: 2)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+
+        await storeWithCache.fetchArticles()
+
+        let cached = testCache.loadAllArticles()
+        XCTAssertEqual(cached.count, 2, "fetchArticles 後にキャッシュが保存されること")
+    }
+
+    @MainActor
+    func test_refreshAllArticlesCache_savesAllArticlesToCache() async {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let storeWithCache = ArticleStore(cache: testCache)
+        storeWithCache.configure(with: client)
+
+        let articles = [makeArticle(id: 10), makeArticle(id: 11)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+
+        await storeWithCache.refreshAllArticlesCache()
+
+        let cached = testCache.loadAllArticles()
+        XCTAssertEqual(cached.count, 2, "refreshAllArticlesCache 後にキャッシュが保存されること")
+    }
 }
