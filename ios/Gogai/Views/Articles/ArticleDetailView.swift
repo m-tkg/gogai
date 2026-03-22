@@ -81,8 +81,13 @@ struct ArticleDetailView: View {
         .navigationTitle("記事")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 if let link = currentArticle.link, let url = URL(string: link) {
+                    Button {
+                        showShareSheet = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
                     Button {
                         openURL(url)
                     } label: {
