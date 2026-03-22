@@ -10,6 +10,7 @@ export interface Article {
   content: string | null
   published_at: string | null
   is_read: number
+  is_favorite: number
   created_at: string
   ai_summary: string | null
   ai_translation: string | null
@@ -33,6 +34,7 @@ export interface FindAllOptions {
   feedId?: number
   groupId?: number
   unreadOnly?: boolean
+  favoriteOnly?: boolean
   sortBy?: SortBy
   includeSecret?: boolean
 }
@@ -82,6 +84,9 @@ export class ArticlesService {
     if (options.unreadOnly) {
       conditions.push('a.is_read = 0')
     }
+    if (options.favoriteOnly) {
+      conditions.push('a.is_favorite = 1')
+    }
     // groupId 未指定かつ includeSecret でなければシークレットグループを除外
     if (options.groupId === undefined && !options.includeSecret) {
       conditions.push('(f.group_id IS NULL OR g.is_secret = 0)')
@@ -118,6 +123,14 @@ export class ArticlesService {
 
   markAsUnread(id: number): void {
     this.db.prepare('UPDATE articles SET is_read = 0, read_at = NULL WHERE id = ?').run(id)
+  }
+
+  markAsFavorite(id: number): void {
+    this.db.prepare('UPDATE articles SET is_favorite = 1 WHERE id = ?').run(id)
+  }
+
+  markAsUnfavorite(id: number): void {
+    this.db.prepare('UPDATE articles SET is_favorite = 0 WHERE id = ?').run(id)
   }
 
   saveAiResult(id: number, action: 'summarize' | 'translate', text: string): void {
