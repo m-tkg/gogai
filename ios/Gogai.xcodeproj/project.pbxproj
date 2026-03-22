@@ -42,6 +42,8 @@
 		FF00000000000000000021AB /* ArticleDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000021AB /* ArticleDetailViewModel.swift */; };
 		FF00000000000000000022AB /* ServerURLManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000022AB /* ServerURLManager.swift */; };
 		FF00000000000000000023AB /* DateFormatter+.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000023AB /* DateFormatter+.swift */; };
+		FF00000000000000000035AB /* AppCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000035AB /* AppCache.swift */; };
+		FF0000000000000000002EAB /* AppCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000AAB /* AppCacheTests.swift */; };
 		FF00000000000000000024AB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000024AB /* Assets.xcassets */; };
 		FF00000000000000000025AB /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000001AB /* APIClientTests.swift */; };
 		FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000002AB /* GroupRepositoryTests.swift */; };
@@ -105,6 +107,8 @@
 		DD00000000000000000021AB /* ArticleDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleDetailViewModel.swift; sourceTree = "<group>"; };
 		DD00000000000000000022AB /* ServerURLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManager.swift; sourceTree = "<group>"; };
 		DD00000000000000000023AB /* DateFormatter+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DateFormatter+.swift"; sourceTree = "<group>"; };
+		DD00000000000000000035AB /* AppCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCache.swift; sourceTree = "<group>"; };
+		EE0000000000000000000AAB /* AppCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCacheTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000024AB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD00000000000000000025AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DD00000000000000000026AB /* Gogai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gogai.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -243,6 +247,7 @@
 				DD00000000000000000022AB /* ServerURLManager.swift */,
 				DD00000000000000000023AB /* DateFormatter+.swift */,
 				DD00000000000000000034AB /* ShareSheet.swift */,
+				DD00000000000000000035AB /* AppCache.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -305,8 +310,17 @@
 				CC00000000000000000011AB /* Repositories */,
 				CC00000000000000000012AB /* Stores */,
 				CC00000000000000000013AB /* Models */,
+				CC00000000000000000014AB /* Utilities */,
 			);
 			path = GogaiTests;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000014AB /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000AAB /* AppCacheTests.swift */,
+			);
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 		CC00000000000000000010AB /* Network */ = {
@@ -475,6 +489,7 @@
 				FF00000000000000000022AB /* ServerURLManager.swift in Sources */,
 				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,
 				FF00000000000000000034AB /* ShareSheet.swift in Sources */,
+				FF00000000000000000035AB /* AppCache.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,6 +506,7 @@
 				FF0000000000000000002AAB /* FeedStoreTests.swift in Sources */,
 				FF0000000000000000002BAB /* ArticleStoreTests.swift in Sources */,
 				FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */,
+				FF0000000000000000002EAB /* AppCacheTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
