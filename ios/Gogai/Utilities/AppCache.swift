@@ -46,6 +46,19 @@ final class AppCache: @unchecked Sendable {
         load([Group].self, from: "groups.json") ?? []
     }
 
+    // MARK: - Size
+
+    var totalSize: Int64 {
+        guard let enumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: .skipsHiddenFiles
+        ) else { return 0 }
+        return enumerator.compactMap { $0 as? URL }
+            .compactMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }
+            .reduce(0) { $0 + Int64($1) }
+    }
+
     // MARK: - Clear
 
     func clearAll() {

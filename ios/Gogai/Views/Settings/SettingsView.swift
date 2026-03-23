@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var isSaving = false
     @State private var saveError: Error?
     @State private var isCacheCleared = false
+    @State private var cacheSize: Int64 = 0
 
     var body: some View {
         NavigationStack {
@@ -44,8 +45,16 @@ struct SettingsView: View {
                         Text("日")
                     }
 
+                    HStack {
+                        Text("キャッシュサイズ")
+                        Spacer()
+                        Text(cacheSizeText)
+                            .foregroundStyle(.secondary)
+                    }
+
                     Button(role: .destructive) {
                         AppCache.shared.clearAll()
+                        cacheSize = AppCache.shared.totalSize
                         isCacheCleared = true
                     } label: {
                         if isCacheCleared {
@@ -74,6 +83,17 @@ struct SettingsView: View {
                 } label: {
                     Label("管理", systemImage: "server.rack")
                 }
+
+                Section {
+                    HStack {
+                        Text("バージョン")
+                        Spacer()
+                        Text(appVersion)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("アプリ情報")
+                }
             }
             .navigationTitle("設定")
             .navigationBarTitleDisplayMode(.inline)
@@ -91,8 +111,22 @@ struct SettingsView: View {
             .task {
                 await settingsStore.fetchSettings()
                 retentionDaysText = String(settingsStore.settings?.retention_days ?? 180)
+                cacheSize = AppCache.shared.totalSize
             }
         }
+    }
+
+    private var cacheSizeText: String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: cacheSize)
+    }
+
+    private var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = info?["CFBundleVersion"] as? String ?? "—"
+        return "\(version) (\(build))"
     }
 
     private func saveSettings() async {
