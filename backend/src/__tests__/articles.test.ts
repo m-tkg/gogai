@@ -336,5 +336,50 @@ describe('ArticlesService', () => {
       // お気に入りかつ未読は 0 件
       expect(result).toHaveLength(0)
     })
+
+    it('お気に入り記事は保持期間を超えても削除しない', () => {
+      const now = new Date()
+      const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000) // 200日前
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'old-fav', title: 'Old Favorite Article', link: 'https://example.com/old-fav', summary: '', publishedAt: old.toISOString() },
+        { guid: 'old-normal', title: 'Old Normal Article', link: 'https://example.com/old-normal', summary: '', publishedAt: old.toISOString() },
+      ])
+
+      const allArticles = articlesService.findByFeed(feedId)
+      const favoriteArticle = allArticles.find(a => a.title === 'Old Favorite Article')!
+      articlesService.markAsFavorite(favoriteArticle.id)
+
+      const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000) // 半年前(180日)
+      const deleted = articlesService.deleteOlderThan(threshold)
+
+      expect(deleted).toBe(1) // お気に入りでない方のみ削除
+      const remaining = articlesService.findByFeed(feedId)
+      // beforeEach で追加した 2 件 + お気に入り 1 件 = 3 件中お気に入りのみ残る
+      const oldFavArticle = remaining.find(a => a.title === 'Old Favorite Article')
+      expect(oldFavArticle).toBeDefined()
+      expect(oldFavArticle?.is_favorite).toBe(1)
+    })
+
+    it('published_at が null のお気に入り記事は保持期間を超えても削除しない', () => {
+      // published_at なし（COALESCE で created_at を使う）のお気に入り記事
+      articlesService.upsertMany(feedId, [
+        { guid: 'no-date-fav', title: 'No Date Favorite', link: 'https://example.com/no-date-fav', summary: '' },
+      ])
+
+      const allArticles = articlesService.findByFeed(feedId)
+      const noDateArticle = allArticles.find(a => a.title === 'No Date Favorite')!
+      articlesService.markAsFavorite(noDateArticle.id)
+
+      // 未来の threshold（created_at より後）でも、お気に入りは削除されない
+      const futureThreshold = new Date(Date.now() + 1000)
+      articlesService.deleteOlderThan(futureThreshold)
+
+      // お気に入り記事が残っていることを確認
+      const remaining = articlesService.findByFeed(feedId)
+      const stillExists = remaining.find(a => a.title === 'No Date Favorite')
+      expect(stillExists).toBeDefined()
+      expect(stillExists?.is_favorite).toBe(1)
+    })
   })
 })
