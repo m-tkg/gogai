@@ -32,6 +32,27 @@ struct SidebarView: View {
         return articleStore.unreadCount(excludingFeedIds: secretFeedIds)
     }
 
+    private var listSelectionBinding: Binding<String?> {
+        Binding(
+            get: { selectedFeedId.map { "feed-\($0)" } ?? selectedGroupId.map { "group-\($0)" } ?? "all" },
+            set: { _ in }
+        )
+    }
+
+    private var refreshErrorBinding: Binding<Bool> {
+        Binding(
+            get: { refreshError != nil },
+            set: { if !$0 { refreshError = nil } }
+        )
+    }
+
+    private var reorderErrorBinding: Binding<Bool> {
+        Binding(
+            get: { reorderError != nil },
+            set: { if !$0 { reorderError = nil } }
+        )
+    }
+
     private var isNetworkActive: Bool {
         articleStore.isLoading
             || !articleStore.summarizingIds.isEmpty
@@ -69,10 +90,7 @@ struct SidebarView: View {
     }
 
     var body: some View {
-        List(selection: Binding(
-            get: { selectedFeedId.map { "feed-\($0)" } ?? selectedGroupId.map { "group-\($0)" } ?? "all" },
-            set: { _ in }
-        )) {
+        List(selection: listSelectionBinding) {
             Section("フィード") {
                 Button {
                     selectedFeedId = nil
@@ -213,18 +231,12 @@ struct SidebarView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
-        .alert("エラー", isPresented: Binding(
-            get: { refreshError != nil },
-            set: { if !$0 { refreshError = nil } }
-        )) {
+        .alert("エラー", isPresented: refreshErrorBinding) {
             Button("OK") { refreshError = nil }
         } message: {
             Text(refreshError?.localizedDescription ?? "")
         }
-        .alert("並び替えエラー", isPresented: Binding(
-            get: { reorderError != nil },
-            set: { if !$0 { reorderError = nil } }
-        )) {
+        .alert("並び替えエラー", isPresented: reorderErrorBinding) {
             Button("OK") { reorderError = nil }
         } message: {
             Text(reorderError?.localizedDescription ?? "")
