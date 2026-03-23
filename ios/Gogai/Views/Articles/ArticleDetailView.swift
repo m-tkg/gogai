@@ -99,9 +99,8 @@ struct ArticleDetailView: View {
                     }
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: isFavorite ? "star.fill" : "star")
+                        Image(systemName: isFavorite ? "star.slash" : "star")
                             .font(.title3)
-                            .foregroundStyle(isFavorite ? .yellow : .primary)
                         Text(isFavorite ? "お気に入り解除" : "お気に入り")
                             .font(.caption2)
                     }
