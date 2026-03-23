@@ -99,6 +99,28 @@ describe('ArticlesService', () => {
     expect(articlesService.findByFeed(feedId)[0].title).toBe('Recent Article')
   })
 
+  it('お気に入り記事は保持期間を超えても削除しない', () => {
+    const now = new Date()
+    const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000) // 200日前
+
+    articlesService.upsertMany(feedId, [
+      { guid: 'old-fav', title: 'Old Favorite Article', link: 'https://example.com/old-fav', summary: '', publishedAt: old.toISOString() },
+      { guid: 'old-normal', title: 'Old Normal Article', link: 'https://example.com/old-normal', summary: '', publishedAt: old.toISOString() },
+    ])
+
+    const allArticles = articlesService.findByFeed(feedId)
+    const favoriteArticle = allArticles.find(a => a.title === 'Old Favorite Article')!
+    articlesService.markAsFavorite(favoriteArticle.id)
+
+    const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000) // 半年前(180日)
+    const deleted = articlesService.deleteOlderThan(threshold)
+
+    expect(deleted).toBe(1) // お気に入りでない方のみ削除
+    const remaining = articlesService.findByFeed(feedId)
+    expect(remaining).toHaveLength(1)
+    expect(remaining[0].title).toBe('Old Favorite Article')
+  })
+
   it('published_at が null の記事は created_at で削除判定する', () => {
     articlesService.upsertMany(feedId, [
       { guid: 'no-date', title: 'No Date Article', link: 'https://example.com/no-date', summary: '' },
