@@ -1,7 +1,8 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
         docker-up docker-down docker-build docker-logs docker-clean \
         daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
-        restart-daemon ios-sync-icons ios-build ios-deploy
+        restart-daemon ios-sync-icons ios-build ios-deploy \
+        mac-archive mac-export mac-dmg mac-notarize mac-distribute
 
 # ── ローカル開発 ──────────────────────────────────────────
 
@@ -133,3 +134,72 @@ ios-deploy: ios-sync-icons
 		xcrun devicectl device process launch \
 		--device $(DEVICE_ID) \
 		$(BUNDLE_ID)
+
+# ── Mac 配布 ──────────────────────────────────────────────────
+
+# 必須: make mac-distribute APPLE_ID=you@example.com APPLE_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
+APPLE_ID           ?=
+APPLE_APP_PASSWORD ?=
+MAC_TEAM_ID         = G72M73C546
+MAC_BUILD_DIR       = .build/mac
+MAC_ARCHIVE_PATH    = $(MAC_BUILD_DIR)/Gogai.xcarchive
+MAC_EXPORT_PATH     = $(MAC_BUILD_DIR)/export
+MAC_DMG_PATH        = $(MAC_BUILD_DIR)/Gogai.dmg
+
+# Step 1: macOS (Mac Catalyst) 向けにアーカイブ
+mac-archive: ios-sync-icons
+	@echo "==> Archiving for macOS (Mac Catalyst)..."
+	mkdir -p $(MAC_BUILD_DIR)
+	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+		xcodebuild archive \
+		-project Gogai.xcodeproj \
+		-scheme Gogai \
+		-configuration Release \
+		-destination "platform=macOS,variant=Mac Catalyst" \
+		-archivePath ../$(MAC_ARCHIVE_PATH) \
+		-allowProvisioningUpdates \
+		-quiet
+	@echo "==> Archive done: $(MAC_ARCHIVE_PATH)"
+
+# Step 2: Developer ID で署名してエクスポート
+mac-export: mac-archive
+	@echo "==> Exporting with Developer ID..."
+	rm -rf $(MAC_EXPORT_PATH)
+	DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+		xcodebuild -exportArchive \
+		-archivePath $(MAC_ARCHIVE_PATH) \
+		-exportPath $(MAC_EXPORT_PATH) \
+		-exportOptionsPlist ios/ExportOptions-mac.plist \
+		-allowProvisioningUpdates
+	@echo "==> Export done: $(MAC_EXPORT_PATH)"
+
+# Step 3: .dmg を作成
+mac-dmg: mac-export
+	@echo "==> Creating DMG..."
+	rm -f $(MAC_DMG_PATH)
+	hdiutil create -volname "Gogai" \
+		-srcfolder "$(MAC_EXPORT_PATH)/Gogai.app" \
+		-ov -format UDZO \
+		"$(MAC_DMG_PATH)"
+	@echo "==> DMG created: $(MAC_DMG_PATH)"
+
+# Step 4: Notarize + Staple
+mac-notarize: mac-dmg
+	@[ -n "$(APPLE_ID)" ] || (echo "ERROR: APPLE_ID が未設定です。make mac-notarize APPLE_ID=you@example.com APPLE_APP_PASSWORD=xxxx" && exit 1)
+	@[ -n "$(APPLE_APP_PASSWORD)" ] || (echo "ERROR: APPLE_APP_PASSWORD が未設定です。" && exit 1)
+	@echo "==> Submitting for notarization (this takes a few minutes)..."
+	xcrun notarytool submit "$(MAC_DMG_PATH)" \
+		--apple-id "$(APPLE_ID)" \
+		--password "$(APPLE_APP_PASSWORD)" \
+		--team-id $(MAC_TEAM_ID) \
+		--wait
+	@echo "==> Stapling notarization ticket..."
+	xcrun stapler staple "$(MAC_DMG_PATH)"
+	@echo "==> Notarization complete: $(MAC_DMG_PATH)"
+
+# 全工程まとめて実行
+mac-distribute: mac-notarize
+	@echo ""
+	@echo "========================================="
+	@echo "  配布用 DMG: $(MAC_DMG_PATH)"
+	@echo "========================================="
