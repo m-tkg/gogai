@@ -29,6 +29,10 @@ struct ArticleDetailView: View {
         articleStore.articles.first(where: { $0.id == currentArticle.id })?.isRead ?? currentArticle.isRead
     }
 
+    private var isFavorite: Bool {
+        articleStore.articles.first(where: { $0.id == currentArticle.id })?.isFavorite ?? currentArticle.isFavorite
+    }
+
     private var navigableArticles: [Article] {
         articleStore.summaryOnly
             ? articleStore.articles.filter { $0.ai_summary != nil }
@@ -67,20 +71,40 @@ struct ArticleDetailView: View {
 
             Spacer()
 
-            Button {
-                Task {
-                    if isRead {
-                        await articleStore.markAsUnread(id: currentArticle.id)
-                    } else {
-                        await articleStore.markAsRead(id: currentArticle.id)
+            HStack(spacing: 24) {
+                Button {
+                    Task {
+                        if isRead {
+                            await articleStore.markAsUnread(id: currentArticle.id)
+                        } else {
+                            await articleStore.markAsRead(id: currentArticle.id)
+                        }
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: isRead ? "envelope.badge" : "envelope.open")
+                            .font(.title3)
+                        Text(isRead ? "未読にする" : "既読にする")
+                            .font(.caption2)
                     }
                 }
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: isRead ? "envelope.badge" : "envelope.open")
-                        .font(.title3)
-                    Text(isRead ? "未読にする" : "既読にする")
-                        .font(.caption2)
+
+                Button {
+                    Task {
+                        if isFavorite {
+                            await articleStore.unfavorite(id: currentArticle.id)
+                        } else {
+                            await articleStore.favorite(id: currentArticle.id)
+                        }
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: isFavorite ? "star.fill" : "star")
+                            .font(.title3)
+                            .foregroundStyle(isFavorite ? .yellow : .primary)
+                        Text(isFavorite ? "お気に入り解除" : "お気に入り")
+                            .font(.caption2)
+                    }
                 }
             }
 
