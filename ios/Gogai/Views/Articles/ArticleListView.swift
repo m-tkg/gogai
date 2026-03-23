@@ -164,6 +164,23 @@ struct ArticleListView: View {
             hasAppeared = true
             await articleStore.fetchArticles(feedId: feedId, groupId: groupId, includeSecret: groupStore.showSecretGroups)
         }
+        .onKeyPress(keys: [.upArrow, .downArrow]) { press in
+            let articles = displayedArticles
+            guard !articles.isEmpty else { return .ignored }
+            let delta = press.key == .downArrow ? 1 : -1
+            if let current = selectedArticle,
+               let idx = articles.firstIndex(where: { $0.id == current.id }) {
+                let newIdx = max(0, min(articles.count - 1, idx + delta))
+                guard newIdx != idx else { return .ignored }
+                selectedArticle = articles[newIdx]
+                Task { await articleStore.markAsRead(id: articles[newIdx].id) }
+            } else {
+                let newIdx = delta > 0 ? 0 : articles.count - 1
+                selectedArticle = articles[newIdx]
+                Task { await articleStore.markAsRead(id: articles[newIdx].id) }
+            }
+            return .handled
+        }
         .onChange(of: feedId) { _, newId in
             Task { await articleStore.fetchArticles(feedId: newId, groupId: groupId, includeSecret: groupStore.showSecretGroups) }
         }

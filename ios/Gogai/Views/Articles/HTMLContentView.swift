@@ -10,13 +10,19 @@ struct HTMLContentView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        let config = WKWebViewConfiguration()
+        config.userContentController.add(context.coordinator, name: "heightObserver")
+        let webView = WKWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
-        webView.backgroundColor = .clear
+        webView.backgroundColor = UIColor.clear
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         webView.navigationDelegate = context.coordinator
         return webView
+    }
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "heightObserver")
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
@@ -53,12 +59,18 @@ struct HTMLContentView: UIViewRepresentable {
           p { margin: 0 0 1em; }
         </style>
         </head>
-        <body>\(html)</body>
+        <body>\(html)
+        <script>
+          new ResizeObserver(function() {
+            window.webkit.messageHandlers.heightObserver.postMessage(document.body.scrollHeight);
+          }).observe(document.body);
+        </script>
+        </body>
         </html>
         """
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: HTMLContentView
         var loadedHTML: String?
 
@@ -67,12 +79,25 @@ struct HTMLContentView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            webView.evaluateJavaScript("document.body.scrollHeight") { result, _ in
-                if let height = result as? CGFloat {
+            updateHeight(webView)
+        }
+
+        func updateHeight(_ webView: WKWebView) {
+            webView.evaluateJavaScript("Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)") { result, _ in
+                if let height = result as? Double, height > 0 {
                     DispatchQueue.main.async {
-                        self.parent.height = height
+                        self.parent.height = CGFloat(height)
                     }
                 }
+            }
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "heightObserver",
+                  let height = message.body as? Double,
+                  height > 0 else { return }
+            DispatchQueue.main.async {
+                self.parent.height = CGFloat(height)
             }
         }
     }
