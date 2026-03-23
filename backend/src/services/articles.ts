@@ -140,7 +140,7 @@ export class ArticlesService {
 
   deleteOlderThan(threshold: Date): number {
     const result = this.db.prepare(
-      "DELETE FROM articles WHERE datetime(COALESCE(published_at, created_at)) < datetime(?)"
+      "DELETE FROM articles WHERE datetime(COALESCE(published_at, created_at)) < datetime(?) AND is_favorite = 0"
     ).run(threshold.toISOString())
     return result.changes
   }
