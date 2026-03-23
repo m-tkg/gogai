@@ -1,46 +1,6 @@
 import SwiftUI
-import SafariServices
 
-// SFSafariViewController 実装（Safari 拡張・広告ブロック対応）
-// WKWebView 実装に戻す場合は末尾の WKBrowserView を参照
-
-struct BrowserView: View {
-    let url: URL
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        SafariView(url: url, onDismiss: { dismiss() })
-            .ignoresSafeArea()
-    }
-}
-
-private struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-    let onDismiss: () -> Void
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let vc = SFSafariViewController(url: url)
-        vc.delegate = context.coordinator
-        return vc
-    }
-
-    func updateUIViewController(_ vc: SFSafariViewController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(onDismiss: onDismiss) }
-
-    final class Coordinator: NSObject, SFSafariViewControllerDelegate {
-        let onDismiss: () -> Void
-        init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
-
-        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
-            onDismiss()
-        }
-    }
-}
-
-// MARK: - WKWebView 実装（ロールバック用）
-// BrowserView を下記に差し替えることで元の実装に戻せる
-/*
+#if targetEnvironment(macCatalyst)
 import WebKit
 
 struct BrowserView: View {
@@ -51,14 +11,13 @@ struct BrowserView: View {
     var body: some View {
         NavigationStack {
             BrowserWebView(model: browser)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea()
                 .navigationTitle(browser.title.isEmpty ? url.host() ?? "" : browser.title)
-                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .cancellationAction) {
                         Button("閉じる") { dismiss() }
                     }
-                    ToolbarItemGroup(placement: .bottomBar) {
+                    ToolbarItemGroup(placement: .primaryAction) {
                         Button {
                             browser.webView.goBack()
                         } label: {
@@ -66,16 +25,12 @@ struct BrowserView: View {
                         }
                         .disabled(!browser.canGoBack)
 
-                        Spacer()
-
                         Button {
                             browser.webView.goForward()
                         } label: {
                             Image(systemName: "chevron.right")
                         }
                         .disabled(!browser.canGoForward)
-
-                        Spacer()
 
                         Button {
                             if browser.isLoading {
@@ -89,6 +44,7 @@ struct BrowserView: View {
                     }
                 }
         }
+        .frame(minWidth: 800, idealWidth: 1100, maxWidth: .infinity, minHeight: 600, idealHeight: 750, maxHeight: .infinity)
         .onAppear {
             browser.webView.load(URLRequest(url: url))
         }
@@ -156,4 +112,42 @@ struct BrowserWebView: UIViewRepresentable {
         }
     }
 }
-*/
+
+#else
+import SafariServices
+
+// iOS/iPadOS: SFSafariViewController（Safari 拡張・広告ブロック対応）
+struct BrowserView: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        SafariView(url: url, onDismiss: { dismiss() })
+            .ignoresSafeArea()
+    }
+}
+
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    let onDismiss: () -> Void
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let vc = SFSafariViewController(url: url)
+        vc.delegate = context.coordinator
+        return vc
+    }
+
+    func updateUIViewController(_ vc: SFSafariViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onDismiss: onDismiss) }
+
+    final class Coordinator: NSObject, SFSafariViewControllerDelegate {
+        let onDismiss: () -> Void
+        init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
+
+        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+            onDismiss()
+        }
+    }
+}
+#endif

@@ -28,6 +28,7 @@ struct RootView: View {
                 } detail: {
                     if let article = selectedArticle {
                         ArticleDetailView(article: article)
+                            .id(article.id)
                     } else {
                         ContentUnavailableView("記事を選択", systemImage: "newspaper")
                     }
