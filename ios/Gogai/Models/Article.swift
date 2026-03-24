@@ -18,6 +18,17 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
 
     var isRead: Bool { is_read == 1 }
     var isFavorite: Bool { is_favorite == 1 }
+
+    /// 既読状態にした新しい Article を返す（フィールドの手動コピーを一箇所に集約）
+    func markingAsRead(at dateString: String) -> Article {
+        guard !isRead else { return self }
+        return Article(id: id, feed_id: feed_id, guid: guid,
+                       title: title, link: link, summary: summary,
+                       content: content, published_at: published_at,
+                       is_read: 1, is_favorite: is_favorite, created_at: created_at,
+                       ai_summary: ai_summary, ai_translation: ai_translation,
+                       read_at: read_at ?? dateString)
+    }
 }
 
 enum ArticleSortOrder: String, CaseIterable, Sendable {

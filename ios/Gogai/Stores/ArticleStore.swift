@@ -27,6 +27,12 @@ final class ArticleStore: ObservableObject {
     private var currentFeedId: Int?
     private var currentGroupId: Int?
     private var currentIncludeSecret: Bool = false
+    /// markAsRead API 呼び出しがネットワーク障害で失敗した記事 ID セット
+    /// - 対象: URLError（サーバー再起動・圏外など）のみ。4xx 等は対象外
+    /// - スコープ: インメモリのみ。アプリを強制終了・再起動すると消える
+    ///   （本修正の目的である「アプリを開いたままサーバーが再起動」には十分）
+    /// - 次回 fetchArticles 成功時に applyPendingReads() で UI を復元し再送する
+    private var pendingReadIds: Set<Int> = []
     /// 最後の fetchArticles が unreadOnly=true で実行されたかどうか
     /// refresh() での既読記事保持の判定に使用する
     /// unreadOnly=false で読み込まれた記事は「既読になった記事」と区別できないため保持しない
@@ -79,6 +85,11 @@ final class ArticleStore: ObservableObject {
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
             mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
+            // サーバーに届かなかった既読状態をローカルに復元し、バックグラウンドで再送する
+            if !pendingReadIds.isEmpty {
+                applyPendingReads()
+                Task { await retryPendingMarkAsRead() }
+            }
         } catch {
             if myGeneration == fetchGeneration { self.error = error }
         }
@@ -175,7 +186,12 @@ final class ArticleStore: ObservableObject {
 
         do {
             try await ArticleRepository(client: client).markAsRead(id: id)
+            pendingReadIds.remove(id)
+        } catch is URLError {
+            // ネットワーク障害（サーバー再起動など）: ロールバックせず再送キューに追加
+            pendingReadIds.insert(id)
         } catch {
+            // 4xx など再送しても無意味なエラー: ロールバックしてエラー表示
             articles[idx] = original
             updateAllArticles(original)
             self.error = error
@@ -200,16 +216,18 @@ final class ArticleStore: ObservableObject {
         }
         for a in articles { updateAllArticles(a) }
 
-        // API calls with rollback on failure
+        // API calls: URLError → pending queue, others → rollback
         for original in unread {
             do {
                 try await ArticleRepository(client: client).markAsRead(id: original.id)
+                pendingReadIds.remove(original.id)
+            } catch is URLError {
+                pendingReadIds.insert(original.id)
             } catch {
                 if let idx = articles.firstIndex(where: { $0.id == original.id }) {
                     articles[idx] = original
                 }
                 updateAllArticles(original)
-                self.error = error
             }
         }
     }
@@ -232,6 +250,7 @@ final class ArticleStore: ObservableObject {
 
         do {
             try await ArticleRepository(client: client).markAsUnread(id: id)
+            pendingReadIds.remove(id)
         } catch {
             articles[idx] = original
             updateAllArticles(original)
@@ -369,6 +388,36 @@ final class ArticleStore: ObservableObject {
             allArticles = allArticles.filter { !fetchedFeedIds.contains($0.feed_id) } + fetched
         }
         cache.saveAllArticles(allArticles)
+    }
+
+    /// pendingReadIds に含まれる記事をローカルで既読に上書きする（fetchArticles 後に呼ぶ）
+    @MainActor
+    private func applyPendingReads() {
+        guard !pendingReadIds.isEmpty else { return }
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+        let apply: (Article) -> Article = { [pendingReadIds] article in
+            guard pendingReadIds.contains(article.id) else { return article }
+            return article.markingAsRead(at: nowISO)
+        }
+        articles = articles.map(apply)
+        allArticles = allArticles.map(apply)
+    }
+
+    /// pendingReadIds の記事に対してサーバーへ markAsRead を再送する
+    @MainActor
+    private func retryPendingMarkAsRead() async {
+        guard let client, !pendingReadIds.isEmpty else { return }
+        let idsToRetry = pendingReadIds
+        for id in idsToRetry {
+            // 再送ループ中に markAsUnread が呼ばれてキューから除去された ID はスキップ
+            guard pendingReadIds.contains(id) else { continue }
+            do {
+                try await ArticleRepository(client: client).markAsRead(id: id)
+                pendingReadIds.remove(id)
+            } catch {
+                // 再送失敗 - 次回 fetchArticles で再試行
+            }
+        }
     }
 
     /// allArticles 内の該当記事を更新する
