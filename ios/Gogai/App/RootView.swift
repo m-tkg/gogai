@@ -33,6 +33,8 @@ struct RootView: View {
                         ContentUnavailableView("記事を選択", systemImage: "newspaper")
                     }
                 }
+                .onChange(of: selectedFeedId) { selectedArticle = nil }
+                .onChange(of: selectedGroupId) { selectedArticle = nil }
             } else {
                 NavigationStack(path: $navigationPath) {
                     SidebarView(
