@@ -27,8 +27,11 @@ final class ArticleStore: ObservableObject {
     private var currentFeedId: Int?
     private var currentGroupId: Int?
     private var currentIncludeSecret: Bool = false
-    /// markAsRead API 呼び出しが失敗した記事 ID セット（再起動時などのネットワーク障害で未送信の既読状態）
-    /// 次回の fetch 成功時に再送し、UI 上の既読状態も維持する
+    /// markAsRead API 呼び出しがネットワーク障害で失敗した記事 ID セット
+    /// - 対象: URLError（サーバー再起動・圏外など）のみ。4xx 等は対象外
+    /// - スコープ: インメモリのみ。アプリを強制終了・再起動すると消える
+    ///   （本修正の目的である「アプリを開いたままサーバーが再起動」には十分）
+    /// - 次回 fetchArticles 成功時に applyPendingReads() で UI を復元し再送する
     private var pendingReadIds: Set<Int> = []
     /// 最後の fetchArticles が unreadOnly=true で実行されたかどうか
     /// refresh() での既読記事保持の判定に使用する
@@ -184,10 +187,14 @@ final class ArticleStore: ObservableObject {
         do {
             try await ArticleRepository(client: client).markAsRead(id: id)
             pendingReadIds.remove(id)
-        } catch {
-            // ネットワーク障害（サーバー再起動など）の場合はロールバックせず再送キューに追加
-            // 次回 fetchArticles 成功時に再送し、既読状態を復元する
+        } catch is URLError {
+            // ネットワーク障害（サーバー再起動など）: ロールバックせず再送キューに追加
             pendingReadIds.insert(id)
+        } catch {
+            // 4xx など再送しても無意味なエラー: ロールバックしてエラー表示
+            articles[idx] = original
+            updateAllArticles(original)
+            self.error = error
         }
     }
 
@@ -209,13 +216,18 @@ final class ArticleStore: ObservableObject {
         }
         for a in articles { updateAllArticles(a) }
 
-        // API calls (failure: add to pending instead of rollback)
+        // API calls: URLError → pending queue, others → rollback
         for original in unread {
             do {
                 try await ArticleRepository(client: client).markAsRead(id: original.id)
                 pendingReadIds.remove(original.id)
-            } catch {
+            } catch is URLError {
                 pendingReadIds.insert(original.id)
+            } catch {
+                if let idx = articles.firstIndex(where: { $0.id == original.id }) {
+                    articles[idx] = original
+                }
+                updateAllArticles(original)
             }
         }
     }
@@ -383,17 +395,12 @@ final class ArticleStore: ObservableObject {
     private func applyPendingReads() {
         guard !pendingReadIds.isEmpty else { return }
         let nowISO = ISO8601DateFormatter().string(from: Date())
-        func applyRead(_ article: Article) -> Article {
-            guard pendingReadIds.contains(article.id), !article.isRead else { return article }
-            return Article(id: article.id, feed_id: article.feed_id, guid: article.guid,
-                           title: article.title, link: article.link, summary: article.summary,
-                           content: article.content, published_at: article.published_at,
-                           is_read: 1, is_favorite: article.is_favorite, created_at: article.created_at,
-                           ai_summary: article.ai_summary, ai_translation: article.ai_translation,
-                           read_at: article.read_at ?? nowISO)
+        let apply: (Article) -> Article = { [pendingReadIds] article in
+            guard pendingReadIds.contains(article.id) else { return article }
+            return article.markingAsRead(at: nowISO)
         }
-        articles = articles.map(applyRead)
-        allArticles = allArticles.map(applyRead)
+        articles = articles.map(apply)
+        allArticles = allArticles.map(apply)
     }
 
     /// pendingReadIds の記事に対してサーバーへ markAsRead を再送する
@@ -401,16 +408,16 @@ final class ArticleStore: ObservableObject {
     private func retryPendingMarkAsRead() async {
         guard let client, !pendingReadIds.isEmpty else { return }
         let idsToRetry = pendingReadIds
-        var succeeded: Set<Int> = []
         for id in idsToRetry {
+            // 再送ループ中に markAsUnread が呼ばれてキューから除去された ID はスキップ
+            guard pendingReadIds.contains(id) else { continue }
             do {
                 try await ArticleRepository(client: client).markAsRead(id: id)
-                succeeded.insert(id)
+                pendingReadIds.remove(id)
             } catch {
                 // 再送失敗 - 次回 fetchArticles で再試行
             }
         }
-        pendingReadIds.subtract(succeeded)
     }
 
     /// allArticles 内の該当記事を更新する
