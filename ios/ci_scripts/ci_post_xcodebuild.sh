@@ -24,4 +24,7 @@ hdiutil create -volname "Gogai" \
   -ov -format UDZO \
   "$DMG_PATH"
 
+# App Store Connect のビルド詳細からダウンロードできるようアーカイブにもコピー
+cp "$DMG_PATH" "$CI_ARCHIVE_PATH/Gogai.dmg"
+
 echo "==> DMG created: $DMG_PATH"
