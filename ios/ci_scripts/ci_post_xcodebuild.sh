@@ -6,16 +6,21 @@ set -e
 
 # Mac Catalyst ビルド以外はスキップ
 if [ "$CI_PRODUCT_PLATFORM" != "macOS" ]; then
-  echo "Not a macOS build, skipping DMG creation."
+  echo "Not a macOS build (CI_PRODUCT_PLATFORM=${CI_PRODUCT_PLATFORM}), skipping DMG creation."
   exit 0
 fi
+
+echo "==> CI_ARCHIVE_PATH: $CI_ARCHIVE_PATH"
+echo "==> CI_DERIVED_DATA_PATH: $CI_DERIVED_DATA_PATH"
 
 APP_PATH="$CI_ARCHIVE_PATH/Products/Applications/Gogai.app"
 DMG_PATH="$CI_DERIVED_DATA_PATH/Gogai.dmg"
 
 if [ ! -d "$APP_PATH" ]; then
-  echo "Gogai.app not found at $APP_PATH, skipping DMG creation."
-  exit 0
+  echo "==> Gogai.app not found at $APP_PATH"
+  echo "==> Contents of CI_ARCHIVE_PATH:"
+  ls -la "$CI_ARCHIVE_PATH" || true
+  exit 1
 fi
 
 echo "==> Creating DMG at $DMG_PATH"
@@ -24,7 +29,10 @@ hdiutil create -volname "Gogai" \
   -ov -format UDZO \
   "$DMG_PATH"
 
-# App Store Connect のビルド詳細からダウンロードできるようアーカイブにもコピー
+echo "==> Copying DMG into archive..."
 cp "$DMG_PATH" "$CI_ARCHIVE_PATH/Gogai.dmg"
 
-echo "==> DMG created: $DMG_PATH"
+echo "==> Contents of CI_ARCHIVE_PATH after copy:"
+ls -la "$CI_ARCHIVE_PATH"
+
+echo "==> DMG creation complete."
