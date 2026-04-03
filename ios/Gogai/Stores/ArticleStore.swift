@@ -77,6 +77,8 @@ final class ArticleStore: ObservableObject {
                 feedId: feedId,
                 groupId: groupId,
                 unreadOnly: self.unreadOnly,
+                summaryOnly: self.summaryOnly,
+                favoriteOnly: self.favoriteOnly,
                 sortOrder: self.sortOrder,
                 includeSecret: includeSecret
             )
