@@ -86,7 +86,12 @@ final class ArticleStore: ObservableObject {
             guard myGeneration == fetchGeneration else { return }
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
-            mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
+            // summaryOnly/favoriteOnly は表示用のフィルターであり、
+            // allArticles（未読バッジ計算用）は全記事が必要。
+            // これらのフィルターが有効な場合はフィルター済み記事で allArticles を上書きせず保持する。
+            if !self.summaryOnly && !self.favoriteOnly {
+                mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
+            }
             // サーバーに届かなかった既読状態をローカルに復元し、バックグラウンドで再送する
             if !pendingReadIds.isEmpty {
                 applyPendingReads()
