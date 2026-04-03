@@ -18,7 +18,7 @@ final class FeedRepositoryTests: XCTestCase {
 
     private func makeFeed(id: Int = 1, groupId: Int? = nil) -> Feed {
         Feed(id: id, url: "https://example.com/feed.xml", title: "Example",
-             favicon_url: nil, group_id: groupId, last_fetched_at: nil, created_at: "2024-01-01T00:00:00Z")
+             favicon_url: nil, group_id: groupId, last_fetched_at: nil, created_at: "2024-01-01T00:00:00Z", display_order: 0)
     }
 
     func test_fetchAll_returnsFeeds() async throws {
