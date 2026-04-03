@@ -7,6 +7,11 @@ final class ArticleStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        // テスト間の UserDefaults 状態汚染を防ぐためリセット
+        UserDefaults.standard.removeObject(forKey: "unreadOnly")
+        UserDefaults.standard.removeObject(forKey: "summaryOnly")
+        UserDefaults.standard.removeObject(forKey: "favoriteOnly")
+        UserDefaults.standard.removeObject(forKey: "sortOrder")
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let cache = AppCache(directory: tempDir)
         client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
@@ -427,6 +432,58 @@ final class ArticleStoreTests: XCTestCase {
         // 新しい記事（id:1）が先に来ること（published_at 降順）
         XCTAssertEqual(store.articles[0].id, 1, "新しい既読記事が先頭に来るべき")
         XCTAssertEqual(store.articles[1].id, 2, "古い未読記事が後に来るべき")
+    }
+
+    // MARK: - summaryOnly/favoriteOnly と allArticles の独立性
+
+    @MainActor
+    func test_fetchArticles_summaryOnly_doesNotUpdateAllArticles() async {
+        // 事前に全記事を allArticles に設定
+        let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
+        await store.fetchArticles(feedId: 1)
+        let beforeCount = store.allArticles.count
+        XCTAssertEqual(beforeCount, 2)
+
+        // summaryOnly=true でフェッチしても allArticles を上書きしない
+        let summarizedOnly = [makeArticle(id: 1, feedId: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(summarizedOnly)) }
+        store.summaryOnly = true
+        await store.fetchArticles(feedId: 1)
+
+        // articles は更新されるが allArticles は不変
+        XCTAssertEqual(store.articles.count, 1)
+        XCTAssertEqual(store.allArticles.count, beforeCount, "summaryOnly=true 時は allArticles を更新しない")
+    }
+
+    @MainActor
+    func test_fetchArticles_favoriteOnly_doesNotUpdateAllArticles() async {
+        // 事前に全記事を allArticles に設定
+        let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
+        await store.fetchArticles(feedId: 1)
+        let beforeCount = store.allArticles.count
+        XCTAssertEqual(beforeCount, 2)
+
+        // favoriteOnly=true でフェッチしても allArticles を上書きしない
+        let favoritesOnly = [makeArticle(id: 1, feedId: 1, isFavorite: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(favoritesOnly)) }
+        store.favoriteOnly = true
+        await store.fetchArticles(feedId: 1)
+
+        XCTAssertEqual(store.articles.count, 1)
+        XCTAssertEqual(store.allArticles.count, beforeCount, "favoriteOnly=true 時は allArticles を更新しない")
+    }
+
+    @MainActor
+    func test_fetchArticles_afterSummaryOnlyDisabled_updatesAllArticles() async {
+        // summaryOnly=false に戻したら allArticles を再度更新する
+        let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
+        store.summaryOnly = false
+        await store.fetchArticles(feedId: 1)
+
+        XCTAssertEqual(store.allArticles.count, 2, "summaryOnly=false の場合は allArticles を更新する")
     }
 
     // MARK: - unreadCount(excludingFeedIds:)
