@@ -7,8 +7,10 @@ final class ArticleStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let cache = AppCache(directory: tempDir)
         client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
-        store = ArticleStore()
+        store = ArticleStore(cache: cache)
         store.configure(with: client)
     }
 

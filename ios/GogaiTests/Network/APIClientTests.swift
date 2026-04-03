@@ -18,7 +18,7 @@ final class APIClientTests: XCTestCase {
     // MARK: - Successful requests
 
     func test_send_get_decodesResponse() async throws {
-        let expected = [Group(id: 1, name: "Tech", is_secret: 0, created_at: "2024-01-01T00:00:00Z")]
+        let expected = [Group(id: 1, name: "Tech", is_secret: 0, created_at: "2024-01-01T00:00:00Z", display_order: 0)]
         MockURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "GET")
             XCTAssertTrue(request.url?.path.hasSuffix("/api/groups") == true)
@@ -33,7 +33,7 @@ final class APIClientTests: XCTestCase {
 
     func test_send_post_withBody_sendsCorrectRequest() async throws {
         struct Body: Codable { let name: String }
-        let responseGroup = Group(id: 2, name: "News", is_secret: 0, created_at: "2024-01-01T00:00:00Z")
+        let responseGroup = Group(id: 2, name: "News", is_secret: 0, created_at: "2024-01-01T00:00:00Z", display_order: 0)
 
         MockURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
