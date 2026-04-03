@@ -35,6 +35,7 @@ export interface FindAllOptions {
   groupId?: number
   unreadOnly?: boolean
   favoriteOnly?: boolean
+  summaryOnly?: boolean
   sortBy?: SortBy
   includeSecret?: boolean
 }
@@ -86,6 +87,9 @@ export class ArticlesService {
     }
     if (options.favoriteOnly) {
       conditions.push('a.is_favorite = 1')
+    }
+    if (options.summaryOnly) {
+      conditions.push('a.ai_summary IS NOT NULL')
     }
     // groupId 未指定かつ includeSecret でなければシークレットグループを除外
     if (options.groupId === undefined && !options.includeSecret) {

@@ -63,6 +63,28 @@ final class ArticleRepositoryTests: XCTestCase {
         try await repository.markAsUnread(id: 5)
     }
 
+    func test_fetchAll_withSummaryOnly_includesQueryParam() async throws {
+        MockURLProtocol.requestHandler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
+            let summaryOnly = components.queryItems?.first(where: { $0.name == "summaryOnly" })?.value
+            XCTAssertEqual(summaryOnly, "true")
+            return (200, Data("[]".utf8))
+        }
+
+        let _ = try await repository.fetchAll(summaryOnly: true)
+    }
+
+    func test_fetchAll_withFavoriteOnly_includesQueryParam() async throws {
+        MockURLProtocol.requestHandler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
+            let favoriteOnly = components.queryItems?.first(where: { $0.name == "favoriteOnly" })?.value
+            XCTAssertEqual(favoriteOnly, "true")
+            return (200, Data("[]".utf8))
+        }
+
+        let _ = try await repository.fetchAll(favoriteOnly: true)
+    }
+
     func test_runAI_summarize_sendsCorrectBody() async throws {
         let aiResult = ArticleRepository.AIResult(output: "Summary text", cached: false)
         MockURLProtocol.requestHandler = { request in

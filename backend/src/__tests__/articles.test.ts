@@ -280,6 +280,33 @@ describe('ArticlesService', () => {
     })
   })
 
+  describe('summaryOnly フィルタリング', () => {
+    let articleWithSummaryId: number
+    let articleWithoutSummaryId: number
+
+    beforeEach(() => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'summary-1', title: 'Summarized Article', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() },
+        { guid: 'no-summary-1', title: 'No Summary Article', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      const articles = articlesService.findByFeed(feedId)
+      articleWithSummaryId = articles.find(a => a.title === 'Summarized Article')!.id
+      articleWithoutSummaryId = articles.find(a => a.title === 'No Summary Article')!.id
+      articlesService.saveAiResult(articleWithSummaryId, 'summarize', 'これは要約です')
+    })
+
+    it('summaryOnly=true でAI要約済み記事のみ返す', () => {
+      const result = articlesService.findAll({ limit: 10, offset: 0, summaryOnly: true })
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe(articleWithSummaryId)
+    })
+
+    it('summaryOnly=false で全記事を返す', () => {
+      const result = articlesService.findAll({ limit: 10, offset: 0, summaryOnly: false })
+      expect(result).toHaveLength(2)
+    })
+  })
+
   describe('お気に入り機能', () => {
     let articleId: number
 
