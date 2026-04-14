@@ -32,7 +32,7 @@ struct FeedRowView: View {
                     .foregroundStyle(.primary)
                 let unread = articleStore.unreadCount(for: feed.id)
                 if unread > 0 {
-                    Text("\(unread)")
+                    Text(unread >= 1000 ? "1000+" : "\(unread)")
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)

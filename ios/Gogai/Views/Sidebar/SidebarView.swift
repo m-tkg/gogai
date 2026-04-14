@@ -103,7 +103,7 @@ struct SidebarView: View {
                         Text("すべての記事")
                             .foregroundStyle(.primary)
                         if totalUnreadCount > 0 {
-                            Text("\(totalUnreadCount)")
+                            Text(totalUnreadCount >= 1000 ? "1000+" : "\(totalUnreadCount)")
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.white)

@@ -44,7 +44,7 @@ struct GroupRowView: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
                 if groupUnreadCount > 0 {
-                    Text("\(groupUnreadCount)")
+                    Text(groupUnreadCount >= 1000 ? "1000+" : "\(groupUnreadCount)")
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
