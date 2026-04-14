@@ -45,6 +45,7 @@ struct ArticleListView: View {
             ForEach(displayedArticles) { article in
                 ArticleRowView(article: article)
                     .tag(article)
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         selectedArticle = article
                         onArticleSelected?(article)
