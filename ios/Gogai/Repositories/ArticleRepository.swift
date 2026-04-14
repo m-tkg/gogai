@@ -7,7 +7,7 @@ struct ArticleRepository: Sendable {
         self.client = client
     }
 
-    func fetchAll(feedId: Int? = nil, groupId: Int? = nil, unreadOnly: Bool = false, summaryOnly: Bool = false, favoriteOnly: Bool = false, sortOrder: ArticleSortOrder = .publishedAt, limit: Int = 100, offset: Int = 0, includeSecret: Bool = false) async throws -> [Article] {
+    func fetchAll(feedId: Int? = nil, groupId: Int? = nil, unreadOnly: Bool = false, summaryOnly: Bool = false, favoriteOnly: Bool = false, sortOrder: ArticleSortOrder = .publishedAt, limit: Int = 1000, offset: Int = 0, includeSecret: Bool = false) async throws -> [Article] {
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "offset", value: String(offset)),

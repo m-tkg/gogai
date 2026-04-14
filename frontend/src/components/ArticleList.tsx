@@ -20,7 +20,7 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
 
   const { data: articles = [], isLoading } = useQuery({
     queryKey: ['articles', { feedId, groupId, unreadOnly, favoriteOnly, sortBy, showSecretGroups }],
-    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, favoriteOnly, sortBy, limit: 100, offset: 0, includeSecret: showSecretGroups }),
+    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, favoriteOnly, sortBy, limit: 1000, offset: 0, includeSecret: showSecretGroups }),
   })
 
   const refresh = useMutation({
