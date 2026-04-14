@@ -409,4 +409,61 @@ describe('ArticlesService', () => {
       expect(stillExists?.is_favorite).toBe(1)
     })
   })
+
+  describe('重複URLの自動既読', () => {
+    let feed2Id: number
+
+    beforeEach(() => {
+      const feed2 = feedsService.create({ url: 'https://example2.com/feed.xml', title: 'Example2' })
+      feed2Id = feed2.id
+    })
+
+    it('同一URLが別フィードに先に存在する場合、後から登録した記事を自動既読にする', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g1', title: 'Article from Feed1', link: 'https://shared.example.com/article', summary: '' }
+      ])
+      articlesService.upsertMany(feed2Id, [
+        { guid: 'g2', title: 'Article from Feed2', link: 'https://shared.example.com/article', summary: '' }
+      ])
+
+      expect(articlesService.findByFeed(feedId)[0].is_read).toBe(0)  // 先に登録した方は未読のまま
+      expect(articlesService.findByFeed(feed2Id)[0].is_read).toBe(1) // 後から登録した方が自動既読
+    })
+
+    it('同一URLが別フィードに存在しない場合は自動既読にしない', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g1', title: 'Unique Article', link: 'https://example.com/unique', summary: '' }
+      ])
+      expect(articlesService.findByFeed(feedId)[0].is_read).toBe(0)
+    })
+
+    it('link が null の記事は重複チェックをしない', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g1', title: 'No Link Article 1', summary: '' }
+      ])
+      articlesService.upsertMany(feed2Id, [
+        { guid: 'g2', title: 'No Link Article 2', summary: '' }
+      ])
+
+      expect(articlesService.findByFeed(feed2Id)[0].is_read).toBe(0)
+    })
+
+    it('フィードリフレッシュ時に新たに重複するURLの記事を自動既読にする', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g1', title: 'Original Article', link: 'https://shared.example.com/article', summary: '' }
+      ])
+      articlesService.upsertMany(feed2Id, [
+        { guid: 'g3', title: 'Different Article', link: 'https://different.example.com/article', summary: '' }
+      ])
+      // リフレッシュで feed2 に重複URLの記事が追加される
+      articlesService.upsertMany(feed2Id, [
+        { guid: 'g3', title: 'Different Article', link: 'https://different.example.com/article', summary: '' },
+        { guid: 'g4', title: 'Now Shared Article', link: 'https://shared.example.com/article', summary: '' },
+      ])
+
+      const feed2Articles = articlesService.findByFeed(feed2Id)
+      const sharedArticle = feed2Articles.find(a => a.link === 'https://shared.example.com/article')
+      expect(sharedArticle?.is_read).toBe(1)
+    })
+  })
 })
