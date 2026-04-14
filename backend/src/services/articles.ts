@@ -68,6 +68,28 @@ export class ArticlesService {
       }
     })
     upsert(items)
+    this.markDuplicateLinksAsRead(feedId)
+  }
+
+  private markDuplicateLinksAsRead(feedId: number): void {
+    this.db.prepare(`
+      UPDATE articles
+      SET is_read = 1, read_at = datetime('now')
+      WHERE is_read = 0
+        AND feed_id = ?
+        AND link IS NOT NULL
+        AND id IN (
+          SELECT a1.id FROM articles a1
+          WHERE a1.feed_id = ?
+            AND a1.link IS NOT NULL
+            AND EXISTS (
+              SELECT 1 FROM articles a2
+              WHERE a2.link = a1.link
+                AND a2.feed_id != a1.feed_id
+                AND a2.id < a1.id
+            )
+        )
+    `).run(feedId, feedId)
   }
 
   findAll(options: FindAllOptions): Article[] {
