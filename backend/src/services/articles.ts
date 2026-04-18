@@ -160,6 +160,8 @@ export class ArticlesService {
   }
 
   saveAiResult(id: number, action: 'summarize' | 'translate', text: string): void {
+    // Why: provider が空文字列を返した時に空キャッシュを残さない（既存値も上書きしない）
+    if (!text) return
     const col = action === 'summarize' ? 'ai_summary' : 'ai_translation'
     this.db.prepare(`UPDATE articles SET ${col} = ? WHERE id = ?`).run(text, id)
   }
