@@ -278,6 +278,17 @@ describe('ArticlesService', () => {
       articlesService.saveAiResult(articleId, 'summarize', '更新した要約')
       expect(articlesService.findById(articleId)?.ai_summary).toBe('更新した要約')
     })
+
+    it('空文字列は保存しない（既存値も保持）', () => {
+      articlesService.saveAiResult(articleId, 'summarize', '本物の要約')
+      articlesService.saveAiResult(articleId, 'summarize', '')
+      expect(articlesService.findById(articleId)?.ai_summary).toBe('本物の要約')
+    })
+
+    it('AI 結果が空文字列のとき DB には NULL のまま', () => {
+      articlesService.saveAiResult(articleId, 'translate', '')
+      expect(articlesService.findById(articleId)?.ai_translation).toBeNull()
+    })
   })
 
   describe('summaryOnly フィルタリング', () => {
