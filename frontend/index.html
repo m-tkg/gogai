@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gogai</title>
+    <script>
+      // Why: React マウント前に dark クラスを付与しないと初回描画でライト背景が
+      // 一瞬見える FOUC が発生する。App.tsx の useEffect と同じ判定をここで先取りする。
+      (function () {
+        try {
+          var saved = localStorage.getItem('darkMode')
+          var dark = saved !== null
+            ? saved === 'true'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (_) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
