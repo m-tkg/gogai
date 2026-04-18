@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { articlesApi, feedsApi, type Article, type SortBy } from '../api/client'
 import { useState } from 'react'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 interface ArticleListProps {
   feedId: number | null
@@ -24,7 +25,9 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
   })
 
   const refresh = useMutation({
-    mutationFn: () => feedsApi.refresh(feedId!),
+    // Why: ボタンは feedId != null のときだけ描画されるが、状態管理ミス時の NaN リクエスト
+    // 発火を防ぐため早期 return で保険をかける。
+    mutationFn: () => feedId == null ? Promise.resolve() : feedsApi.refresh(feedId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['articles'] })
       qc.invalidateQueries({ queryKey: ['feeds'] })
@@ -129,13 +132,15 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
 function openTranslationTab(title: string | null, markdown: string) {
   const win = window.open('', '_blank')
   if (!win) return
-  const bodyHtml = marked.parse(markdown) as string
+  // Why: marked.parse は AI 出力が <script> 等を含む場合 XSS になる。新タブで document.write
+  // するため CSP も効かない。タイトルは textContent でセットして HTML エスケープを回避する。
+  const bodyHtml = DOMPurify.sanitize(marked.parse(markdown) as string)
   win.document.write(`<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title ? `翻訳: ${title}` : '翻訳'}</title>
+  <title></title>
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.8; color: #1a1a1a; }
     h1.page-title { font-size: 1.25rem; color: #4c1d95; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
@@ -153,11 +158,19 @@ function openTranslationTab(title: string | null, markdown: string) {
   </style>
 </head>
 <body>
-  <h1 class="page-title">✦ 翻訳${title ? `: ${title}` : ''}</h1>
-  <div id="content">${bodyHtml}</div>
+  <h1 class="page-title"></h1>
+  <div id="content"></div>
 </body>
 </html>`)
   win.document.close()
+
+  const titleSuffix = title ? `: ${title}` : ''
+  const docTitle = win.document.querySelector('title')
+  if (docTitle) docTitle.textContent = `翻訳${titleSuffix}`
+  const heading = win.document.querySelector('h1.page-title')
+  if (heading) heading.textContent = `✦ 翻訳${titleSuffix}`
+  const content = win.document.getElementById('content')
+  if (content) content.innerHTML = bodyHtml
 }
 
 function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
