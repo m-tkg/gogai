@@ -41,7 +41,10 @@ final class ServerURLManager: ObservableObject {
         do {
             resolvedURL = try await Self.resolveURL(url, session: session)
         } catch {
-            resolvedURL = url  // 解決失敗時はそのまま使用
+            // Why: gist.github.com URL を resolvedURL に入れると APIClient が
+            // gist.github.com 宛に /api/* を投げてしまう。失敗時は nil のまま保持し、
+            // 次回 resolve() でリトライさせる。
+            resolvedURL = nil
         }
     }
 
