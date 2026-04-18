@@ -70,6 +70,21 @@ final class APIClientTests: XCTestCase {
         }
     }
 
+    func test_send_urlError_isPropagatedAsURLError() async throws {
+        // ネットワーク障害は URLError をそのまま投げ直すこと（APIError に包まない）。
+        // ArticleStore 側で `catch is URLError` 判定して再送キュー制御するため。
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+
+        do {
+            try await client.sendVoid(.post("/api/articles/1/read"))
+            XCTFail("Expected error")
+        } catch let error as URLError {
+            XCTAssertEqual(error.code, .cannotConnectToHost)
+        } catch {
+            XCTFail("Expected URLError, got \(type(of: error)): \(error)")
+        }
+    }
+
     func test_send_invalidJSON_throwsDecodingError() async throws {
         MockURLProtocol.requestHandler = { _ in (200, Data("not json".utf8)) }
 
