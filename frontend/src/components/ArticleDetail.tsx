@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import DOMPurify from 'dompurify'
 import { articlesApi, type Article } from '../api/client'
 
 interface ArticleDetailProps {
@@ -177,11 +178,16 @@ function ArticleContent({ html }: { html: string }) {
   )
 }
 
-// 基本的なHTMLサニタイズ（scriptタグ除去）＋外部リンクを新しいタブで開く
+// Why: 自前の正規表現サニタイズは属性ベース XSS（<img src=x onerror=...> など）を通すため、
+// DOMPurify に置き換え。<a> へ target="_blank" rel="noopener noreferrer" 付与は afterSanitizeAttributes
+// フックで実施する。
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank')
+    node.setAttribute('rel', 'noopener noreferrer')
+  }
+})
+
 function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+="[^"]*"/g, '')
-    .replace(/on\w+='[^']*'/g, '')
-    .replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ')
+  return DOMPurify.sanitize(html)
 }
