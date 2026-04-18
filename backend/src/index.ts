@@ -11,6 +11,7 @@ import { ArticlesService } from './services/articles.js'
 import { SettingsService } from './services/settings.js'
 import { FeedsService } from './services/feeds.js'
 import { refreshAllFeeds } from './services/feed-refresher.js'
+import { runSafely } from './utils/safe-run.js'
 import { mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -31,7 +32,7 @@ function purgeOldArticles() {
 
 // 起動時 + 24時間ごとにクリーンアップ
 purgeOldArticles()
-setInterval(purgeOldArticles, 24 * 60 * 60 * 1000)
+setInterval(() => runSafely('cleanup', purgeOldArticles), 24 * 60 * 60 * 1000)
 
 // 5分ごとにフィードを自動更新（起動直後は不要なためインターバルのみ）
 async function autoRefreshFeeds() {
@@ -42,7 +43,7 @@ async function autoRefreshFeeds() {
   }
 }
 
-setInterval(autoRefreshFeeds, 5 * 60 * 1000)
+setInterval(() => runSafely('feed-refresher', autoRefreshFeeds), 5 * 60 * 1000)
 
 const app = new Hono()
 
