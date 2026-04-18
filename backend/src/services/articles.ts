@@ -28,6 +28,13 @@ export interface ArticleItem {
 
 export type SortBy = 'published_at' | 'read_at'
 
+// Why: SQL に直接埋め込む ORDER BY 句は、将来 SortBy 値が追加された際に
+// 未対応キーが来てもコンパイル時に検出できるよう Record で網羅する。
+const ORDER_BY_SQL: Record<SortBy, string> = {
+  published_at: 'a.published_at DESC',
+  read_at: 'COALESCE(a.read_at, a.published_at) DESC',
+}
+
 export interface FindAllOptions {
   limit: number
   offset: number
@@ -121,9 +128,7 @@ export class ArticlesService {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     values.push(options.limit, options.offset)
 
-    const orderBy = options.sortBy === 'read_at'
-      ? 'COALESCE(a.read_at, a.published_at) DESC'
-      : 'a.published_at DESC'
+    const orderBy = ORDER_BY_SQL[options.sortBy ?? 'published_at']
 
     return this.db.prepare(`
       SELECT a.* FROM articles a
