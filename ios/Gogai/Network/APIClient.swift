@@ -33,6 +33,9 @@ struct APIClient: APIClientProtocol {
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
+        } catch let urlError as URLError {
+            // URLError は呼び出し側でリトライ判定するため、そのまま投げ直す
+            throw urlError
         } catch {
             throw APIError.networkError(error.localizedDescription)
         }
