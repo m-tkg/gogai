@@ -258,6 +258,10 @@ final class ArticleStore: ObservableObject {
         do {
             try await ArticleRepository(client: client).markAsUnread(id: id)
             pendingReadIds.remove(id)
+        } catch is URLError {
+            // ネットワーク障害: 未読操作のユーザー意図を尊重して楽観更新は維持し、
+            // 未送信の既読リトライをキャンセルする（applyPendingReads で既読に戻されないように）
+            pendingReadIds.remove(id)
         } catch {
             articles[idx] = original
             updateAllArticles(original)

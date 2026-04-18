@@ -99,6 +99,58 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertFalse(store.articles[0].isRead)
     }
 
+    // MARK: - URLError 時の pendingReadIds 整合
+
+    @MainActor
+    func test_markAsRead_doesNotRollback_onURLError() async {
+        // URLError（サーバー再起動・圏外）の場合、楽観的更新を維持し pendingReadIds に積む
+        store.articles = [makeArticle(id: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertTrue(store.articles[0].isRead, "URLError ではロールバックしない")
+        XCTAssertNil(store.error, "URLError では error をセットしない")
+    }
+
+    @MainActor
+    func test_markAsRead_restoresReadStateOnRefetch_afterURLError() async {
+        // URLError 後に fetchArticles でサーバーが未読を返しても、ローカルでは既読を維持する
+        store.articles = [makeArticle(id: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+        await store.markAsRead(id: 1)
+
+        // サーバーは既読状態を受け取れていないため未読のまま返す
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 1, isRead: 0)]))
+        }
+        await store.fetchArticles()
+
+        XCTAssertTrue(store.articles[0].isRead, "applyPendingReads がローカル既読を復元する")
+    }
+
+    @MainActor
+    func test_markAsUnread_clearsPendingRead_onURLError() async {
+        // markAsRead が URLError で pendingReadIds に積まれた直後にユーザーが「未読に戻す」を実行。
+        // markAsUnread も URLError で失敗した場合でも、再フェッチ時にローカル既読が復活してはいけない
+        // （pendingReadIds から該当 ID を取り除く必要がある）
+        store.articles = [makeArticle(id: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+        await store.markAsRead(id: 1)            // pendingReadIds に積まれる
+        await store.markAsUnread(id: 1)          // pendingReadIds から外れるべき
+
+        // 直後の状態で未読になっていること（楽観的更新を維持）
+        XCTAssertFalse(store.articles[0].isRead, "URLError でも未読の楽観更新は保持する")
+
+        // サーバーは未読を返す
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 1, isRead: 0)]))
+        }
+        await store.fetchArticles()
+
+        XCTAssertFalse(store.articles[0].isRead, "未読操作の意図を尊重し、再フェッチで既読に戻してはいけない")
+    }
+
     func test_unreadCount_returnsCorrectCount() {
         store.articles = [
             makeArticle(id: 1, isRead: 0),

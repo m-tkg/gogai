@@ -7,9 +7,18 @@ import { getDb } from '../db/schema.js'
 
 const app = new Hono()
 
+const MAX_ARTICLES_LIMIT = 1000
+
+export function parseNonNegativeInt(raw: string | undefined, defaultValue: number, max?: number): number {
+  if (raw === undefined) return defaultValue
+  const n = Number.parseInt(raw, 10)
+  if (!Number.isFinite(n) || n < 0) return defaultValue
+  return max !== undefined ? Math.min(n, max) : n
+}
+
 app.get('/', (c) => {
-  const limit = Number(c.req.query('limit') ?? 50)
-  const offset = Number(c.req.query('offset') ?? 0)
+  const limit = parseNonNegativeInt(c.req.query('limit'), 50, MAX_ARTICLES_LIMIT)
+  const offset = parseNonNegativeInt(c.req.query('offset'), 0)
   const feedId = c.req.query('feedId') ? Number(c.req.query('feedId')) : undefined
   const groupId = c.req.query('groupId') ? Number(c.req.query('groupId')) : undefined
   const unreadOnly = c.req.query('unreadOnly') === 'true'
