@@ -25,7 +25,9 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
   })
 
   const refresh = useMutation({
-    mutationFn: () => feedsApi.refresh(feedId!),
+    // Why: ボタンは feedId != null のときだけ描画されるが、状態管理ミス時の NaN リクエスト
+    // 発火を防ぐため早期 return で保険をかける。
+    mutationFn: () => feedId == null ? Promise.resolve() : feedsApi.refresh(feedId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['articles'] })
       qc.invalidateQueries({ queryKey: ['feeds'] })
