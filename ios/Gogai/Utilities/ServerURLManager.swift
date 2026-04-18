@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class ServerURLManager: ObservableObject {
     private let userDefaultsKey = "serverURL"
+    private let session: URLSession
 
     /// UserDefaults に保存された生の URL（Gist URL の場合もある）
     @Published private(set) var serverURL: URL?
@@ -12,7 +13,8 @@ final class ServerURLManager: ObservableObject {
 
     var isConfigured: Bool { serverURL != nil }
 
-    init() {
+    init(session: URLSession = .shared) {
+        self.session = session
         if let urlString = UserDefaults.standard.string(forKey: userDefaultsKey),
            let url = URL(string: urlString) {
             serverURL = url
@@ -37,18 +39,18 @@ final class ServerURLManager: ObservableObject {
         isResolving = true
         defer { isResolving = false }
         do {
-            resolvedURL = try await Self.resolveURL(url)
+            resolvedURL = try await Self.resolveURL(url, session: session)
         } catch {
             resolvedURL = url  // 解決失敗時はそのまま使用
         }
     }
 
     /// gist.github.com URL を GitHub Gist API 経由で解決する。それ以外はそのまま返す。
-    static func resolveURL(_ url: URL) async throws -> URL {
+    static func resolveURL(_ url: URL, session: URLSession = .shared) async throws -> URL {
         guard url.host == "gist.github.com" else { return url }
         let gistId = url.lastPathComponent
         let apiURL = URL(string: "https://api.github.com/gists/\(gistId)")!
-        let (data, _) = try await URLSession.shared.data(from: apiURL)
+        let (data, _) = try await session.data(from: apiURL)
         struct GistFile: Decodable { let content: String }
         struct GistResponse: Decodable { let files: [String: GistFile] }
         let gist = try JSONDecoder().decode(GistResponse.self, from: data)
