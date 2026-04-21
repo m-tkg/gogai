@@ -8,10 +8,12 @@ final class ServerURLManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         UserDefaults.standard.removeObject(forKey: "serverURL")
+        UserDefaults.standard.removeObject(forKey: "resolvedServerURL")
     }
 
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: "serverURL")
+        UserDefaults.standard.removeObject(forKey: "resolvedServerURL")
         MockURLProtocol.requestHandler = nil
         super.tearDown()
     }
@@ -64,5 +66,65 @@ final class ServerURLManagerTests: XCTestCase {
         await manager.resolve()
 
         XCTAssertEqual(manager.resolvedURL, direct)
+    }
+
+    // Why: 起動時に Gist API を待たず、前回解決したトンネル URL を即座に使うため。
+    // これにより configureStores() が起動直後に走り、初期表示が高速化する。
+    func test_init_restoresCachedResolvedURL_whenGistURLSaved() {
+        let tunnel = "https://cached.trycloudflare.com"
+        UserDefaults.standard.set(gistURL.absoluteString, forKey: "serverURL")
+        UserDefaults.standard.set(tunnel, forKey: "resolvedServerURL")
+
+        let manager = ServerURLManager(session: .mock())
+
+        XCTAssertEqual(manager.resolvedURL?.absoluteString, tunnel)
+    }
+
+    func test_resolve_success_cachesResolvedURL() async {
+        let tunnel = "https://newtunnel.trycloudflare.com"
+        MockURLProtocol.requestHandler = { _ in
+            let body = "{\"files\":{\"url.txt\":{\"content\":\"\(tunnel)\"}}}"
+            return (200, Data(body.utf8))
+        }
+        let manager = ServerURLManager(session: .mock())
+        manager.setServerURL(gistURL)
+
+        await manager.resolve()
+
+        XCTAssertEqual(
+            UserDefaults.standard.string(forKey: "resolvedServerURL"),
+            tunnel
+        )
+    }
+
+    func test_setServerURL_clearsCachedResolvedURL() {
+        UserDefaults.standard.set("https://old.trycloudflare.com", forKey: "resolvedServerURL")
+        let manager = ServerURLManager(session: .mock())
+
+        manager.setServerURL(gistURL)
+
+        XCTAssertNil(UserDefaults.standard.string(forKey: "resolvedServerURL"))
+    }
+
+    func test_clearServerURL_clearsCachedResolvedURL() {
+        UserDefaults.standard.set(gistURL.absoluteString, forKey: "serverURL")
+        UserDefaults.standard.set("https://old.trycloudflare.com", forKey: "resolvedServerURL")
+        let manager = ServerURLManager(session: .mock())
+
+        manager.clearServerURL()
+
+        XCTAssertNil(UserDefaults.standard.string(forKey: "resolvedServerURL"))
+    }
+
+    // Why: 非 Gist URL は resolve() が即座にそのままセットするため、キャッシュを使う必要がない。
+    // 古いキャッシュが残っていても init 時点の resolvedURL は nil のままであるべき。
+    func test_init_ignoresCachedResolvedURL_forNonGistServerURL() {
+        let direct = "http://localhost:3040"
+        UserDefaults.standard.set(direct, forKey: "serverURL")
+        UserDefaults.standard.set("https://stale.trycloudflare.com", forKey: "resolvedServerURL")
+
+        let manager = ServerURLManager(session: .mock())
+
+        XCTAssertNil(manager.resolvedURL)
     }
 }
