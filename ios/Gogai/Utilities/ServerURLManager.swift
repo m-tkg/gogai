@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class ServerURLManager: ObservableObject {
     private let userDefaultsKey = "serverURL"
+    private let resolvedURLKey = "resolvedServerURL"
     private let session: URLSession
 
     /// UserDefaults に保存された生の URL（Gist URL の場合もある）
@@ -18,17 +19,27 @@ final class ServerURLManager: ObservableObject {
         if let urlString = UserDefaults.standard.string(forKey: userDefaultsKey),
            let url = URL(string: urlString) {
             serverURL = url
+            // Why: 起動時に Gist API 解決を待たず前回のトンネル URL で即座に
+            // configureStores() を走らせるためキャッシュを復元する。非 Gist URL は
+            // resolve() が即座に自身をセットするためキャッシュ不要。
+            if url.host == "gist.github.com",
+               let cached = UserDefaults.standard.string(forKey: resolvedURLKey),
+               let cachedURL = URL(string: cached) {
+                resolvedURL = cachedURL
+            }
         }
     }
 
     func setServerURL(_ url: URL) {
         UserDefaults.standard.set(url.absoluteString, forKey: userDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: resolvedURLKey)
         serverURL = url
         resolvedURL = nil
     }
 
     func clearServerURL() {
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: resolvedURLKey)
         serverURL = nil
         resolvedURL = nil
     }
@@ -39,12 +50,17 @@ final class ServerURLManager: ObservableObject {
         isResolving = true
         defer { isResolving = false }
         do {
-            resolvedURL = try await Self.resolveURL(url, session: session)
+            let resolved = try await Self.resolveURL(url, session: session)
+            resolvedURL = resolved
+            if url.host == "gist.github.com" {
+                UserDefaults.standard.set(resolved.absoluteString, forKey: resolvedURLKey)
+            }
         } catch {
-            // Why: gist.github.com URL を resolvedURL に入れると APIClient が
-            // gist.github.com 宛に /api/* を投げてしまう。失敗時は nil のまま保持し、
-            // 次回 resolve() でリトライさせる。
-            resolvedURL = nil
+            // Why: 失敗時は既存の resolvedURL を維持する。init 時に復元した
+            // キャッシュ済み URL があればそれで API を叩き続けられるし、
+            // resolvedURL が元々 nil なら nil のまま（setServerURL 直後の失敗に相当）。
+            // gist.github.com URL が resolvedURL に入ることはない（Self.resolveURL は
+            // 成功時は必ず非 Gist URL を返し、失敗時は throw するため）。
         }
     }
 

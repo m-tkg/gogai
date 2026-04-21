@@ -111,7 +111,7 @@ ios-build: ios-sync-icons
 # Release ビルドして実機に転送して起動
 DEVICE_ID    ?= 620080DD-019A-5477-8F2D-96E9E0C8C538
 DERIVED_DATA  = ios/.build
-BUNDLE_ID     = com.gogai.ios
+BUNDLE_ID     = com.mtkg.gogai
 
 ios-deploy: ios-sync-icons
 	@echo "==> Building Release for device..."
