@@ -1,6 +1,20 @@
 import XCTest
 @testable import Gogai
 
+/// スレッドセーフな呼び出し回数カウンタ（@Sendable クロージャから使う）
+private final class Counter: @unchecked Sendable {
+    private var _value = 0
+    private let lock = NSLock()
+    func increment() {
+        lock.lock(); defer { lock.unlock() }
+        _value += 1
+    }
+    var value: Int {
+        lock.lock(); defer { lock.unlock() }
+        return _value
+    }
+}
+
 final class APIClientTests: XCTestCase {
     var client: APIClient!
     let baseURL = URL(string: "http://localhost:3040")!
@@ -98,6 +112,47 @@ final class APIClientTests: XCTestCase {
                 XCTFail("Expected decodingError, got \(error)")
             }
         }
+    }
+
+    // MARK: - onNetworkFailure callback
+
+    // Why: Cloudflare トンネル URL が古くなって繋がらない時、
+    // ServerURLManager に通知してキャッシュ破棄 + 再解決をトリガーするため。
+    func test_onNetworkFailure_calledOnURLError() async {
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+        let callCount = Counter()
+        let client = APIClient(baseURL: baseURL, session: .mock(), onNetworkFailure: {
+            callCount.increment()
+        })
+
+        _ = try? await client.sendVoid(.get("/api/feeds"))
+
+        XCTAssertEqual(callCount.value, 1)
+    }
+
+    // Why: 4xx/5xx は一時的な失敗の可能性があり、URL 自体の再解決は不要。
+    func test_onNetworkFailure_notCalledOnHTTPError() async {
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+        let callCount = Counter()
+        let client = APIClient(baseURL: baseURL, session: .mock(), onNetworkFailure: {
+            callCount.increment()
+        })
+
+        _ = try? await client.sendVoid(.get("/api/feeds"))
+
+        XCTAssertEqual(callCount.value, 0)
+    }
+
+    func test_onNetworkFailure_notCalledOnSuccess() async throws {
+        MockURLProtocol.requestHandler = { _ in (200, Data("[]".utf8)) }
+        let callCount = Counter()
+        let client = APIClient(baseURL: baseURL, session: .mock(), onNetworkFailure: {
+            callCount.increment()
+        })
+
+        let _: [Group] = try await client.send(.get("/api/groups"))
+
+        XCTAssertEqual(callCount.value, 0)
     }
 
     // MARK: - Endpoint URL building
