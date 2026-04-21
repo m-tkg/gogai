@@ -55,7 +55,11 @@ struct GogaiApp: App {
     }
 
     private func configureStores(baseURL: URL) {
-        let client = APIClient(baseURL: baseURL)
+        // Why: 接続失敗（トンネル URL 失効など）を検知したら ServerURLManager に再解決を促す。
+        // デバウンス + resolve 成功時の onChange により自動回復する。
+        let client = APIClient(baseURL: baseURL, onNetworkFailure: { [weak serverURLManager] in
+            Task { await serverURLManager?.reportFailure() }
+        })
         groupStore.configure(with: client)
         feedStore.configure(with: client, onRefreshComplete: {
             Task { await articleStore.refresh() }

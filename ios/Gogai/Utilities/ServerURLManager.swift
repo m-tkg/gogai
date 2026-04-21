@@ -5,6 +5,8 @@ final class ServerURLManager: ObservableObject {
     private let userDefaultsKey = "serverURL"
     private let resolvedURLKey = "resolvedServerURL"
     private let session: URLSession
+    private let failureDebounceInterval: TimeInterval
+    private var lastReportedFailureAt: Date?
 
     /// UserDefaults に保存された生の URL（Gist URL の場合もある）
     @Published private(set) var serverURL: URL?
@@ -14,8 +16,9 @@ final class ServerURLManager: ObservableObject {
 
     var isConfigured: Bool { serverURL != nil }
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, failureDebounceInterval: TimeInterval = 30) {
         self.session = session
+        self.failureDebounceInterval = failureDebounceInterval
         if let urlString = UserDefaults.standard.string(forKey: userDefaultsKey),
            let url = URL(string: urlString) {
             serverURL = url
@@ -42,6 +45,19 @@ final class ServerURLManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: resolvedURLKey)
         serverURL = nil
         resolvedURL = nil
+    }
+
+    /// APIClient の接続失敗通知を受けて再解決する（キャッシュ URL が失効しているかもしれない想定）。
+    /// デバウンスで連続呼び出しを抑制する。
+    /// - 成功時: resolvedURL が新 URL に更新され、onChange 経由で自動再構成される。
+    /// - 失敗時: resolvedURL はそのまま。キャッシュも既存値を維持し、次回起動で再試行できる。
+    func reportFailure() async {
+        if let last = lastReportedFailureAt,
+           Date().timeIntervalSince(last) < failureDebounceInterval {
+            return
+        }
+        lastReportedFailureAt = Date()
+        await resolve()
     }
 
     /// Gist URL なら API 経由でコンテンツを取得して実 URL を解決する
