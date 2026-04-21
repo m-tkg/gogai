@@ -62,9 +62,15 @@ struct GogaiApp: App {
         })
         articleStore.configure(with: client)
         settingsStore.configure(with: client)
-        Task {
-            await groupStore.fetchGroups()
-            await feedStore.fetchFeeds()
+        // Why: 3 本は独立した API のため並列化で起動時の総待ち時間を短縮する。
+        // async let や withTaskGroup は Store が non-Sendable のため使えない
+        // （Store は @MainActor 宣言なしでクラスレベル sendable でない）。
+        // 代わりに @MainActor な Task を 3 つ投げて並列実行する。
+        // refreshAllArticlesCache は fetchArticles と同じ allArticles を書き換えるため
+        // articles Task 内で順次に繋ぐ。
+        Task { @MainActor in await groupStore.fetchGroups() }
+        Task { @MainActor in await feedStore.fetchFeeds() }
+        Task { @MainActor in
             await articleStore.fetchArticles()
             // シークレット記事を含む全記事でバッジ用キャッシュを更新する
             await articleStore.refreshAllArticlesCache()
