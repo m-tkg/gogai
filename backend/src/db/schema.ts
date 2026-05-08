@@ -113,4 +113,11 @@ export function initSchema(db: Database.Database): void {
     // already exists — ignore
   }
 
+  // articles テーブルへの移行: NotebookLM 音声共有 URL カラムを追加
+  try {
+    db.exec(`ALTER TABLE articles ADD COLUMN ai_audio_url TEXT`)
+  } catch {
+    // already exists — ignore
+  }
+
 }

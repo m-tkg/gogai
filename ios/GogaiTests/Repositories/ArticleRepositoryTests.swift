@@ -21,7 +21,7 @@ final class ArticleRepositoryTests: XCTestCase {
                 link: "https://example.com/\(id)", summary: "Summary", content: nil,
                 published_at: "2024-01-01T00:00:00Z", is_read: isRead, is_favorite: 0,
                 created_at: "2024-01-01T00:00:00Z", ai_summary: nil, ai_translation: nil,
-                read_at: nil)
+                ai_audio_url: nil, read_at: nil)
     }
 
     func test_fetchAll_returnsArticles() async throws {

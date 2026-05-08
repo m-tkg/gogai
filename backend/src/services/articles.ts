@@ -14,6 +14,7 @@ export interface Article {
   created_at: string
   ai_summary: string | null
   ai_translation: string | null
+  ai_audio_url: string | null
   read_at: string | null
 }
 
@@ -169,6 +170,15 @@ export class ArticlesService {
     if (!text) return
     const col = action === 'summarize' ? 'ai_summary' : 'ai_translation'
     this.db.prepare(`UPDATE articles SET ${col} = ? WHERE id = ?`).run(text, id)
+  }
+
+  setAudioUrl(id: number, url: string): void {
+    if (!url) return
+    this.db.prepare('UPDATE articles SET ai_audio_url = ? WHERE id = ?').run(url, id)
+  }
+
+  clearAudioUrl(id: number): void {
+    this.db.prepare('UPDATE articles SET ai_audio_url = NULL WHERE id = ?').run(id)
   }
 
   deleteOlderThan(threshold: Date): number {
