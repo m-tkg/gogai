@@ -29,7 +29,10 @@ struct GogaiApp: App {
                 Task { await serverURLManager.resolve() }
             }
             // resolvedURL が確定したら API クライアントを設定してデータを取得
-            .onChange(of: serverURLManager.resolvedURL) { _, newURL in
+            // Why: initial: true で init 時のキャッシュ復元値（前回トンネル URL）でも
+            // 起動直後に configureStores() を走らせる。これがないと resolve() が
+            // 同じ URL を返した場合に値変化として検知されず、Store の client が nil のまま。
+            .onChange(of: serverURLManager.resolvedURL, initial: true) { _, newURL in
                 guard let url = newURL else { return }
                 configureStores(baseURL: url)
             }
