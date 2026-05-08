@@ -14,6 +14,7 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
     let created_at: String
     let ai_summary: String?
     let ai_translation: String?
+    let ai_audio_url: String?
     let read_at: String?
 
     var isRead: Bool { is_read == 1 }
@@ -27,7 +28,7 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
                        content: content, published_at: published_at,
                        is_read: 1, is_favorite: is_favorite, created_at: created_at,
                        ai_summary: ai_summary, ai_translation: ai_translation,
-                       read_at: read_at ?? dateString)
+                       ai_audio_url: ai_audio_url, read_at: read_at ?? dateString)
     }
 }
 

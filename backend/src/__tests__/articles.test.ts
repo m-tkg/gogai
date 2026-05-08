@@ -291,6 +291,45 @@ describe('ArticlesService', () => {
     })
   })
 
+  describe('NotebookLM 音声 URL', () => {
+    let articleId: number
+
+    beforeEach(() => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'audio-test', title: 'Audio Test Article', link: 'https://example.com/audio', summary: 'summary' },
+      ])
+      articleId = articlesService.findByFeed(feedId)[0].id
+    })
+
+    it('初期状態では ai_audio_url は null である', () => {
+      expect(articlesService.findById(articleId)?.ai_audio_url).toBeNull()
+    })
+
+    it('NotebookLM の共有 URL を保存できる', () => {
+      const url = 'https://notebooklm.google.com/notebook/abc123'
+      articlesService.setAudioUrl(articleId, url)
+      expect(articlesService.findById(articleId)?.ai_audio_url).toBe(url)
+    })
+
+    it('音声 URL を上書き保存できる', () => {
+      articlesService.setAudioUrl(articleId, 'https://notebooklm.google.com/notebook/abc')
+      articlesService.setAudioUrl(articleId, 'https://notebooklm.google.com/notebook/xyz')
+      expect(articlesService.findById(articleId)?.ai_audio_url).toBe('https://notebooklm.google.com/notebook/xyz')
+    })
+
+    it('clearAudioUrl で URL をクリアできる', () => {
+      articlesService.setAudioUrl(articleId, 'https://notebooklm.google.com/notebook/abc')
+      articlesService.clearAudioUrl(articleId)
+      expect(articlesService.findById(articleId)?.ai_audio_url).toBeNull()
+    })
+
+    it('空文字列を渡した setAudioUrl は既存値を保持する', () => {
+      articlesService.setAudioUrl(articleId, 'https://notebooklm.google.com/notebook/abc')
+      articlesService.setAudioUrl(articleId, '')
+      expect(articlesService.findById(articleId)?.ai_audio_url).toBe('https://notebooklm.google.com/notebook/abc')
+    })
+  })
+
   describe('summaryOnly フィルタリング', () => {
     let articleWithSummaryId: number
     let articleWithoutSummaryId: number

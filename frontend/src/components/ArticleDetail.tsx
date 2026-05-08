@@ -11,11 +11,26 @@ interface ArticleDetailProps {
 export function ArticleDetail({ article, onBack }: ArticleDetailProps) {
   const [claudeOutput, setClaudeOutput] = useState<string | null>(null)
   const [claudeAction, setClaudeAction] = useState<'summarize' | 'translate' | null>(null)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioInput, setAudioInput] = useState('')
 
   const claudeMutation = useMutation({
     mutationFn: ({ id, action }: { id: number; action: 'summarize' | 'translate' }) =>
       articlesApi.claude(id, action),
     onSuccess: (data) => setClaudeOutput(data.output),
+  })
+
+  const setAudioMutation = useMutation({
+    mutationFn: ({ id, url }: { id: number; url: string }) => articlesApi.setAudio(id, url),
+    onSuccess: (data) => {
+      setAudioUrl(data.ai_audio_url)
+      setAudioInput('')
+    },
+  })
+
+  const clearAudioMutation = useMutation({
+    mutationFn: (id: number) => articlesApi.clearAudio(id),
+    onSuccess: () => setAudioUrl(null),
   })
 
   const runClaude = (action: 'summarize' | 'translate') => {
@@ -25,11 +40,25 @@ export function ArticleDetail({ article, onBack }: ArticleDetailProps) {
     claudeMutation.mutate({ id: article.id, action })
   }
 
-  // 記事が切り替わったらClaudeの出力をリセット
+  const openNotebookLM = () => {
+    if (article?.link) navigator.clipboard.writeText(article.link).catch(() => {})
+    window.open('https://notebooklm.google.com/', '_blank', 'noopener,noreferrer')
+  }
+
+  const submitAudioUrl = () => {
+    if (!article) return
+    const trimmed = audioInput.trim()
+    if (!trimmed) return
+    setAudioMutation.mutate({ id: article.id, url: trimmed })
+  }
+
+  // 記事が切り替わったらClaudeの出力と音声 URL 入力をリセット
   useEffect(() => {
     setClaudeOutput(null)
     setClaudeAction(null)
-  }, [article?.id])
+    setAudioUrl(article?.ai_audio_url ?? null)
+    setAudioInput('')
+  }, [article?.id, article?.ai_audio_url])
 
   if (!article) {
     return (
@@ -93,6 +122,13 @@ export function ArticleDetail({ article, onBack }: ArticleDetailProps) {
             >
               {claudeMutation.isPending && claudeAction === 'translate' ? '翻訳中...' : '✦ 翻訳'}
             </button>
+            <button
+              onClick={openNotebookLM}
+              className="px-3 py-1.5 text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/60 font-medium"
+              title="記事 URL を Clipboard にコピーして NotebookLM を開く"
+            >
+              ♪ NotebookLM
+            </button>
           </div>
         </div>
       </header>
@@ -132,6 +168,55 @@ export function ArticleDetail({ article, onBack }: ArticleDetailProps) {
             Claude の実行に失敗しました。CLIがインストールされているか確認してください。
           </div>
         )}
+
+        {/* NotebookLM 音声解説 */}
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">♪ NotebookLM 音声解説</span>
+            {audioUrl && (
+              <button
+                onClick={() => article && clearAudioMutation.mutate(article.id)}
+                disabled={clearAudioMutation.isPending}
+                className="text-xs text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-200 disabled:opacity-50"
+              >
+                クリア
+              </button>
+            )}
+          </div>
+          {audioUrl ? (
+            <iframe
+              src={audioUrl}
+              title="NotebookLM Audio Overview"
+              className="w-full h-40 rounded border border-emerald-200 dark:border-emerald-800 bg-white"
+              allow="autoplay"
+            />
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                NotebookLM で生成した Audio Overview の共有 URL を貼り付けてください。
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={audioInput}
+                  onChange={(e) => setAudioInput(e.target.value)}
+                  placeholder="https://notebooklm.google.com/notebook/..."
+                  className="flex-1 px-3 py-1.5 text-xs rounded border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                />
+                <button
+                  onClick={submitAudioUrl}
+                  disabled={setAudioMutation.isPending || !audioInput.trim()}
+                  className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  保存
+                </button>
+              </div>
+              {setAudioMutation.isError && (
+                <p className="text-xs text-red-600 dark:text-red-400">URL の保存に失敗しました。</p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* 記事本文 */}
         {article.content ? (

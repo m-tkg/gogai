@@ -58,6 +58,38 @@ app.post('/:id/unfavorite', (c) => {
   return c.body(null, 204)
 })
 
+// NotebookLM 音声共有 URL の登録
+app.post('/:id/audio', async (c) => {
+  const id = Number(c.req.param('id'))
+  const { url } = await c.req.json<{ url?: string }>()
+
+  if (typeof url !== 'string' || url.trim() === '') {
+    return c.json({ error: 'url is required' }, 400)
+  }
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return c.json({ error: 'url must be http(s)' }, 400)
+    }
+  } catch {
+    return c.json({ error: 'url is not a valid URL' }, 400)
+  }
+
+  const articlesService = new ArticlesService(getDb())
+  if (!articlesService.findById(id)) return c.json({ error: 'Not found' }, 404)
+  articlesService.setAudioUrl(id, url)
+  return c.json({ ai_audio_url: url })
+})
+
+// NotebookLM 音声共有 URL のクリア
+app.delete('/:id/audio', (c) => {
+  const id = Number(c.req.param('id'))
+  const articlesService = new ArticlesService(getDb())
+  if (!articlesService.findById(id)) return c.json({ error: 'Not found' }, 404)
+  articlesService.clearAudioUrl(id)
+  return c.body(null, 204)
+})
+
 // AI で要約・翻訳
 app.post('/:id/claude', async (c) => {
   const id = Number(c.req.param('id'))

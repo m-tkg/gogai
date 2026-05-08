@@ -64,14 +64,14 @@ struct SidebarView: View {
 
     private var visibleUngroupedFeeds: [Feed] {
         feedStore.feeds.filter { $0.group_id == nil }.filter { feed in
-            !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
+            articleStore.hasVisibleArticle(for: feed.id)
         }
     }
 
     @ViewBuilder
     private func groupSection(for group: Group) -> some View {
         let feeds = feedStore.feeds(for: group.id).filter { feed in
-            !articleStore.unreadOnly || articleStore.unreadCount(for: feed.id) > 0
+            articleStore.hasVisibleArticle(for: feed.id)
         }
         if !feeds.isEmpty {
             Section {

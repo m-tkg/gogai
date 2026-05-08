@@ -59,4 +59,14 @@ struct ArticleRepository: Sendable {
         case summarize
         case translate
     }
+
+    func setAudioURL(id: Int, url: String) async throws {
+        struct Body: Encodable, Sendable { let url: String }
+        struct Response: Decodable, Sendable { let ai_audio_url: String }
+        let _: Response = try await client.send(try .post("/api/articles/\(id)/audio", body: Body(url: url)))
+    }
+
+    func clearAudioURL(id: Int) async throws {
+        try await client.sendVoid(.delete("/api/articles/\(id)/audio"))
+    }
 }
