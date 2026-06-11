@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { Hono } from 'hono'
-import { AppError, errorHandler } from '../errors.js'
+import Database from 'better-sqlite3'
+import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
 
 describe('AppError', () => {
   it('message と status を保持する', () => {
@@ -12,6 +13,28 @@ describe('AppError', () => {
 
   it('status を省略すると 500 になる', () => {
     expect(new AppError('boom').status).toBe(500)
+  })
+})
+
+describe('isUniqueConstraintError', () => {
+  it('better-sqlite3 の UNIQUE 制約違反を判定できる', () => {
+    const db = new Database(':memory:')
+    db.exec('CREATE TABLE t (name TEXT UNIQUE)')
+    db.prepare('INSERT INTO t (name) VALUES (?)').run('a')
+    let caught: unknown
+    try {
+      db.prepare('INSERT INTO t (name) VALUES (?)').run('a')
+    } catch (e) {
+      caught = e
+    }
+    db.close()
+    expect(isUniqueConstraintError(caught)).toBe(true)
+  })
+
+  it('他のエラーや非 Error は false を返す', () => {
+    expect(isUniqueConstraintError(new Error('something else'))).toBe(false)
+    expect(isUniqueConstraintError('string')).toBe(false)
+    expect(isUniqueConstraintError(null)).toBe(false)
   })
 })
 
