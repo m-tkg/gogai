@@ -25,6 +25,11 @@ export function closeDb(): void {
   }
 }
 
+// テスト専用: getDb() が返す DB を差し替える（ルートを in-memory DB でテストするための seam）
+export function setDb(db: Database.Database | null): void {
+  _db = db
+}
+
 export function initSchema(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS groups (
