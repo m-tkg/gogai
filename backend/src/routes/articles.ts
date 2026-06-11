@@ -4,8 +4,10 @@ import { getAIProvider } from '../services/ai-provider.js'
 import { aiConfig } from '../services/ai-config.js'
 import { fetchArticleContent } from '../services/article-content.js'
 import { getDb } from '../db/schema.js'
+import { AppError, errorHandler } from '../errors.js'
 
 const app = new Hono()
+app.onError(errorHandler)
 
 const MAX_ARTICLES_LIMIT = 1000
 
@@ -34,7 +36,7 @@ app.get('/', (c) => {
 
 app.get('/:id', (c) => {
   const article = new ArticlesService(getDb()).findById(Number(c.req.param('id')))
-  if (!article) return c.json({ error: 'Not found' }, 404)
+  if (!article) throw new AppError('Not found', 404)
   return c.json(article)
 })
 
@@ -64,19 +66,20 @@ app.post('/:id/audio', async (c) => {
   const { url } = await c.req.json<{ url?: string }>()
 
   if (typeof url !== 'string' || url.trim() === '') {
-    return c.json({ error: 'url is required' }, 400)
+    throw new AppError('url is required', 400)
   }
+  let parsed: URL
   try {
-    const parsed = new URL(url)
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-      return c.json({ error: 'url must be http(s)' }, 400)
-    }
+    parsed = new URL(url)
   } catch {
-    return c.json({ error: 'url is not a valid URL' }, 400)
+    throw new AppError('url is not a valid URL', 400)
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new AppError('url must be http(s)', 400)
   }
 
   const articlesService = new ArticlesService(getDb())
-  if (!articlesService.findById(id)) return c.json({ error: 'Not found' }, 404)
+  if (!articlesService.findById(id)) throw new AppError('Not found', 404)
   articlesService.setAudioUrl(id, url)
   return c.json({ ai_audio_url: url })
 })
@@ -85,7 +88,7 @@ app.post('/:id/audio', async (c) => {
 app.delete('/:id/audio', (c) => {
   const id = Number(c.req.param('id'))
   const articlesService = new ArticlesService(getDb())
-  if (!articlesService.findById(id)) return c.json({ error: 'Not found' }, 404)
+  if (!articlesService.findById(id)) throw new AppError('Not found', 404)
   articlesService.clearAudioUrl(id)
   return c.body(null, 204)
 })
@@ -96,12 +99,12 @@ app.post('/:id/claude', async (c) => {
   const { action, force } = await c.req.json<{ action: 'summarize' | 'translate'; force?: boolean }>()
 
   if (!['summarize', 'translate'].includes(action)) {
-    return c.json({ error: 'action must be summarize or translate' }, 400)
+    throw new AppError('action must be summarize or translate', 400)
   }
 
   const articlesService = new ArticlesService(getDb())
   const article = articlesService.findById(id)
-  if (!article) return c.json({ error: 'Not found' }, 404)
+  if (!article) throw new AppError('Not found', 404)
 
   // キャッシュ確認（force=true の場合はスキップ）
   if (!force) {
@@ -121,17 +124,12 @@ app.post('/:id/claude', async (c) => {
   if (!text) {
     text = article.content ?? article.summary ?? article.title ?? ''
   }
-  if (!text) return c.json({ error: 'Article has no content' }, 422)
+  if (!text) throw new AppError('Article has no content', 422)
 
-  try {
-    const provider = getAIProvider(aiConfig)
-    const output = await provider.run(action, text)
-    articlesService.saveAiResult(id, action, output)
-    return c.json({ output, cached: false })
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return c.json({ error: message }, 500)
-  }
+  const provider = getAIProvider(aiConfig)
+  const output = await provider.run(action, text)
+  articlesService.saveAiResult(id, action, output)
+  return c.json({ output, cached: false })
 })
 
 export default app

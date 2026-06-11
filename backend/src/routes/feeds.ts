@@ -5,6 +5,7 @@ import { fetchFeed, getFaviconUrl } from '../services/rss-fetcher.js'
 import { discoverFeedUrl } from '../services/feed-discovery.js'
 import { refreshAllFeeds } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
+import { errorHandler } from '../errors.js'
 import type { Feed } from '../services/feeds.js'
 
 function withGoogleFavicon(feed: Feed): Feed {
@@ -12,6 +13,7 @@ function withGoogleFavicon(feed: Feed): Feed {
 }
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.get('/', (c) => {
   return c.json(new FeedsService(getDb()).findAll().map(withGoogleFavicon))

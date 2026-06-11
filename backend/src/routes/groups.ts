@@ -4,8 +4,10 @@ import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
 import { refreshFeedsByGroupId } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
+import { AppError, errorHandler } from '../errors.js'
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.get('/', (c) => {
   const service = new GroupsService(getDb())
@@ -14,12 +16,12 @@ app.get('/', (c) => {
 
 app.post('/', async (c) => {
   const { name, is_secret } = await c.req.json<{ name: string; is_secret?: number }>()
-  if (!name?.trim()) return c.json({ error: 'name is required' }, 400)
+  if (!name?.trim()) throw new AppError('name is required', 400)
   try {
     const group = new GroupsService(getDb()).create(name.trim(), is_secret ?? 0)
     return c.json(group, 201)
   } catch {
-    return c.json({ error: 'Group name already exists' }, 409)
+    throw new AppError('Group name already exists', 409)
   }
 })
 
@@ -27,7 +29,7 @@ app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
   const { name, is_secret } = await c.req.json<{ name: string; is_secret?: number }>()
   const group = new GroupsService(getDb()).update(id, name, is_secret)
-  if (!group) return c.json({ error: 'Not found' }, 404)
+  if (!group) throw new AppError('Not found', 404)
   return c.json(group)
 })
 
@@ -39,7 +41,7 @@ app.delete('/:id', (c) => {
 app.patch('/reorder', async (c) => {
   const { ids } = await c.req.json<{ ids: number[] }>()
   if (!Array.isArray(ids) || !ids.every(Number.isInteger)) {
-    return c.json({ error: 'ids must be an array of integers' }, 400)
+    throw new AppError('ids must be an array of integers', 400)
   }
   new GroupsService(getDb()).reorder(ids)
   return c.body(null, 204)
@@ -50,7 +52,7 @@ app.post('/:id/refresh', async (c) => {
   const id = Number(c.req.param('id'))
   const db = getDb()
   const group = new GroupsService(db).findById(id)
-  if (!group) return c.json({ error: 'Not found' }, 404)
+  if (!group) throw new AppError('Not found', 404)
   const result = await refreshFeedsByGroupId(id, new FeedsService(db), new ArticlesService(db))
   return c.json(result)
 })

@@ -40,9 +40,13 @@ describe('errorHandler', () => {
     spy.mockRestore()
   })
 
-  it('Error 以外の throw も 500 で { error: string } を返す', async () => {
+  it('Error 以外の値も 500 で { error: string } を返す（Hono は非 Error を onError に渡さないため直接検証）', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const res = await appThatThrows('string error').request('/')
+    const fakeContext = {
+      req: { method: 'GET', path: '/' },
+      json: (body: unknown, status: number) => Response.json(body, { status }),
+    } as unknown as Parameters<typeof errorHandler>[1]
+    const res = errorHandler('string error', fakeContext)
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBeTypeOf('string')

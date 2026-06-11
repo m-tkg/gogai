@@ -1,11 +1,13 @@
 import { Hono } from 'hono'
 import { SettingsService } from '../services/settings.js'
 import { getDb } from '../db/schema.js'
+import { AppError, errorHandler } from '../errors.js'
 
 const RETENTION_MIN = 3
 const RETENTION_MAX = 180
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.get('/', (c) => {
   const settings = new SettingsService(getDb()).getAll()
@@ -17,7 +19,7 @@ app.put('/', async (c) => {
   const days = Number(body.retention_days)
 
   if (!Number.isInteger(days) || days < RETENTION_MIN || days > RETENTION_MAX) {
-    return c.json({ error: `retention_days は ${RETENTION_MIN} 以上 ${RETENTION_MAX} 以下の整数で指定してください` }, 400)
+    throw new AppError(`retention_days は ${RETENTION_MIN} 以上 ${RETENTION_MAX} 以下の整数で指定してください`, 400)
   }
 
   new SettingsService(getDb()).set('retention_days', days)

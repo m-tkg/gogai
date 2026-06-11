@@ -12,6 +12,7 @@ import { SettingsService } from './services/settings.js'
 import { FeedsService } from './services/feeds.js'
 import { refreshAllFeeds } from './services/feed-refresher.js'
 import { runSafely } from './utils/safe-run.js'
+import { errorHandler } from './errors.js'
 import { mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -46,6 +47,7 @@ async function autoRefreshFeeds() {
 setInterval(() => runSafely('feed-refresher', autoRefreshFeeds), 5 * 60 * 1000)
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.use('*', cors({
   origin: (origin) => origin ?? '*',
