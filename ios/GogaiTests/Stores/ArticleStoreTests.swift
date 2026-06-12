@@ -608,6 +608,47 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.allArticles.count, 2, "favoriteOnly=false の場合は allArticles を更新する")
     }
 
+    @MainActor
+    func test_fetchArticles_unreadOnly_doesNotUpdateAllArticles() async {
+        // 全件（フィルタなし）フェッチで allArticles に既読・未読を両方入れる
+        let full = [makeArticle(id: 1, feedId: 1, isRead: 1), makeArticle(id: 2, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(full)) }
+        await store.fetchArticles()
+        XCTAssertEqual(store.allArticles.count, 2)
+
+        // unreadOnly=true でフェッチすると未読のみが返るが、allArticles を未読だけに汚染してはいけない
+        // （汚染すると「お気に入りのみ」表示時に既読のお気に入りを持つフィードが消える）
+        let unreadResult = [makeArticle(id: 2, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(unreadResult)) }
+        await store.fetchArticles(unreadOnly: true)
+
+        XCTAssertEqual(store.articles.count, 1, "表示中リストは未読のみ")
+        XCTAssertEqual(store.allArticles.count, 2, "unreadOnly=true 時は allArticles を未読だけで上書きしない")
+    }
+
+    @MainActor
+    func test_hasVisibleArticle_favoriteOnly_findsReadFavorite_afterUnreadFetch() async {
+        // 全件フェッチ: feed 10 は既読のお気に入り、feed 20 は未読の通常記事
+        let full = [
+            makeArticle(id: 1, feedId: 10, isRead: 1, isFavorite: 1),
+            makeArticle(id: 2, feedId: 20, isRead: 0, isFavorite: 0),
+        ]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(full)) }
+        await store.fetchArticles()
+
+        // 未読のみでフェッチ（feed 20 のみ返る）→ allArticles を汚染しないこと
+        let unreadResult = [makeArticle(id: 2, feedId: 20, isRead: 0, isFavorite: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(unreadResult)) }
+        await store.fetchArticles(unreadOnly: true)
+
+        // お気に入りのみに切り替え
+        store.unreadOnly = false
+        store.favoriteOnly = true
+
+        XCTAssertTrue(store.hasVisibleArticle(for: 10),
+                      "既読のお気に入り記事を持つフィードはお気に入り表示で見える")
+    }
+
     // MARK: - hasVisibleArticle(for:)
 
     func test_hasVisibleArticle_noFilters_returnsTrue() {
