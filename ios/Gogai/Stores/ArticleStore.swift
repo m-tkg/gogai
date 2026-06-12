@@ -289,13 +289,15 @@ final class ArticleStore: ObservableObject {
 
     /// コレクションのキャッシュをシークレット記事を含む全件で更新する
     /// articles（表示中の記事リスト）は変更しない
-    /// SidebarView の未読バッジ計算に使用する
+    /// SidebarView の未読バッジ計算とフィルタ表示判定に使用する
     @MainActor
     func refreshAllArticlesCache() async {
         guard let client else { return }
         do {
+            // Why: unreadOnly を引き継ぐと既読のお気に入り記事がキャッシュから欠落し、
+            // 「お気に入りのみ」表示でフィード/グループがサイドバーから消える。
+            // コレクションの契約は「フィルタなしの全記事」なので常に全件を取得する。
             let fetched = try await ArticleRepository(client: client).fetchAll(
-                unreadOnly: unreadOnly,
                 sortOrder: sortOrder,
                 includeSecret: true
             )
