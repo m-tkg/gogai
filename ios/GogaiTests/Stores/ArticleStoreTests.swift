@@ -774,6 +774,61 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertTrue(store.hasVisibleArticle(for: 10))
     }
 
+    // MARK: - badgeCount（フィルタ連動のバッジ件数）
+
+    private func seedBadgeArticles() {
+        // feed 10: 未読1 / 既読お気に入り1 / 既読1 = 計3
+        // feed 20: 未読1 = 計1
+        store.articles = [
+            makeArticle(id: 1, feedId: 10, isRead: 0, isFavorite: 0),
+            makeArticle(id: 2, feedId: 10, isRead: 1, isFavorite: 1),
+            makeArticle(id: 3, feedId: 10, isRead: 1, isFavorite: 0),
+            makeArticle(id: 4, feedId: 20, isRead: 0, isFavorite: 0),
+        ]
+    }
+
+    func test_badgeCount_全て選択時は全記事数を返す() {
+        seedBadgeArticles()
+        store.unreadOnly = false
+        store.favoriteOnly = false
+        XCTAssertEqual(store.badgeCount(for: 10), 3)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 4)
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: [20]), 3)
+    }
+
+    func test_badgeCount_未読のみ選択時は未読数を返す() {
+        seedBadgeArticles()
+        store.unreadOnly = true
+        store.favoriteOnly = false
+        XCTAssertEqual(store.badgeCount(for: 10), 1)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 2)
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: [20]), 1)
+    }
+
+    func test_badgeCount_お気に入り選択時はお気に入り数を返す() {
+        seedBadgeArticles()
+        store.unreadOnly = false
+        store.favoriteOnly = true
+        XCTAssertEqual(store.badgeCount(for: 10), 1)
+        XCTAssertEqual(store.badgeCount(for: 20), 0)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 1)
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: []), 1)
+    }
+
+    @MainActor
+    func test_badgeCount_allArticlesがあればそちらを使う() async {
+        let all = [
+            makeArticle(id: 1, feedId: 10, isRead: 1, isFavorite: 1),
+            makeArticle(id: 2, feedId: 10, isRead: 0, isFavorite: 0),
+        ]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(all)) }
+        await store.fetchArticles()
+
+        store.articles = []  // 表示中リストが空でもキャッシュから数えられる
+        store.favoriteOnly = true
+        XCTAssertEqual(store.badgeCount(for: 10), 1)
+    }
+
     // MARK: - unreadCount(excludingFeedIds:)
 
     func test_unreadCount_excludingFeedIds_excludesSpecifiedFeeds() {
