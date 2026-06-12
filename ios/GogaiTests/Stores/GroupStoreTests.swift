@@ -196,4 +196,35 @@ final class GroupStoreTests: XCTestCase {
         let cached = testCache.loadGroups()
         XCTAssertEqual(cached.count, 2, "fetchGroups 後にキャッシュが保存されること")
     }
+
+    // MARK: - secretFeedIds(in:)
+
+    private func makeFeed(id: Int, groupId: Int?) -> Feed {
+        Feed(id: id, url: "https://example.com/\(id)", title: "Feed \(id)",
+             favicon_url: nil, group_id: groupId, last_fetched_at: nil,
+             created_at: "2024-01-01T00:00:00Z", display_order: 0)
+    }
+
+    func test_secretFeedIds_シークレットグループ所属のフィードIDを返す() {
+        store.groups = [makeGroup(id: 1, isSecret: 0), makeGroup(id: 2, isSecret: 1)]
+        let feeds = [
+            makeFeed(id: 10, groupId: 1),   // 通常グループ
+            makeFeed(id: 11, groupId: 2),   // シークレット
+            makeFeed(id: 12, groupId: nil), // 未分類
+        ]
+        XCTAssertEqual(store.secretFeedIds(in: feeds), [11])
+    }
+
+    func test_secretFeedIds_showSecretGroups中は空集合を返す() {
+        store.groups = [makeGroup(id: 2, isSecret: 1)]
+        store.showSecretGroups = true
+        let feeds = [makeFeed(id: 11, groupId: 2)]
+        XCTAssertEqual(store.secretFeedIds(in: feeds), [])
+    }
+
+    func test_secretFeedIds_シークレットグループがなければ空集合() {
+        store.groups = [makeGroup(id: 1, isSecret: 0)]
+        let feeds = [makeFeed(id: 10, groupId: 1)]
+        XCTAssertEqual(store.secretFeedIds(in: feeds), [])
+    }
 }
