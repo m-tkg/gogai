@@ -72,7 +72,7 @@ struct LocalAIResultSheet: View {
             .background {
                 // Translation framework は translationTask modifier 経由でしか
                 // セッションを取得できないため、非表示ビューとして埋め込む
-                if usesTranslationFramework, #available(iOS 18.0, *) {
+                if usesTranslationFramework, #available(iOS 18.0, macCatalyst 26.0, *) {
                     TranslationFrameworkRunner(
                         text: LocalArticleAI.preparePrompt(title: article.title, content: article.content ?? article.summary),
                         onResult: { result = $0 },
@@ -109,10 +109,66 @@ struct LocalAIResultSheet: View {
     }
 }
 
+/// ローカル AI ボタン群（要約・翻訳）のフローティング表示
+struct LocalAIButtons: View {
+    let onSelect: (LocalAIResultSheet.Mode) -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            button(for: .summarize)
+            button(for: .translateToJapanese)
+        }
+    }
+
+    private func button(for mode: LocalAIResultSheet.Mode) -> some View {
+        Button {
+            onSelect(mode)
+        } label: {
+            Image(systemName: mode.iconName)
+                .font(.title3)
+                .frame(width: 48, height: 48)
+                .background(.regularMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.quaternary))
+                .shadow(radius: 2, y: 1)
+        }
+        .accessibilityLabel(mode.title)
+    }
+}
+
+/// 記事ページ（ブラウザ）の右下にローカル AI ボタンを重ね、結果 sheet を表示する modifier。
+/// iOS 27 + Apple Intelligence 有効時のみボタンを表示する。
+private struct LocalAIOverlayModifier: ViewModifier {
+    let article: Article
+    let bottomPadding: CGFloat
+
+    @State private var mode: LocalAIResultSheet.Mode?
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .bottomTrailing) {
+                if LocalAI.isAvailable {
+                    LocalAIButtons { mode = $0 }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, bottomPadding)
+                }
+            }
+            .sheet(item: $mode) { mode in
+                LocalAIResultSheet(article: article, mode: mode)
+            }
+    }
+}
+
+extension View {
+    /// 画面右下にローカル AI（日本語要約・翻訳）ボタンを重ねる
+    func localAIOverlay(for article: Article, bottomPadding: CGFloat = 16) -> some View {
+        modifier(LocalAIOverlayModifier(article: article, bottomPadding: bottomPadding))
+    }
+}
+
 /// Translation framework（システム翻訳）の実行用 hidden view。
 /// translationTask は SwiftUI modifier としてのみ提供されるため、
 /// 翻訳設定をセットしてセッションを受け取る役だけを担う。
-@available(iOS 18.0, *)
+@available(iOS 18.0, macCatalyst 26.0, *)
 private struct TranslationFrameworkRunner: View {
     let text: String
     let onResult: (String) -> Void
