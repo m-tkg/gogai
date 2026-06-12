@@ -25,6 +25,13 @@ struct ArticleCollection: Sendable {
         articles = newArticles
     }
 
+    /// 全置換 + 追加分の結合。追加分のうち本体に同じ id がない記事のみ末尾に足す。
+    /// （最新 N 件の全件フェッチに含まれない古いお気に入りを補完する用途）
+    mutating func replaceAll(_ newArticles: [Article], appending extra: [Article]) {
+        let ids = Set(newArticles.map { $0.id })
+        articles = newArticles + extra.filter { !ids.contains($0.id) }
+    }
+
     /// 同一 ID の記事を差し替える。存在しない ID は無視する（既存挙動の維持）。
     mutating func upsert(_ article: Article) {
         if let idx = articles.firstIndex(where: { $0.id == article.id }) {

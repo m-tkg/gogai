@@ -297,12 +297,22 @@ final class ArticleStore: ObservableObject {
             // Why: unreadOnly を引き継ぐと既読のお気に入り記事がキャッシュから欠落し、
             // 「お気に入りのみ」表示でフィード/グループがサイドバーから消える。
             // コレクションの契約は「フィルタなしの全記事」なので常に全件を取得する。
-            let fetched = try await ArticleRepository(client: client).fetchAll(
+            let repository = ArticleRepository(client: client)
+            let fetched = try await repository.fetchAll(
                 sortOrder: sortOrder,
                 includeSecret: true
             )
-            allCollection.replaceAll(fetched)
-            cache.saveAllArticles(fetched)
+            // Why: 全件フェッチは最新 limit 件のみで、バックエンドはお気に入りを
+            // 保持期間後も永久に残すため、大量配信フィードでは古いお気に入りが
+            // 窓から外れる。お気に入りを別途取得して結合し、
+            // 「お気に入りのみ」表示のフィード/グループ判定が常に成立するようにする。
+            let favorites = try await repository.fetchAll(
+                favoriteOnly: true,
+                sortOrder: sortOrder,
+                includeSecret: true
+            )
+            allCollection.replaceAll(fetched, appending: favorites)
+            cache.saveAllArticles(allCollection.articles)
         } catch {
             // ベストエフォート: キャッシュ更新失敗は無視する
         }
