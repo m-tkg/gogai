@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsApi, adminApi, type UpdateCheck } from '../api/client'
 import { queryKeys } from '../api/queryKeys'
@@ -22,9 +22,12 @@ export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsPro
   const [confirmRestart, setConfirmRestart] = useState(false)
   const [restartOutput, setRestartOutput] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (data) setDays(String(data.retention_days))
-  }, [data])
+  // サーバー値の到着・変化時に入力欄へ反映する（レンダー中の状態調整パターン）
+  const [loadedDays, setLoadedDays] = useState<number | null>(null)
+  if (data && data.retention_days !== loadedDays) {
+    setLoadedDays(data.retention_days)
+    setDays(String(data.retention_days))
+  }
 
   const restart = useMutation({
     mutationFn: () => adminApi.restart(),
