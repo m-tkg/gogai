@@ -8,9 +8,9 @@ final class ArticleStoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // テスト間の UserDefaults 状態汚染を防ぐためリセット
-        UserDefaults.standard.removeObject(forKey: "unreadOnly")
-        UserDefaults.standard.removeObject(forKey: "favoriteOnly")
-        UserDefaults.standard.removeObject(forKey: "sortOrder")
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.unreadOnly)
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.favoriteOnly)
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.sortOrder)
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let cache = AppCache(directory: tempDir)
         client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
