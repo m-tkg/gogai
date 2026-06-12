@@ -1,7 +1,7 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
         docker-up docker-down docker-build docker-logs docker-clean \
         daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
-        restart-daemon ios-sync-icons ios-build ios-deploy \
+        restart-daemon ios-sync-icons ios-build ios-test ios-deploy \
         mac-archive mac-export mac-dmg mac-notarize mac-distribute
 
 # ── ローカル開発 ──────────────────────────────────────────
@@ -107,6 +107,12 @@ ios-sync-icons:
 # アイコン同期してビルド（シミュレーター）
 ios-build: ios-sync-icons
 	cd ios && xcodebuild build -project Gogai.xcodeproj -scheme Gogai \
+		-destination "platform=iOS Simulator,name=iPhone 17 Pro" -quiet
+
+# iOS ユニットテストを実行
+ios-test:
+	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+		xcodebuild test -project Gogai.xcodeproj -scheme Gogai \
 		-destination "platform=iOS Simulator,name=iPhone 17 Pro" -quiet
 
 # Release ビルドして実機に転送して起動
