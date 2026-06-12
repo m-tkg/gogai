@@ -12,6 +12,11 @@ export class AppError extends Error {
   }
 }
 
+// better-sqlite3 の UNIQUE 制約違反かどうかを判定する
+export function isUniqueConstraintError(e: unknown): boolean {
+  return e instanceof Error && e.message.includes('UNIQUE constraint')
+}
+
 // 各ルーターの app.onError に渡す共通ハンドラ。
 // レスポンス形式は既存契約 { error: string } を厳守する（特性テストが固定済み）。
 export function errorHandler(err: unknown, c: Context): Response {
