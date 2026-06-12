@@ -52,10 +52,6 @@ export class FeedsService {
     return (this.db.prepare('SELECT * FROM feeds WHERE id = ?').get(id) as Feed) ?? null
   }
 
-  findByUrl(url: string): Feed | null {
-    return (this.db.prepare('SELECT * FROM feeds WHERE url = ?').get(url) as Feed) ?? null
-  }
-
   findByGroupId(groupId: number): Feed[] {
     return this.db.prepare('SELECT * FROM feeds WHERE group_id = ? ORDER BY display_order ASC, id ASC').all(groupId) as Feed[]
   }
