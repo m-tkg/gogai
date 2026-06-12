@@ -31,9 +31,6 @@ struct ArticleListView: View {
         if !secretFeedIds.isEmpty {
             result = result.filter { !secretFeedIds.contains($0.feed_id) }
         }
-        if articleStore.summaryOnly {
-            result = result.filter { $0.ai_summary != nil }
-        }
         if articleStore.favoriteOnly {
             result = result.filter { $0.isFavorite }
         }
@@ -71,12 +68,6 @@ struct ArticleListView: View {
                         .tint(article.isRead ? .orange : .blue)
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button {
-                            Task { await articleStore.summarize(id: article.id) }
-                        } label: {
-                            Label("要約", systemImage: "sparkles")
-                        }
-                        .tint(.purple)
                         Button {
                             Task {
                                 if article.isFavorite {
@@ -142,7 +133,7 @@ struct ArticleListView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly, favoriteOnly: $articleStore.favoriteOnly)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly)
         }
         .onChange(of: articleStore.unreadOnly) { _, newVal in
             Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal, includeSecret: groupStore.showSecretGroups) }
