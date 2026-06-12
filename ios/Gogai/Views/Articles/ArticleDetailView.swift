@@ -3,6 +3,69 @@ import SwiftUI
 import WebKit
 #endif
 
+/// 既読/お気に入りトグルと前後記事ナビゲーションのバー
+private struct ArticleDetailBottomBar: View {
+    let isRead: Bool
+    let isFavorite: Bool
+    let previousArticle: Article?
+    let nextArticle: Article?
+    let onToggleRead: () async -> Void
+    let onToggleFavorite: () async -> Void
+    let onNavigate: (Article) -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            Spacer()
+
+            HStack(spacing: 24) {
+                Button {
+                    Task { await onToggleRead() }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: isRead ? "envelope.badge" : "envelope.open")
+                            .font(.title3)
+                        Text(isRead ? "未読にする" : "既読にする")
+                            .font(.caption2)
+                    }
+                }
+
+                Button {
+                    Task { await onToggleFavorite() }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: isFavorite ? "star.slash" : "star")
+                            .font(.title3)
+                        Text(isFavorite ? "お気に入り解除" : "お気に入り")
+                            .font(.caption2)
+                    }
+                }
+            }
+
+            Spacer()
+
+            VStack(spacing: 8) {
+                Button {
+                    if let prev = previousArticle { onNavigate(prev) }
+                } label: {
+                    Label("前の記事", systemImage: "chevron.up")
+                }
+                .disabled(previousArticle == nil)
+
+                Button {
+                    if let next = nextArticle { onNavigate(next) }
+                } label: {
+                    Label("次の記事", systemImage: "chevron.down")
+                }
+                .disabled(nextArticle == nil)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.bar)
+    }
+}
+
 struct ArticleDetailView: View {
     let article: Article
 
@@ -52,69 +115,29 @@ struct ArticleDetailView: View {
     // MARK: - Bottom bar
 
     private var bottomBar: some View {
-        HStack(alignment: .center, spacing: 16) {
-            Spacer()
-
-            HStack(spacing: 24) {
-                Button {
-                    // Why: currentArticle はナビゲーション用のスナップショットで古い可能性が
-                    // あるため、store 由来の isRead で分岐する（toggleRead は使わない）
-                    Task {
-                        if isRead {
-                            await articleStore.markAsUnread(id: currentArticle.id)
-                        } else {
-                            await articleStore.markAsRead(id: currentArticle.id)
-                        }
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: isRead ? "envelope.badge" : "envelope.open")
-                            .font(.title3)
-                        Text(isRead ? "未読にする" : "既読にする")
-                            .font(.caption2)
-                    }
+        ArticleDetailBottomBar(
+            isRead: isRead,
+            isFavorite: isFavorite,
+            previousArticle: previousArticle,
+            nextArticle: nextArticle,
+            onToggleRead: {
+                // Why: currentArticle はナビゲーション用のスナップショットで古い可能性が
+                // あるため、store 由来の isRead で分岐する（toggleRead は使わない）
+                if isRead {
+                    await articleStore.markAsUnread(id: currentArticle.id)
+                } else {
+                    await articleStore.markAsRead(id: currentArticle.id)
                 }
-
-                Button {
-                    Task {
-                        if isFavorite {
-                            await articleStore.unfavorite(id: currentArticle.id)
-                        } else {
-                            await articleStore.favorite(id: currentArticle.id)
-                        }
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: isFavorite ? "star.slash" : "star")
-                            .font(.title3)
-                        Text(isFavorite ? "お気に入り解除" : "お気に入り")
-                            .font(.caption2)
-                    }
+            },
+            onToggleFavorite: {
+                if isFavorite {
+                    await articleStore.unfavorite(id: currentArticle.id)
+                } else {
+                    await articleStore.favorite(id: currentArticle.id)
                 }
-            }
-
-            Spacer()
-
-            VStack(spacing: 8) {
-                Button {
-                    if let prev = previousArticle { currentArticle = prev }
-                } label: {
-                    Label("前の記事", systemImage: "chevron.up")
-                }
-                .disabled(previousArticle == nil)
-
-                Button {
-                    if let next = nextArticle { currentArticle = next }
-                } label: {
-                    Label("次の記事", systemImage: "chevron.down")
-                }
-                .disabled(nextArticle == nil)
-            }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(.bar)
+            },
+            onNavigate: { currentArticle = $0 }
+        )
     }
 
     // MARK: - Article detail pane
