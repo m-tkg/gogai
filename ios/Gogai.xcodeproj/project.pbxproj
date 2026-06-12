@@ -54,6 +54,7 @@
 		FF0000000000000000002EAB /* AppCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000AAB /* AppCacheTests.swift */; };
 		FF00000000000000000030AB /* FilterFooterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000030AB /* FilterFooterView.swift */; };
 		FF0000000000000000003CAB /* FormSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003CAB /* FormSheet.swift */; };
+		FF0000000000000000003DAB /* UnreadCountBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003DAB /* UnreadCountBadge.swift */; };
 		FF00000000000000000031AB /* HTMLContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000031AB /* HTMLContentView.swift */; };
 		FF00000000000000000032AB /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000032AB /* BrowserView.swift */; };
 		FF00000000000000000033AB /* EditFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000033AB /* EditFeedView.swift */; };
@@ -112,6 +113,7 @@
 		DD00000000000000000027AB /* GogaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GogaiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD00000000000000000030AB /* FilterFooterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterFooterView.swift; sourceTree = "<group>"; };
 		DD0000000000000000003CAB /* FormSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormSheet.swift; sourceTree = "<group>"; };
+		DD0000000000000000003DAB /* UnreadCountBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnreadCountBadge.swift; sourceTree = "<group>"; };
 		DD00000000000000000031AB /* HTMLContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLContentView.swift; sourceTree = "<group>"; };
 		DD00000000000000000032AB /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
 		DD00000000000000000033AB /* EditFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFeedView.swift; sourceTree = "<group>"; };
@@ -225,6 +227,7 @@
 			children = (
 				DD00000000000000000030AB /* FilterFooterView.swift */,
 				DD0000000000000000003CAB /* FormSheet.swift */,
+				DD0000000000000000003DAB /* UnreadCountBadge.swift */,
 				CC0000000000000000000AAB /* Onboarding */,
 				CC0000000000000000000BAB /* Sidebar */,
 				CC0000000000000000000CAB /* Articles */,
@@ -471,6 +474,7 @@
 				FF0000000000000000001FAB /* AdminView.swift in Sources */,
 				FF00000000000000000030AB /* FilterFooterView.swift in Sources */,
 				FF0000000000000000003CAB /* FormSheet.swift in Sources */,
+				FF0000000000000000003DAB /* UnreadCountBadge.swift in Sources */,
 				FF00000000000000000022AB /* ServerURLManager.swift in Sources */,
 				FF0000000000000000003BAB /* DefaultsKeys.swift in Sources */,
 				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,

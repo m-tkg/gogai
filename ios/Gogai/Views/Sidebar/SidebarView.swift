@@ -20,16 +20,7 @@ struct SidebarView: View {
     @State private var isEditing = false
 
     private var totalUnreadCount: Int {
-        guard !groupStore.showSecretGroups else {
-            return articleStore.unreadCount(for: nil)
-        }
-        let secretFeedIds = Set(feedStore.feeds.compactMap { feed -> Int? in
-            guard let gid = feed.group_id,
-                  groupStore.groups.first(where: { $0.id == gid })?.isSecret == true
-            else { return nil }
-            return feed.id
-        })
-        return articleStore.unreadCount(excludingFeedIds: secretFeedIds)
+        articleStore.unreadCount(excludingFeedIds: groupStore.secretFeedIds(in: feedStore.feeds))
     }
 
     private var listSelectionBinding: Binding<String?> {
@@ -101,15 +92,7 @@ struct SidebarView: View {
                             .foregroundStyle(.secondary)
                         Text("すべての記事")
                             .foregroundStyle(.primary)
-                        if totalUnreadCount > 0 {
-                            Text(totalUnreadCount >= 1000 ? "1000+" : "\(totalUnreadCount)")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor, in: Capsule())
-                        }
+                        UnreadCountBadge(count: totalUnreadCount)
                     }
                 }
                 .tag("all")

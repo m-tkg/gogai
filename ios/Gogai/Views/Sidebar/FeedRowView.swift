@@ -30,16 +30,7 @@ struct FeedRowView: View {
                 Text(feed.title ?? feed.url)
                     .lineLimit(1)
                     .foregroundStyle(.primary)
-                let unread = articleStore.unreadCount(for: feed.id)
-                if unread > 0 {
-                    Text(unread >= 1000 ? "1000+" : "\(unread)")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor, in: Capsule())
-                }
+                UnreadCountBadge(count: articleStore.unreadCount(for: feed.id))
             }
         }
         .contextMenu {
