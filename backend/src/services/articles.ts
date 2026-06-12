@@ -12,9 +12,6 @@ export interface Article {
   is_read: number
   is_favorite: number
   created_at: string
-  ai_summary: string | null
-  ai_translation: string | null
-  ai_audio_url: string | null
   read_at: string | null
 }
 
@@ -43,7 +40,6 @@ export interface FindAllOptions {
   groupId?: number
   unreadOnly?: boolean
   favoriteOnly?: boolean
-  summaryOnly?: boolean
   sortBy?: SortBy
   includeSecret?: boolean
 }
@@ -118,9 +114,6 @@ export class ArticlesService {
     if (options.favoriteOnly) {
       conditions.push('a.is_favorite = 1')
     }
-    if (options.summaryOnly) {
-      conditions.push('a.ai_summary IS NOT NULL')
-    }
     // groupId 未指定かつ includeSecret でなければシークレットグループを除外
     if (options.groupId === undefined && !options.includeSecret) {
       conditions.push('(f.group_id IS NULL OR g.is_secret = 0)')
@@ -163,22 +156,6 @@ export class ArticlesService {
 
   markAsUnfavorite(id: number): void {
     this.db.prepare('UPDATE articles SET is_favorite = 0 WHERE id = ?').run(id)
-  }
-
-  saveAiResult(id: number, action: 'summarize' | 'translate', text: string): void {
-    // Why: provider が空文字列を返した時に空キャッシュを残さない（既存値も上書きしない）
-    if (!text) return
-    const col = action === 'summarize' ? 'ai_summary' : 'ai_translation'
-    this.db.prepare(`UPDATE articles SET ${col} = ? WHERE id = ?`).run(text, id)
-  }
-
-  setAudioUrl(id: number, url: string): void {
-    if (!url) return
-    this.db.prepare('UPDATE articles SET ai_audio_url = ? WHERE id = ?').run(url, id)
-  }
-
-  clearAudioUrl(id: number): void {
-    this.db.prepare('UPDATE articles SET ai_audio_url = NULL WHERE id = ?').run(id)
   }
 
   deleteOlderThan(threshold: Date): number {
