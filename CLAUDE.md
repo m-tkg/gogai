@@ -18,29 +18,32 @@ gogai/
 
 ```bash
 make dev            # バックエンド + フロントエンドを並列起動
-make test           # バックエンドのテストを実行（Vitest、92 件）
-make test-watch     # テストをウォッチモードで実行
+make test           # backend + frontend のテストを実行（Vitest）
+make test-watch     # backend テストをウォッチモードで実行
 make typecheck      # 型チェック（backend + frontend）
 make docker-up      # Docker で起動（http://localhost:8080）
 make daemon-restart # Raspberry Pi でサービスを再起動
 make ios-build      # iOS シミュレータービルド
+make ios-test       # iOS ユニットテストを実行
 make ios-deploy     # iOS 実機インストール＆起動
 ```
 
 ## バックエンド
 
-- **エントリーポイント**: `backend/src/index.ts`
-- **ルーター**: `backend/src/routes/` (groups / feeds / articles / settings / admin)
-- **サービス層**: `backend/src/services/`
+- **エントリーポイント**: `backend/src/index.ts`（起動・スケジューリングのみ）
+- **ルーター**: `backend/src/routes/` (groups / feeds / articles / settings / admin)。パースとサービス呼び出しのみ。ビジネスロジックは置かない
+- **サービス層**: `backend/src/services/`（`feed-registration.ts` がフィード登録・URL変更・再取得の共通フロー）
+- **エラー処理**: `backend/src/errors.ts` の `AppError(message, status)` を throw し、各ルーターの `app.onError(errorHandler)` が `{ error: string }` に変換する。UNIQUE 制約違反は `isUniqueConstraintError()` で判定
+- **定数**: `backend/src/config.ts`（retention_days のデフォルト/上下限）
 - **DB スキーマ**: `backend/src/db/schema.ts`
-- **テスト**: `backend/src/__tests__/`（92 件）
+- **テスト**: `backend/src/__tests__/`。`routes/` 配下はルーターを `router.request()` で叩く HTTP 契約テスト（エラー形式 `{ error: string }` とステータスコードを固定）。`setDb()` で in-memory DB に差し替える
 
 ### DB（SQLite）
 
 - パス: `backend/data/rss.db`（環境変数 `DB_PATH` で変更可）
 - WAL モード有効、外部キー制約有効
 - テーブル: `groups` → `feeds` → `articles`、`settings`
-- 新カラム追加は `initSchema` 内で `ALTER TABLE ... ADD COLUMN` + try/catch で移行
+- スキーマ変更は `schema.ts` の `MIGRATIONS` 配列の**末尾に冪等なマイグレーションを追加**する（名前付き、何度実行しても安全な実装にする）
 
 ### favicon
 
@@ -88,9 +91,12 @@ systemd の `Restart=always` により自動再起動。`ExecStartPre=-npm run b
 
 ## フロントエンド
 
-- **エントリーポイント**: `frontend/src/App.tsx`
-- **コンポーネント**: `Sidebar` / `ArticleList` / `ArticleDetail` / `Settings`
-- **API クライアント**: `frontend/src/api/client.ts`（axios + TanStack Query）
+- **エントリーポイント**: `frontend/src/App.tsx`（UI 状態は hooks に集約: `useSelectionState` / `useDarkMode` / `useLocalStorageBool`）
+- **コンポーネント**: `Sidebar`（`components/sidebar/` の GroupSection / FeedList / FeedItem / AddForms で構成）/ `ArticleList` + `articles/ArticleCard` / `ArticleDetail` / `Settings`
+- **API クライアント**: `frontend/src/api/client.ts`（axios）。型は `api/types.ts`、エラーメッセージ抽出は `api/errors.ts` の `getApiErrorMessage`
+- **TanStack Query**: キャッシュキーは必ず `api/queryKeys.ts` 経由（文字列リテラル直書き禁止）。invalidate は `invalidateFeedsAndArticles` 等のヘルパーを使う
+- **hooks**: `useFeedMutations` / `useGroupMutations`（mutation 集約）、`useDragReorder`（D&D 並び替え、グループ・フィード共用）
+- **テスト**: Vitest + Testing Library（`npm test`）。設定は `vite.config.ts` の `test` ブロック + `src/test/setup.ts`（localStorage / matchMedia の stub あり）
 
 ### Vite プロキシ
 
@@ -124,12 +130,15 @@ ios/
 ├── Gogai.xcodeproj/
 ├── Gogai/
 │   ├── App/                  GogaiApp.swift（@main）/ RootView.swift
-│   ├── Models/               Article / Feed / Group / Settings など（Codable + Sendable）
+│   ├── Models/               Article（updating() ヘルパーあり）/ Feed / Group / Settings など（Codable + Sendable）
 │   ├── Network/              APIClient / Endpoint / APIError
 │   ├── Repositories/         Group / Feed / Article / Settings リポジトリ
 │   ├── Stores/               GroupStore / FeedStore / ArticleStore / SettingsStore
+│   │                         ArticleCollection（全記事キャッシュのマージ規則を持つ値型）
 │   ├── Views/
 │   │   ├── FilterFooterView.swift   フィルター footer（全て/未読のみ/お気に入り）
+│   │   ├── FormSheet.swift          追加・編集フォームの共通シェル + GroupPickerSection
+│   │   ├── UnreadCountBadge.swift   未読数バッジ
 │   │   ├── Onboarding/      ServerSetupView（初回 URL 設定）
 │   │   ├── Sidebar/         SidebarView / FeedRowView / GroupRowView / AddFeedView / AddGroupView
 │   │   │                    EditFeedView（フィードタイトル・グループ編集）
@@ -137,17 +146,24 @@ ios/
 │   │   │                    HTMLContentView（WKWebView で HTML レンダリング）
 │   │   │                    BrowserView（アプリ内ブラウザ）
 │   │   └── Settings/        SettingsView / AdminView
-│   └── Utilities/            ServerURLManager / DateFormatter+
+│   └── Utilities/            ServerURLManager / DefaultsKeys / DateFormatter+
 └── GogaiTests/               XCTest ユニットテスト
 ```
+
+- UserDefaults のキーは `Utilities/DefaultsKeys.swift` に追加する（直書き禁止）
+- 追加・編集フォームは `FormSheet` を使う（送信状態・エラー表示・dismiss を共通化済み）
 
 ### iOS make コマンド
 
 ```bash
 make ios-sync-icons   # appiconset/ → xcassets へアイコンを同期
 make ios-build        # アイコン同期 + シミュレータービルド
+make ios-test         # ユニットテスト（iPhone 17 Pro シミュレーター）
 make ios-deploy       # アイコン同期 + Release ビルド + 実機インストール + 起動
 ```
+
+新しい Swift ファイルを追加したら `Gogai.xcodeproj/project.pbxproj` への登録が必要
+（PBXBuildFile / PBXFileReference / グループ children / Sources phase の4箇所）。
 
 `ios-deploy` は `DEVICE_ID` 変数で転送先を上書き可能:
 ```bash
@@ -199,14 +215,14 @@ make ios-deploy DEVICE_ID=<device-uuid>
 ### ArticleStore の主な仕様
 
 - `articles`: 現在表示中フィードの記事（フィルター後）
-- `allArticles`: 全フィードの記事キャッシュ（**未読バッジ計算に使用**）
-  - `articles` は特定フィード表示時にそのフィードのみになるため、sidebar の unreadCount がずれる問題を回避
-  - フェッチ時: 全件取得なら全置換、特定フィードなら該当フィード分を差し替え
-  - markAsRead / markAsUnread / favorite 時: `articles` と `allArticles` 両方を同期更新
-- `unreadOnly: Bool` — `UserDefaults` で永続化（キー: `"unreadOnly"`）
-- `favoriteOnly: Bool` — `UserDefaults` で永続化（キー: `"favoriteOnly"`）
-- `markAsRead` / `markAsUnread` — 楽観的更新（失敗時ロールバック）
+- `allCollection: ArticleCollection`: 全フィードの記事キャッシュ（**未読バッジ計算に使用**、`allArticles` は互換用の computed property）
+  - マージ規則は `ArticleCollection.merge(_:isFullFetch:)` が所有: 全件取得なら全置換、特定フィード/グループなら該当フィード分のみ差し替え
+- **記事の更新は必ず `mutateBoth()` / `optimisticUpdate()` 経由**で行う（`articles` とコレクションを同一変換で同期し、手動二重更新による不整合を防ぐ）
+  - `optimisticUpdate()` は API 失敗時に自動ロールバック。URLError 時の挙動は `URLErrorPolicy`（既読系は pending キューへ、favorite 系はロールバック）
+- `toggleRead(_:)` / `toggleFavorite(_:)` — View 側で既読/お気に入りの分岐を書かない
+- `unreadOnly: Bool` / `favoriteOnly: Bool` — `UserDefaults`（`DefaultsKeys`）で永続化
 - `markAllAsRead()` — 表示中の未読記事を sequential API 呼び出しで一括既読
+- シークレットフィード判定は `GroupStore.secretFeedIds(in:)` を使う
 
 ### GogaiApp の自動更新
 
@@ -253,9 +269,11 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 
 - TDD（t-wada 推奨スタイル）
 - テストを先に書き、失敗を確認してからコミット、その後実装
-- テストフレームワーク: Vitest（ESM モード）
+- 既存挙動のリファクタリング時は、先に特性テスト（characterization test）で挙動を固定してから変更する
+- backend / frontend: Vitest（ESM モード）。frontend は Testing Library を併用
+- backend のルートテストは `router.request()` + `setDb()`（in-memory SQLite）で HTTP 契約を検証する
+- iOS: XCTest（`make ios-test`）。Store / Repository / Network / Utilities をカバー
 - `vi.mock` でクラスをモックする場合は注意（ESM では constructor mock が機能しない場合がある）
-  - 代替: 実クラスをインスタンス化して `typeof provider.run === 'function'` を検証
 
 ## 環境変数
 
