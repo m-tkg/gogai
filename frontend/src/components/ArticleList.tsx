@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { articlesApi, feedsApi, type Article, type SortBy } from '../api/client'
+import { queryKeys, invalidateArticles, invalidateFeedsAndArticles } from '../api/queryKeys'
 import { useState } from 'react'
 
 interface ArticleListProps {
@@ -18,7 +19,7 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
   const [sortBy, setSortBy] = useState<SortBy>('published_at')
 
   const { data: articles = [], isLoading } = useQuery({
-    queryKey: ['articles', { feedId, groupId, unreadOnly, favoriteOnly, sortBy, showSecretGroups }],
+    queryKey: queryKeys.articleList({ feedId, groupId, unreadOnly, favoriteOnly, sortBy, showSecretGroups }),
     queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, favoriteOnly, sortBy, limit: 1000, offset: 0, includeSecret: showSecretGroups }),
   })
 
@@ -26,20 +27,17 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
     // Why: ボタンは feedId != null のときだけ描画されるが、状態管理ミス時の NaN リクエスト
     // 発火を防ぐため早期 return で保険をかける。
     mutationFn: () => feedId == null ? Promise.resolve() : feedsApi.refresh(feedId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['articles'] })
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-    },
+    onSuccess: () => invalidateFeedsAndArticles(qc),
   })
 
   const markAsRead = useMutation({
     mutationFn: (id: number) => articlesApi.markAsRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['articles'] }),
+    onSuccess: () => invalidateArticles(qc),
   })
 
   const markAsUnread = useMutation({
     mutationFn: (id: number) => articlesApi.markAsUnread(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['articles'] }),
+    onSuccess: () => invalidateArticles(qc),
   })
 
   const handleSelect = (article: Article) => {
@@ -140,12 +138,12 @@ function ArticleCard({ article, selected, onClick, onMarkAsUnread }: {
       ? articlesApi.markAsUnfavorite(article.id)
       : articlesApi.markAsFavorite(article.id),
     onMutate: async () => {
-      await qc.cancelQueries({ queryKey: ['articles'] })
-      qc.setQueriesData<Article[]>({ queryKey: ['articles'] }, old =>
+      await qc.cancelQueries({ queryKey: queryKeys.articles })
+      qc.setQueriesData<Article[]>({ queryKey: queryKeys.articles }, old =>
         old?.map(a => a.id === article.id ? { ...a, is_favorite: article.is_favorite ? 0 : 1 } : a)
       )
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['articles'] }),
+    onSettled: () => invalidateArticles(qc),
   })
 
   const date = article.published_at ? formatDate(new Date(article.published_at)) : ''

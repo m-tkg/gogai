@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { groupsApi, feedsApi, type Group, type Feed } from '../api/client'
+import { queryKeys, invalidateFeeds, invalidateGroups, invalidateFeedsAndArticles } from '../api/queryKeys'
 
 interface SidebarProps {
   selectedFeedId: number | null
@@ -59,14 +60,13 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const [dragFeedId, setDragFeedId] = useState<number | null>(null)
   const [dragOverFeedId, setDragOverFeedId] = useState<number | null>(null)
 
-  const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list })
-  const { data: feeds = [] } = useQuery({ queryKey: ['feeds'], queryFn: feedsApi.list })
+  const { data: groups = [] } = useQuery({ queryKey: queryKeys.groups, queryFn: groupsApi.list })
+  const { data: feeds = [] } = useQuery({ queryKey: queryKeys.feeds, queryFn: feedsApi.list })
 
   const addFeed = useMutation({
     mutationFn: () => feedsApi.create(addFeedUrl, addFeedGroupId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
+      invalidateFeedsAndArticles(qc)
       setAddFeedUrl('')
       setAddFeedGroupId(undefined)
       setShowAddFeed(false)
@@ -79,50 +79,46 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
 
   const removeFeed = useMutation({
     mutationFn: (id: number) => feedsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
+    onSuccess: () => invalidateFeeds(qc),
   })
 
   const updateFeed = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { url?: string; groupId?: number | null } }) =>
       feedsApi.update(id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
+      invalidateFeedsAndArticles(qc)
     },
   })
 
   const refreshFeed = useMutation({
     mutationFn: (id: number) => feedsApi.refresh(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
+      invalidateFeedsAndArticles(qc)
     },
   })
 
   const refreshAllFeedsMutation = useMutation({
     mutationFn: feedsApi.refreshAll,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
+      invalidateFeedsAndArticles(qc)
     },
   })
 
   const reorderFeeds = useMutation({
     mutationFn: (ids: number[]) => feedsApi.reorder(ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
+    onSuccess: () => invalidateFeeds(qc),
   })
 
   const refreshGroup = useMutation({
     mutationFn: (id: number) => groupsApi.refresh(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
+      invalidateFeedsAndArticles(qc)
     },
   })
 
   const reorderGroups = useMutation({
     mutationFn: (ids: number[]) => groupsApi.reorder(ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => invalidateGroups(qc),
   })
 
   const handleGroupDragStart = (groupId: number) => setDragGroupId(groupId)
@@ -154,7 +150,7 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
   const addGroup = useMutation({
     mutationFn: () => groupsApi.create(addGroupName),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['groups'] })
+      invalidateGroups(qc)
       setAddGroupName('')
       setShowAddGroup(false)
     },
@@ -162,13 +158,13 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
 
   const removeGroup = useMutation({
     mutationFn: (id: number) => groupsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => invalidateGroups(qc),
   })
 
   const toggleGroupSecret = useMutation({
     mutationFn: ({ id, name, isSecret }: { id: number; name: string; isSecret: number }) =>
       groupsApi.update(id, name, isSecret),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: () => invalidateGroups(qc),
   })
 
   const feedsByGroup = (groupId: number | null) =>
