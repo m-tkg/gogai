@@ -16,6 +16,10 @@ final class ServerURLManager: ObservableObject {
 
     var isConfigured: Bool { serverURL != nil }
 
+    private static func isGistURL(_ url: URL) -> Bool {
+        url.host == "gist.github.com"
+    }
+
     init(session: URLSession = .shared, failureDebounceInterval: TimeInterval = 30) {
         self.session = session
         self.failureDebounceInterval = failureDebounceInterval
@@ -25,10 +29,8 @@ final class ServerURLManager: ObservableObject {
             // Why: 起動時に Gist API 解決を待たず前回のトンネル URL で即座に
             // configureStores() を走らせるためキャッシュを復元する。非 Gist URL は
             // resolve() が即座に自身をセットするためキャッシュ不要。
-            if url.host == "gist.github.com",
-               let cached = UserDefaults.standard.string(forKey: resolvedURLKey),
-               let cachedURL = URL(string: cached) {
-                resolvedURL = cachedURL
+            if Self.isGistURL(url) {
+                resolvedURL = loadCachedResolvedURL()
             }
         }
     }
@@ -68,8 +70,8 @@ final class ServerURLManager: ObservableObject {
         do {
             let resolved = try await Self.resolveURL(url, session: session)
             resolvedURL = resolved
-            if url.host == "gist.github.com" {
-                UserDefaults.standard.set(resolved.absoluteString, forKey: resolvedURLKey)
+            if Self.isGistURL(url) {
+                cacheResolvedURL(resolved)
             }
         } catch {
             // Why: 失敗時は既存の resolvedURL を維持する。init 時に復元した
@@ -82,7 +84,7 @@ final class ServerURLManager: ObservableObject {
 
     /// gist.github.com URL を GitHub Gist API 経由で解決する。それ以外はそのまま返す。
     static func resolveURL(_ url: URL, session: URLSession = .shared) async throws -> URL {
-        guard url.host == "gist.github.com" else { return url }
+        guard isGistURL(url) else { return url }
         let gistId = url.lastPathComponent
         let apiURL = URL(string: "https://api.github.com/gists/\(gistId)")!
         let (data, _) = try await session.data(from: apiURL)
@@ -95,5 +97,16 @@ final class ServerURLManager: ObservableObject {
             throw URLError(.cannotParseResponse)
         }
         return resolved
+    }
+
+    // MARK: - Resolved URL cache
+
+    private func loadCachedResolvedURL() -> URL? {
+        guard let cached = UserDefaults.standard.string(forKey: resolvedURLKey) else { return nil }
+        return URL(string: cached)
+    }
+
+    private func cacheResolvedURL(_ url: URL) {
+        UserDefaults.standard.set(url.absoluteString, forKey: resolvedURLKey)
     }
 }

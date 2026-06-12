@@ -57,6 +57,8 @@ struct ArticleDetailView: View {
 
             HStack(spacing: 24) {
                 Button {
+                    // Why: currentArticle はナビゲーション用のスナップショットで古い可能性が
+                    // あるため、store 由来の isRead で分岐する（toggleRead は使わない）
                     Task {
                         if isRead {
                             await articleStore.markAsUnread(id: currentArticle.id)
