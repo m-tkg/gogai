@@ -4,7 +4,7 @@ import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
 import { refreshFeedsByGroupId } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
-import { AppError, errorHandler } from '../errors.js'
+import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
 
 const app = new Hono()
 app.onError(errorHandler)
@@ -20,8 +20,9 @@ app.post('/', async (c) => {
   try {
     const group = new GroupsService(getDb()).create(name.trim(), is_secret ?? 0)
     return c.json(group, 201)
-  } catch {
-    throw new AppError('Group name already exists', 409)
+  } catch (e: unknown) {
+    if (isUniqueConstraintError(e)) throw new AppError('Group name already exists', 409)
+    throw e
   }
 })
 

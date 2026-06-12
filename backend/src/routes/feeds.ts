@@ -5,7 +5,7 @@ import { fetchFeed, getFaviconUrl } from '../services/rss-fetcher.js'
 import { discoverFeedUrl } from '../services/feed-discovery.js'
 import { refreshAllFeeds } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
-import { errorHandler } from '../errors.js'
+import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
 import type { Feed } from '../services/feeds.js'
 
 function withGoogleFavicon(feed: Feed): Feed {
@@ -50,11 +50,9 @@ app.post('/', async (c) => {
 
     return c.json(feed, 201)
   } catch (e: unknown) {
+    if (isUniqueConstraintError(e)) throw new AppError('Feed URL already exists', 409)
     const message = e instanceof Error ? e.message : 'Unknown error'
-    if (message.includes('UNIQUE constraint')) {
-      return c.json({ error: 'Feed URL already exists' }, 409)
-    }
-    return c.json({ error: `Failed to fetch feed: ${message}` }, 422)
+    throw new AppError(`Failed to fetch feed: ${message}`, 422)
   }
 })
 
@@ -87,24 +85,21 @@ app.put('/:id', async (c) => {
       })
       return c.json(updated)
     } catch (e: unknown) {
+      if (isUniqueConstraintError(e)) throw new AppError('Feed URL already exists', 409)
       const message = e instanceof Error ? e.message : 'Unknown error'
-      if (message.includes('UNIQUE constraint')) {
-        return c.json({ error: 'Feed URL already exists' }, 409)
-      }
-      return c.json({ error: `Failed to fetch feed: ${message}` }, 422)
+      throw new AppError(`Failed to fetch feed: ${message}`, 422)
     }
   }
 
   try {
     const feed = feedsService.update(id, { title: body.title, groupId: body.groupId })
-    if (!feed) return c.json({ error: 'Not found' }, 404)
+    if (!feed) throw new AppError('Not found', 404)
     return c.json(feed)
   } catch (e: unknown) {
+    if (e instanceof AppError) throw e
+    if (isUniqueConstraintError(e)) throw new AppError('Feed URL already exists', 409)
     const message = e instanceof Error ? e.message : 'Unknown error'
-    if (message.includes('UNIQUE constraint')) {
-      return c.json({ error: 'Feed URL already exists' }, 409)
-    }
-    return c.json({ error: message }, 422)
+    throw new AppError(message, 422)
   }
 })
 
@@ -120,7 +115,7 @@ app.patch('/reorder', async (c) => {
     new FeedsService(getDb()).reorder(ids)
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
-    return c.json({ error: message }, 400)
+    throw new AppError(message, 400)
   }
   return c.body(null, 204)
 })
