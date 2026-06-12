@@ -155,6 +155,26 @@ final class ArticleStore: ObservableObject {
         }
     }
 
+    /// 既読⇄未読を記事の現在状態に応じて切り替える（View 側の分岐重複を防ぐ）
+    @MainActor
+    func toggleRead(_ article: Article) async {
+        if article.isRead {
+            await markAsUnread(id: article.id)
+        } else {
+            await markAsRead(id: article.id)
+        }
+    }
+
+    /// お気に入り⇄解除を記事の現在状態に応じて切り替える
+    @MainActor
+    func toggleFavorite(_ article: Article) async {
+        if article.isFavorite {
+            await unfavorite(id: article.id)
+        } else {
+            await favorite(id: article.id)
+        }
+    }
+
     // Optimistic update: immediately update local state, rollback on failure
     @MainActor
     func markAsRead(id: Int) async {

@@ -52,13 +52,7 @@ struct ArticleListView: View {
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
-                            Task {
-                                if article.isRead {
-                                    await articleStore.markAsUnread(id: article.id)
-                                } else {
-                                    await articleStore.markAsRead(id: article.id)
-                                }
-                            }
+                            Task { await articleStore.toggleRead(article) }
                         } label: {
                             Label(
                                 article.isRead ? "未読にする" : "既読にする",
@@ -69,13 +63,7 @@ struct ArticleListView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
-                            Task {
-                                if article.isFavorite {
-                                    await articleStore.unfavorite(id: article.id)
-                                } else {
-                                    await articleStore.favorite(id: article.id)
-                                }
-                            }
+                            Task { await articleStore.toggleFavorite(article) }
                         } label: {
                             Label(
                                 article.isFavorite ? "お気に入り解除" : "お気に入り",
