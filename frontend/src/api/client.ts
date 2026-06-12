@@ -38,9 +38,6 @@ export interface Article {
   is_read: number
   is_favorite: number
   created_at: string
-  ai_summary: string | null
-  ai_translation: string | null
-  ai_audio_url: string | null
   read_at: string | null
 }
 
@@ -101,9 +98,4 @@ export const articlesApi = {
   markAsUnread: (id: number) => api.post(`/api/articles/${id}/unread`),
   markAsFavorite: (id: number) => api.post(`/api/articles/${id}/favorite`),
   markAsUnfavorite: (id: number) => api.post(`/api/articles/${id}/unfavorite`),
-  claude: (id: number, action: 'summarize' | 'translate', force?: boolean) =>
-    api.post<{ output: string; cached: boolean }>(`/api/articles/${id}/claude`, { action, force }).then(r => r.data),
-  setAudio: (id: number, url: string) =>
-    api.post<{ ai_audio_url: string }>(`/api/articles/${id}/audio`, { url }).then(r => r.data),
-  clearAudio: (id: number) => api.delete(`/api/articles/${id}/audio`),
 }

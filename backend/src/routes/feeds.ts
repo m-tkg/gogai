@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
 import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
-import { fetchFeed, getFaviconUrl } from '../services/rss-fetcher.js'
-import { discoverFeedUrl } from '../services/feed-discovery.js'
+import { getFaviconUrl } from '../services/rss-fetcher.js'
 import { refreshAllFeeds } from '../services/feed-refresher.js'
+import { registerFeed, changeFeedUrl, refetchFeed } from '../services/feed-registration.js'
 import { getDb } from '../db/schema.js'
+import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
 import type { Feed } from '../services/feeds.js'
 
 function withGoogleFavicon(feed: Feed): Feed {
@@ -12,6 +13,7 @@ function withGoogleFavicon(feed: Feed): Feed {
 }
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.get('/', (c) => {
   return c.json(new FeedsService(getDb()).findAll().map(withGoogleFavicon))
@@ -19,41 +21,11 @@ app.get('/', (c) => {
 
 app.post('/', async (c) => {
   const { url, groupId } = await c.req.json<{ url: string; groupId?: number }>()
-  if (!url?.trim()) return c.json({ error: 'url is required' }, 400)
+  if (!url?.trim()) throw new AppError('url is required', 400)
 
   const db = getDb()
-  const feedsService = new FeedsService(db)
-  const articlesService = new ArticlesService(db)
-
-  try {
-    // URLからRSSフィードを自動検出
-    const feedUrl = await discoverFeedUrl(url.trim())
-    if (!feedUrl) {
-      return c.json({ error: 'RSSフィードが見つかりませんでした' }, 422)
-    }
-
-    // RSSフィードを取得してメタ情報を取得
-    const fetched = await fetchFeed(feedUrl)
-
-    const feed = feedsService.create({
-      url: feedUrl,
-      title: fetched.title,
-      faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
-      groupId: groupId ?? null,
-    })
-
-    // 記事を保存
-    articlesService.upsertMany(feed.id, fetched.items)
-    feedsService.update(feed.id, { lastFetchedAt: new Date().toISOString() })
-
-    return c.json(feed, 201)
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    if (message.includes('UNIQUE constraint')) {
-      return c.json({ error: 'Feed URL already exists' }, 409)
-    }
-    return c.json({ error: `Failed to fetch feed: ${message}` }, 422)
-  }
+  const feed = await registerFeed(url.trim(), groupId, new FeedsService(db), new ArticlesService(db))
+  return c.json(feed, 201)
 })
 
 app.put('/:id', async (c) => {
@@ -62,47 +34,25 @@ app.put('/:id', async (c) => {
 
   const db = getDb()
   const feedsService = new FeedsService(db)
-  const articlesService = new ArticlesService(db)
 
   const existing = feedsService.findById(id)
-  if (!existing) return c.json({ error: 'Not found' }, 404)
+  if (!existing) throw new AppError('Not found', 404)
 
   // URLが変更された場合は新URLでフィードを再取得してメタ情報を更新する
   if (body.url && body.url.trim() !== existing.url) {
-    const newUrl = body.url.trim()
-    try {
-      const feedUrl = await discoverFeedUrl(newUrl)
-      if (!feedUrl) return c.json({ error: 'RSSフィードが見つかりませんでした' }, 422)
-
-      const fetched = await fetchFeed(feedUrl)
-      articlesService.upsertMany(id, fetched.items)
-      const updated = feedsService.update(id, {
-        url: feedUrl,
-        title: fetched.title,
-        faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
-        lastFetchedAt: new Date().toISOString(),
-        groupId: body.groupId,
-      })
-      return c.json(updated)
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Unknown error'
-      if (message.includes('UNIQUE constraint')) {
-        return c.json({ error: 'Feed URL already exists' }, 409)
-      }
-      return c.json({ error: `Failed to fetch feed: ${message}` }, 422)
-    }
+    const updated = await changeFeedUrl(id, body.url.trim(), body.groupId, feedsService, new ArticlesService(db))
+    return c.json(updated)
   }
 
   try {
     const feed = feedsService.update(id, { title: body.title, groupId: body.groupId })
-    if (!feed) return c.json({ error: 'Not found' }, 404)
+    if (!feed) throw new AppError('Not found', 404)
     return c.json(feed)
   } catch (e: unknown) {
+    if (e instanceof AppError) throw e
+    if (isUniqueConstraintError(e)) throw new AppError('Feed URL already exists', 409)
     const message = e instanceof Error ? e.message : 'Unknown error'
-    if (message.includes('UNIQUE constraint')) {
-      return c.json({ error: 'Feed URL already exists' }, 409)
-    }
-    return c.json({ error: message }, 422)
+    throw new AppError(message, 422)
   }
 })
 
@@ -113,12 +63,12 @@ app.delete('/:id', (c) => {
 
 app.patch('/reorder', async (c) => {
   const { ids } = await c.req.json<{ ids: number[] }>()
-  if (!Array.isArray(ids)) return c.json({ error: 'ids must be an array' }, 400)
+  if (!Array.isArray(ids)) throw new AppError('ids must be an array', 400)
   try {
     new FeedsService(getDb()).reorder(ids)
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
-    return c.json({ error: message }, 400)
+    throw new AppError(message, 400)
   }
   return c.body(null, 204)
 })
@@ -136,24 +86,12 @@ app.post('/:id/refresh', async (c) => {
   const id = Number(c.req.param('id'))
   const db = getDb()
   const feedsService = new FeedsService(db)
-  const articlesService = new ArticlesService(db)
 
   const feed = feedsService.findById(id)
-  if (!feed) return c.json({ error: 'Not found' }, 404)
+  if (!feed) throw new AppError('Not found', 404)
 
-  try {
-    const fetched = await fetchFeed(feed.url)
-    articlesService.upsertMany(feed.id, fetched.items)
-    const updated = feedsService.update(feed.id, {
-      title: fetched.title,
-      faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
-      lastFetchedAt: new Date().toISOString(),
-    })
-    return c.json({ feed: updated, newArticles: fetched.items.length })
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return c.json({ error: `Failed to fetch feed: ${message}` }, 422)
-  }
+  const result = await refetchFeed(feed, feedsService, new ArticlesService(db))
+  return c.json(result)
 })
 
 export default app

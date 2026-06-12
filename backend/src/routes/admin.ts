@@ -3,6 +3,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { errorHandler } from '../errors.js'
 
 const execAsync = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -13,6 +14,7 @@ const BACKEND_DIR = join(PROJECT_ROOT, 'backend')
 const GITHUB_BRANCH = 'main'
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.get('/update-check', async (c) => {
   // ローカルの最新コミット

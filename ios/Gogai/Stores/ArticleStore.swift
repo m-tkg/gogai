@@ -8,12 +8,8 @@ final class ArticleStore: ObservableObject {
     @Published private(set) var allArticles: [Article] = []
     @Published private(set) var isLoading = false
     @Published var error: Error?
-    @Published private(set) var summarizingIds: Set<Int> = []
     @Published var unreadOnly: Bool {
         didSet { UserDefaults.standard.set(unreadOnly, forKey: "unreadOnly") }
-    }
-    @Published var summaryOnly: Bool {
-        didSet { UserDefaults.standard.set(summaryOnly, forKey: "summaryOnly") }
     }
     @Published var favoriteOnly: Bool {
         didSet { UserDefaults.standard.set(favoriteOnly, forKey: "favoriteOnly") }
@@ -45,7 +41,6 @@ final class ArticleStore: ObservableObject {
     init(cache: AppCache = .shared) {
         self.cache = cache
         self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
-        self.summaryOnly = UserDefaults.standard.bool(forKey: "summaryOnly")
         self.favoriteOnly = UserDefaults.standard.bool(forKey: "favoriteOnly")
         let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
@@ -77,7 +72,6 @@ final class ArticleStore: ObservableObject {
                 feedId: feedId,
                 groupId: groupId,
                 unreadOnly: self.unreadOnly,
-                summaryOnly: self.summaryOnly,
                 favoriteOnly: self.favoriteOnly,
                 sortOrder: self.sortOrder,
                 includeSecret: includeSecret
@@ -86,10 +80,10 @@ final class ArticleStore: ObservableObject {
             guard myGeneration == fetchGeneration else { return }
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
-            // summaryOnly/favoriteOnly は表示用のフィルターであり、
+            // favoriteOnly は表示用のフィルターであり、
             // allArticles（未読バッジ計算用）は全記事が必要。
-            // これらのフィルターが有効な場合はフィルター済み記事で allArticles を上書きせず保持する。
-            if !self.summaryOnly && !self.favoriteOnly {
+            // フィルターが有効な場合はフィルター済み記事で allArticles を上書きせず保持する。
+            if !self.favoriteOnly {
                 mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
             }
             // サーバーに届かなかった既読状態をローカルに復元し、バックグラウンドで再送する
@@ -131,24 +125,16 @@ final class ArticleStore: ObservableObject {
 
         // API レスポンス遅延による未読状態の不一致を修正（fetch 結果に含まれている場合）
         let localReadIds = Set(previouslyReadArticles.map { $0.id })
-        articles = articles.map { a in
+        let preserveReadState: (Article) -> Article = { a in
             guard localReadIds.contains(a.id), !a.isRead else { return a }
             return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
                            title: a.title, link: a.link, summary: a.summary,
                            content: a.content, published_at: a.published_at,
                            is_read: 1, is_favorite: a.is_favorite, created_at: a.created_at,
-                           ai_summary: a.ai_summary, ai_translation: a.ai_translation,
-                           ai_audio_url: a.ai_audio_url, read_at: a.read_at)
+                           read_at: a.read_at)
         }
-        allArticles = allArticles.map { a in
-            guard localReadIds.contains(a.id), !a.isRead else { return a }
-            return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
-                           title: a.title, link: a.link, summary: a.summary,
-                           content: a.content, published_at: a.published_at,
-                           is_read: 1, is_favorite: a.is_favorite, created_at: a.created_at,
-                           ai_summary: a.ai_summary, ai_translation: a.ai_translation,
-                           ai_audio_url: a.ai_audio_url, read_at: a.read_at)
-        }
+        articles = articles.map(preserveReadState)
+        allArticles = allArticles.map(preserveReadState)
 
         // unreadOnly: true の場合、fetch 結果に含まれなかった既読記事をリストに保持する
         // （このセッションで読んだ記事が自動 refresh で消えないようにするため）
@@ -185,8 +171,7 @@ final class ArticleStore: ObservableObject {
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: 1, is_favorite: original.is_favorite, created_at: original.created_at,
-            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
-            ai_audio_url: original.ai_audio_url, read_at: nowISO
+            read_at: nowISO
         )
         articles[idx] = updated
         updateAllArticles(updated)
@@ -218,8 +203,7 @@ final class ArticleStore: ObservableObject {
                            link: a.link, summary: a.summary, content: a.content,
                            published_at: a.published_at, is_read: 1, is_favorite: a.is_favorite,
                            created_at: a.created_at,
-                           ai_summary: a.ai_summary, ai_translation: a.ai_translation,
-                           ai_audio_url: a.ai_audio_url, read_at: nowISO)
+                           read_at: nowISO)
         }
         for a in articles { updateAllArticles(a) }
 
@@ -249,8 +233,7 @@ final class ArticleStore: ObservableObject {
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: 0, is_favorite: original.is_favorite, created_at: original.created_at,
-            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
-            ai_audio_url: original.ai_audio_url, read_at: nil
+            read_at: nil
         )
         articles[idx] = updated
         updateAllArticles(updated)
@@ -279,8 +262,7 @@ final class ArticleStore: ObservableObject {
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: original.is_read, is_favorite: 1, created_at: original.created_at,
-            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
-            ai_audio_url: original.ai_audio_url, read_at: original.read_at
+            read_at: original.read_at
         )
         articles[idx] = updated
         updateAllArticles(updated)
@@ -304,8 +286,7 @@ final class ArticleStore: ObservableObject {
             title: original.title, link: original.link, summary: original.summary,
             content: original.content, published_at: original.published_at,
             is_read: original.is_read, is_favorite: 0, created_at: original.created_at,
-            ai_summary: original.ai_summary, ai_translation: original.ai_translation,
-            ai_audio_url: original.ai_audio_url, read_at: original.read_at
+            read_at: original.read_at
         )
         articles[idx] = updated
         updateAllArticles(updated)
@@ -319,105 +300,15 @@ final class ArticleStore: ObservableObject {
         }
     }
 
-    @MainActor
-    func summarize(id: Int) async {
-        guard !summarizingIds.contains(id) else { return }
-        summarizingIds.insert(id)
-        defer { summarizingIds.remove(id) }
-        do {
-            let result = try await runAI(id: id, action: .summarize)
-            if let idx = articles.firstIndex(where: { $0.id == id }) {
-                let a = articles[idx]
-                let updated = Article(
-                    id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
-                    link: a.link, summary: a.summary, content: a.content,
-                    published_at: a.published_at, is_read: a.is_read, is_favorite: a.is_favorite,
-                    created_at: a.created_at,
-                    ai_summary: result.output, ai_translation: a.ai_translation,
-                    ai_audio_url: a.ai_audio_url, read_at: a.read_at
-                )
-                articles[idx] = updated
-                updateAllArticles(updated)
-            }
-        } catch {
-            self.error = error
-        }
-    }
-
-    @MainActor
-    func runAI(id: Int, action: ArticleRepository.AIAction, force: Bool = false) async throws -> ArticleRepository.AIResult {
-        guard let client else { throw APIError.invalidURL }
-        return try await ArticleRepository(client: client).runAI(id: id, action: action, force: force)
-    }
-
-    @MainActor
-    func setAudioURL(id: Int, url: String) async {
-        guard let client else { return }
-        let updateLocally: (String?) -> Void = { newURL in
-            if let idx = self.articles.firstIndex(where: { $0.id == id }) {
-                let a = self.articles[idx]
-                let updated = Article(
-                    id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
-                    link: a.link, summary: a.summary, content: a.content,
-                    published_at: a.published_at, is_read: a.is_read, is_favorite: a.is_favorite,
-                    created_at: a.created_at,
-                    ai_summary: a.ai_summary, ai_translation: a.ai_translation,
-                    ai_audio_url: newURL, read_at: a.read_at
-                )
-                self.articles[idx] = updated
-                self.updateAllArticles(updated)
-            }
-        }
-
-        let originalURL = articles.first(where: { $0.id == id })?.ai_audio_url
-        updateLocally(url)
-        do {
-            try await ArticleRepository(client: client).setAudioURL(id: id, url: url)
-        } catch {
-            updateLocally(originalURL)
-            self.error = error
-        }
-    }
-
-    @MainActor
-    func clearAudioURL(id: Int) async {
-        guard let client else { return }
-        let updateLocally: (String?) -> Void = { newURL in
-            if let idx = self.articles.firstIndex(where: { $0.id == id }) {
-                let a = self.articles[idx]
-                let updated = Article(
-                    id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
-                    link: a.link, summary: a.summary, content: a.content,
-                    published_at: a.published_at, is_read: a.is_read, is_favorite: a.is_favorite,
-                    created_at: a.created_at,
-                    ai_summary: a.ai_summary, ai_translation: a.ai_translation,
-                    ai_audio_url: newURL, read_at: a.read_at
-                )
-                self.articles[idx] = updated
-                self.updateAllArticles(updated)
-            }
-        }
-
-        let originalURL = articles.first(where: { $0.id == id })?.ai_audio_url
-        updateLocally(nil)
-        do {
-            try await ArticleRepository(client: client).clearAudioURL(id: id)
-        } catch {
-            updateLocally(originalURL)
-            self.error = error
-        }
-    }
-
-    /// 現在有効なフィルタ（unreadOnly / summaryOnly / favoriteOnly）を AND で適用したとき、
+    /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
     /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
     /// フィルタが何も有効でない場合は常に true。
     func hasVisibleArticle(for feedId: Int) -> Bool {
-        if !unreadOnly && !summaryOnly && !favoriteOnly { return true }
+        if !unreadOnly && !favoriteOnly { return true }
         let source = allArticles.isEmpty ? articles : allArticles
         return source.contains { article in
             guard article.feed_id == feedId else { return false }
             if unreadOnly && article.isRead { return false }
-            if summaryOnly && article.ai_summary == nil { return false }
             if favoriteOnly && !article.isFavorite { return false }
             return true
         }
