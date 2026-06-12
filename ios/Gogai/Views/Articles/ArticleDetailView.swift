@@ -264,9 +264,11 @@ struct ArticleDetailView: View {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 80, coordinateSpace: .local)
                     .onEnded { value in
-                        let isUpSwipe = value.translation.height < -80
-                            && abs(value.translation.width) < abs(value.translation.height) * 0.5
-                        if isUpSwipe, let link = currentArticle.link, URL(string: link) != nil {
+                        // 左スワイプで記事ページを開く
+                        // （縦成分が大きい場合はスクロールとみなして発火させない）
+                        let isLeftSwipe = value.translation.width < -80
+                            && abs(value.translation.height) < abs(value.translation.width) * 0.5
+                        if isLeftSwipe, let link = currentArticle.link, URL(string: link) != nil {
                             showBrowser = true
                         }
                     }
