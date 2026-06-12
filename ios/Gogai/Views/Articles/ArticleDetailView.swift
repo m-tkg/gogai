@@ -12,12 +12,7 @@ struct ArticleDetailView: View {
 
     @State private var currentArticle: Article
     @State private var showBrowser = false
-    @State private var showAISummary = false
-    @State private var showAITranslation = false
     @State private var showShareSheet = false
-    @State private var showAudioBrowser = false
-    @State private var showAudioShareSheet = false
-    @State private var audioURLInput = ""
     @State private var contentHeight: CGFloat = 200
     #if targetEnvironment(macCatalyst)
     @StateObject private var macBrowser = BrowserModel()
@@ -36,14 +31,8 @@ struct ArticleDetailView: View {
         articleStore.articles.first(where: { $0.id == currentArticle.id })?.isFavorite ?? currentArticle.isFavorite
     }
 
-    private var audioURL: String? {
-        articleStore.articles.first(where: { $0.id == currentArticle.id })?.ai_audio_url ?? currentArticle.ai_audio_url
-    }
-
     private var navigableArticles: [Article] {
-        articleStore.summaryOnly
-            ? articleStore.articles.filter { $0.ai_summary != nil }
-            : articleStore.articles
+        articleStore.articles
     }
 
     private var currentIndex: Int? {
@@ -64,18 +53,6 @@ struct ArticleDetailView: View {
 
     private var bottomBar: some View {
         HStack(alignment: .center, spacing: 16) {
-            VStack(spacing: 8) {
-                Button { showAISummary = true } label: {
-                    Label("AI要約", systemImage: "sparkles")
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button { showAITranslation = true } label: {
-                    Label("AI翻訳", systemImage: "character.bubble")
-                }
-                .buttonStyle(.bordered)
-            }
-
             Spacer()
 
             HStack(spacing: 24) {
@@ -138,68 +115,6 @@ struct ArticleDetailView: View {
         .background(.bar)
     }
 
-    // MARK: - NotebookLM section
-
-    private var notebookLMSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("NotebookLM 音声解説", systemImage: "waveform")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-
-            if let url = audioURL, !url.isEmpty {
-                HStack(spacing: 12) {
-                    Button {
-                        showAudioBrowser = true
-                    } label: {
-                        Label("音声を再生", systemImage: "play.circle.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button(role: .destructive) {
-                        Task { await articleStore.clearAudioURL(id: currentArticle.id) }
-                    } label: {
-                        Label("クリア", systemImage: "trash")
-                    }
-                    .buttonStyle(.bordered)
-                }
-                Text(url)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            } else {
-                Button {
-                    showAudioShareSheet = true
-                } label: {
-                    Label("NotebookLM で生成", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.bordered)
-                .disabled(currentArticle.link.flatMap { URL(string: $0) } == nil)
-
-                Text("共有シートから NotebookLM を選ぶと記事 URL がソースとして取り込まれます。Audio Overview を生成したら共有 URL を貼り付けてください。")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 8) {
-                    TextField("https://notebooklm.google.com/...", text: $audioURLInput)
-                        .textFieldStyle(.roundedBorder)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
-                    Button("保存") {
-                        let trimmed = audioURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !trimmed.isEmpty else { return }
-                        Task {
-                            await articleStore.setAudioURL(id: currentArticle.id, url: trimmed)
-                            audioURLInput = ""
-                        }
-                    }
-                    .disabled(audioURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-    }
-
     // MARK: - Article detail pane
 
     private var articleDetailPane: some View {
@@ -230,9 +145,6 @@ struct ArticleDetailView: View {
                         Text("本文がありません")
                             .foregroundStyle(.secondary)
                     }
-
-                    Divider()
-                    notebookLMSection
                 }
                 .padding()
                 .padding(.bottom, 16)
@@ -272,22 +184,6 @@ struct ArticleDetailView: View {
                     ShareSheet(items: [url])
                 }
             }
-            .sheet(isPresented: $showAISummary) {
-                AISummaryView(article: currentArticle, action: .summarize)
-            }
-            .sheet(isPresented: $showAITranslation) {
-                AISummaryView(article: currentArticle, action: .translate)
-            }
-            .sheet(isPresented: $showAudioBrowser) {
-                if let urlString = audioURL, let url = URL(string: urlString) {
-                    BrowserView(url: url)
-                }
-            }
-            .sheet(isPresented: $showAudioShareSheet) {
-                if let link = currentArticle.link, let url = URL(string: link) {
-                    ShareSheet(items: [url])
-                }
-            }
             .onAppear {
                 if !isRead {
                     Task { await articleStore.markAsRead(id: currentArticle.id) }
@@ -296,12 +192,7 @@ struct ArticleDetailView: View {
             .onChange(of: currentArticle.id) { _, newId in
                 contentHeight = 200
                 showBrowser = false
-                showAISummary = false
-                showAITranslation = false
                 showShareSheet = false
-                showAudioBrowser = false
-                showAudioShareSheet = false
-                audioURLInput = ""
                 Task {
                     if let next = articleStore.articles.first(where: { $0.id == newId }), !next.isRead {
                         await articleStore.markAsRead(id: newId)

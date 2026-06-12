@@ -9,7 +9,6 @@ final class ArticleStoreTests: XCTestCase {
         super.setUp()
         // テスト間の UserDefaults 状態汚染を防ぐためリセット
         UserDefaults.standard.removeObject(forKey: "unreadOnly")
-        UserDefaults.standard.removeObject(forKey: "summaryOnly")
         UserDefaults.standard.removeObject(forKey: "favoriteOnly")
         UserDefaults.standard.removeObject(forKey: "sortOrder")
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -24,11 +23,11 @@ final class ArticleStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, isFavorite: Int = 0, aiSummary: String? = nil) -> Article {
+    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, isFavorite: Int = 0) -> Article {
         Article(id: id, feed_id: feedId, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
                 is_read: isRead, is_favorite: isFavorite, created_at: "2024-01-01T00:00:00Z",
-                ai_summary: aiSummary, ai_translation: nil, ai_audio_url: nil, read_at: nil)
+                read_at: nil)
     }
 
     @MainActor
@@ -456,15 +455,13 @@ final class ArticleStoreTests: XCTestCase {
             id: 1, feed_id: 1, guid: "guid-1", title: "Newer (read)",
             link: nil, summary: nil, content: nil,
             published_at: "2024-02-01T00:00:00Z", is_read: 1, is_favorite: 0,
-            created_at: "2024-01-01T00:00:00Z",
-            ai_summary: nil, ai_translation: nil, ai_audio_url: nil, read_at: nil
+            created_at: "2024-01-01T00:00:00Z", read_at: nil
         )
         let olderUnreadArticle = Article(
             id: 2, feed_id: 1, guid: "guid-2", title: "Older (unread)",
             link: nil, summary: nil, content: nil,
             published_at: "2024-01-01T00:00:00Z", is_read: 0, is_favorite: 0,
-            created_at: "2024-01-01T00:00:00Z",
-            ai_summary: nil, ai_translation: nil, ai_audio_url: nil, read_at: nil
+            created_at: "2024-01-01T00:00:00Z", read_at: nil
         )
 
         // loadedWithUnreadOnly=true を確立するため先にフェッチする
@@ -486,27 +483,7 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.articles[1].id, 2, "古い未読記事が後に来るべき")
     }
 
-    // MARK: - summaryOnly/favoriteOnly と allArticles の独立性
-
-    @MainActor
-    func test_fetchArticles_summaryOnly_doesNotUpdateAllArticles() async {
-        // 事前に全記事を allArticles に設定
-        let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
-        await store.fetchArticles(feedId: 1)
-        let beforeCount = store.allArticles.count
-        XCTAssertEqual(beforeCount, 2)
-
-        // summaryOnly=true でフェッチしても allArticles を上書きしない
-        let summarizedOnly = [makeArticle(id: 1, feedId: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(summarizedOnly)) }
-        store.summaryOnly = true
-        await store.fetchArticles(feedId: 1)
-
-        // articles は更新されるが allArticles は不変
-        XCTAssertEqual(store.articles.count, 1)
-        XCTAssertEqual(store.allArticles.count, beforeCount, "summaryOnly=true 時は allArticles を更新しない")
-    }
+    // MARK: - favoriteOnly と allArticles の独立性
 
     @MainActor
     func test_fetchArticles_favoriteOnly_doesNotUpdateAllArticles() async {
@@ -528,14 +505,14 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
-    func test_fetchArticles_afterSummaryOnlyDisabled_updatesAllArticles() async {
-        // summaryOnly=false に戻したら allArticles を再度更新する
+    func test_fetchArticles_afterFavoriteOnlyDisabled_updatesAllArticles() async {
+        // favoriteOnly=false に戻したら allArticles を再度更新する
         let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
-        store.summaryOnly = false
+        store.favoriteOnly = false
         await store.fetchArticles(feedId: 1)
 
-        XCTAssertEqual(store.allArticles.count, 2, "summaryOnly=false の場合は allArticles を更新する")
+        XCTAssertEqual(store.allArticles.count, 2, "favoriteOnly=false の場合は allArticles を更新する")
     }
 
     // MARK: - hasVisibleArticle(for:)
@@ -543,7 +520,6 @@ final class ArticleStoreTests: XCTestCase {
     func test_hasVisibleArticle_noFilters_returnsTrue() {
         store.articles = []
         store.unreadOnly = false
-        store.summaryOnly = false
         store.favoriteOnly = false
         XCTAssertTrue(store.hasVisibleArticle(for: 1), "フィルタ未指定時は常に表示する")
     }
@@ -560,18 +536,6 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertFalse(store.hasVisibleArticle(for: 10))
     }
 
-    func test_hasVisibleArticle_summaryOnly_feedHasSummary_returnsTrue() {
-        store.articles = [makeArticle(id: 1, feedId: 10, aiSummary: "summary")]
-        store.summaryOnly = true
-        XCTAssertTrue(store.hasVisibleArticle(for: 10))
-    }
-
-    func test_hasVisibleArticle_summaryOnly_feedNoSummary_returnsFalse() {
-        store.articles = [makeArticle(id: 1, feedId: 10, aiSummary: nil)]
-        store.summaryOnly = true
-        XCTAssertFalse(store.hasVisibleArticle(for: 10))
-    }
-
     func test_hasVisibleArticle_favoriteOnly_feedHasFavorite_returnsTrue() {
         store.articles = [makeArticle(id: 1, feedId: 10, isFavorite: 1)]
         store.favoriteOnly = true
@@ -585,28 +549,28 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     func test_hasVisibleArticle_combinedFilters_appliesAndLogic() {
-        // 未読 + 要約あり が必要
+        // 未読 + お気に入り が必要
         store.articles = [
-            makeArticle(id: 1, feedId: 10, isRead: 0, aiSummary: nil),    // 未読だが要約なし
-            makeArticle(id: 2, feedId: 10, isRead: 1, aiSummary: "s"),    // 要約ありだが既読
-            makeArticle(id: 3, feedId: 20, isRead: 0, aiSummary: "s"),    // 未読 + 要約あり
+            makeArticle(id: 1, feedId: 10, isRead: 0, isFavorite: 0),    // 未読だがお気に入りでない
+            makeArticle(id: 2, feedId: 10, isRead: 1, isFavorite: 1),    // お気に入りだが既読
+            makeArticle(id: 3, feedId: 20, isRead: 0, isFavorite: 1),    // 未読 + お気に入り
         ]
         store.unreadOnly = true
-        store.summaryOnly = true
+        store.favoriteOnly = true
         XCTAssertFalse(store.hasVisibleArticle(for: 10), "片方しか満たさない記事しかないフィードは非表示")
         XCTAssertTrue(store.hasVisibleArticle(for: 20), "両方満たす記事があるフィードは表示")
     }
 
     @MainActor
     func test_hasVisibleArticle_usesAllArticles_whenPopulated() async {
-        // allArticles に要約済み記事を入れた状態を作る
-        let articles = [makeArticle(id: 1, feedId: 10, aiSummary: "s")]
+        // allArticles にお気に入り記事を入れた状態を作る
+        let articles = [makeArticle(id: 1, feedId: 10, isFavorite: 1)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
         await store.fetchArticles()
 
         // articles を別フィードで上書きしても allArticles 経由で feedId=10 を判定できる
         store.articles = [makeArticle(id: 99, feedId: 99)]
-        store.summaryOnly = true
+        store.favoriteOnly = true
         XCTAssertTrue(store.hasVisibleArticle(for: 10))
     }
 
