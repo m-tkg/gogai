@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Group, Feed } from '../../api/client'
 import type { useGroupMutations } from '../../hooks/useGroupMutations'
 import { FeedList, type FeedMutations, type DragReorder } from './FeedList'
+import { confirmCancelBtn } from '../ui/formStyles'
 
 export type GroupMutations = ReturnType<typeof useGroupMutations>
 
@@ -84,7 +85,7 @@ export function GroupSection({
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="px-1.5 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+              className={confirmCancelBtn}
             >
               キャンセル
             </button>

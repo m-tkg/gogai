@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Group, Feed } from '../../api/client'
+import { confirmCancelBtn, inputXs, selectXs, secondaryBtnXs } from '../ui/formStyles'
 
 export interface FeedItemProps {
   feed: Feed
@@ -49,13 +50,13 @@ export function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh
           type="url"
           value={editUrl}
           onChange={e => setEditUrl(e.target.value)}
-          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className={inputXs}
           placeholder="Feed URL"
         />
         <select
           value={editGroupId ?? ''}
           onChange={e => setEditGroupId(e.target.value ? Number(e.target.value) : null)}
-          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className={selectXs}
         >
           <option value="">グループなし</option>
           {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -74,7 +75,7 @@ export function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh
           <button
             onClick={handleCancel}
             disabled={isUpdating}
-            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+            className={`${secondaryBtnXs} disabled:opacity-50`}
           >
             キャンセル
           </button>
@@ -120,7 +121,7 @@ export function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
-            className="px-1.5 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            className={confirmCancelBtn}
           >
             キャンセル
           </button>
