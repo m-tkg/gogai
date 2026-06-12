@@ -200,6 +200,32 @@ struct ArticleDetailView: View {
         }
     }
 
+    // MARK: - Browser destination（記事ページ）
+
+    #if !targetEnvironment(macCatalyst)
+    @ViewBuilder
+    private var browserDestination: some View {
+        if let link = currentArticle.link, let url = URL(string: link) {
+            // 記事ページ右下にローカル AI ボタン + 閉じるボタンを表示
+            // （SFSafariViewController の下部ツールバーを避けて持ち上げる）
+            BrowserView(url: url)
+                .localAIOverlay(for: currentArticle, bottomPadding: 70, onClose: { showBrowser = false })
+                .toolbar(.hidden, for: .navigationBar)
+                // 閉じる操作は右スワイプ（開く操作の左スワイプと対）
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 80, coordinateSpace: .local)
+                        .onEnded { value in
+                            let isRightSwipe = value.translation.width > 80
+                                && abs(value.translation.height) < abs(value.translation.width) * 0.5
+                            if isRightSwipe {
+                                showBrowser = false
+                            }
+                        }
+                )
+        }
+    }
+    #endif
+
     // MARK: - Body
 
     var body: some View {
@@ -273,26 +299,9 @@ struct ArticleDetailView: View {
                         }
                     }
             )
-            .sheet(isPresented: $showBrowser) {
-                if let link = currentArticle.link, let url = URL(string: link) {
-                    // 記事ページ右下にローカル AI ボタンを表示
-                    // （SFSafariViewController の下部ツールバーを避けて持ち上げる）
-                    BrowserView(url: url)
-                        .localAIOverlay(for: currentArticle, bottomPadding: 70)
-                        // 閉じる操作は右スワイプ（開く操作の左スワイプと対）。
-                        // sheet 標準の下スワイプ dismiss は無効化する
-                        .interactiveDismissDisabled()
-                        .simultaneousGesture(
-                            DragGesture(minimumDistance: 80, coordinateSpace: .local)
-                                .onEnded { value in
-                                    let isRightSwipe = value.translation.width > 80
-                                        && abs(value.translation.height) < abs(value.translation.width) * 0.5
-                                    if isRightSwipe {
-                                        showBrowser = false
-                                    }
-                                }
-                        )
-                }
+            // 記事ページは sheet（下から）ではなく push 遷移（右から左）で表示する
+            .navigationDestination(isPresented: $showBrowser) {
+                browserDestination
             }
         #endif
     }

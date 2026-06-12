@@ -100,14 +100,24 @@ struct LocalAIResultSheet: View {
     }
 }
 
-/// ローカル AI ボタン群（要約・翻訳）のフローティング表示
+/// ローカル AI ボタン群（要約・翻訳）+ 任意の閉じるボタンのフローティング表示。
+/// AI ボタンは LocalAI.isAvailable のときのみ、閉じるボタンは onClose 指定時のみ表示する。
 struct LocalAIButtons: View {
     let onSelect: (LocalAIResultSheet.Mode) -> Void
+    var onClose: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 12) {
-            button(for: .summarize)
-            button(for: .translateToJapanese)
+            if LocalAI.isAvailable {
+                button(for: .summarize)
+                button(for: .translateToJapanese)
+            }
+            if let onClose {
+                Button(action: onClose) {
+                    circleIcon("xmark")
+                }
+                .accessibilityLabel("閉じる")
+            }
         }
     }
 
@@ -115,31 +125,35 @@ struct LocalAIButtons: View {
         Button {
             onSelect(mode)
         } label: {
-            Image(systemName: mode.iconName)
-                .font(.title3)
-                .frame(width: 48, height: 48)
-                .background(.regularMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(.quaternary))
-                .shadow(radius: 2, y: 1)
+            circleIcon(mode.iconName)
         }
         .accessibilityLabel(mode.title)
     }
+
+    private func circleIcon(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.title3)
+            .frame(width: 48, height: 48)
+            .background(.regularMaterial, in: Circle())
+            .overlay(Circle().strokeBorder(.quaternary))
+            .shadow(radius: 2, y: 1)
+    }
 }
 
-/// 記事ページ（ブラウザ）の右下にローカル AI ボタンを重ね、結果を表示する modifier。
-/// iOS 27 + Apple Intelligence 有効時のみボタンを表示する。
+/// 記事ページ（ブラウザ）の右下にローカル AI ボタン（+ 閉じるボタン）を重ね、結果を表示する modifier。
 /// 翻訳はシステム翻訳選択時、レイアウト保持のページ内翻訳（TranslatedPageView）を開く。
 private struct LocalAIOverlayModifier: ViewModifier {
     let article: Article
     let bottomPadding: CGFloat
+    let onClose: (() -> Void)?
 
     @State private var mode: LocalAIResultSheet.Mode?
 
     func body(content: Content) -> some View {
         content
             .overlay(alignment: .bottomTrailing) {
-                if LocalAI.isAvailable {
-                    LocalAIButtons { mode = $0 }
+                if LocalAI.isAvailable || onClose != nil {
+                    LocalAIButtons(onSelect: { mode = $0 }, onClose: onClose)
                         .padding(.trailing, 16)
                         .padding(.bottom, bottomPadding)
                 }
@@ -163,8 +177,9 @@ private struct LocalAIOverlayModifier: ViewModifier {
 }
 
 extension View {
-    /// 画面右下にローカル AI（日本語要約・翻訳）ボタンを重ねる
-    func localAIOverlay(for article: Article, bottomPadding: CGFloat = 16) -> some View {
-        modifier(LocalAIOverlayModifier(article: article, bottomPadding: bottomPadding))
+    /// 画面右下にローカル AI（日本語要約・翻訳）ボタンを重ねる。
+    /// onClose を渡すと翻訳ボタンの下に閉じるボタンも表示する。
+    func localAIOverlay(for article: Article, bottomPadding: CGFloat = 16, onClose: (() -> Void)? = nil) -> some View {
+        modifier(LocalAIOverlayModifier(article: article, bottomPadding: bottomPadding, onClose: onClose))
     }
 }
