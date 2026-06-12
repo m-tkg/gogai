@@ -249,7 +249,7 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | 記事一覧ページ（ArticleListView） | 右スワイプ 12.5% でボタン表示、25% で確定: 既読/未読トグル |
 | 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: お気に入りトグル |
 | 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
-| 概要ページ（ArticleDetailView） | 上スワイプ: 記事ページ（BrowserView）を sheet で開く |
+| 概要ページ（ArticleDetailView） | 左スワイプ: 記事ページ（BrowserView）を sheet で開く |
 | FilterFooterView | 「全て」「未読のみ」「お気に入り」ボタン（フィードページ・記事一覧ページ共通）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
