@@ -493,6 +493,31 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_refreshAllArticlesCache_includesOldFavorites_beyondFetchLimit() async {
+        // 全件フェッチは最新 limit 件しか返さないため、古いお気に入り
+        // （バックエンドは保持期間後も favorites を残す）が窓から外れる。
+        // キャッシュ更新はお気に入りを別途フェッチして結合すること。
+        let recent = [makeArticle(id: 1, feedId: 20, isRead: 0)]
+        let oldFavorite = makeArticle(id: 999, feedId: 10, isRead: 1, isFavorite: 1)
+        MockURLProtocol.requestHandler = { req in
+            let query = req.url?.query ?? ""
+            if query.contains("favoriteOnly=true") {
+                return (200, try JSONEncoder().encode([oldFavorite]))
+            }
+            return (200, try JSONEncoder().encode(recent))
+        }
+
+        await store.refreshAllArticlesCache()
+
+        XCTAssertTrue(store.allArticles.contains { $0.id == 999 },
+                      "最新 N 件に含まれない古いお気に入りもキャッシュに含めること")
+
+        store.favoriteOnly = true
+        XCTAssertTrue(store.hasVisibleArticle(for: 10),
+                      "古いお気に入りを持つフィードがお気に入り表示で見えること")
+    }
+
+    @MainActor
     func test_refresh_updatesAllArticlesWithSecretArticles_whenFullFetchWithoutSecret() async {
         // includeSecret=false で全記事フェッチ（currentIncludeSecret=false を確立）
         store.unreadOnly = false
