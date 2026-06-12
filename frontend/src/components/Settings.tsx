@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsApi, adminApi, type UpdateCheck } from '../api/client'
+import { queryKeys } from '../api/queryKeys'
 
 const MIN = 3
 const MAX = 180
@@ -12,18 +13,21 @@ interface SettingsProps {
 
 export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsProps) {
   const qc = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['settings'], queryFn: settingsApi.get })
+  const { data, isLoading } = useQuery({ queryKey: queryKeys.settings, queryFn: settingsApi.get })
   const { data: updateCheck, isLoading: checkLoading, error: checkError } =
-    useQuery<UpdateCheck>({ queryKey: ['update-check'], queryFn: adminApi.updateCheck })
+    useQuery<UpdateCheck>({ queryKey: queryKeys.updateCheck, queryFn: adminApi.updateCheck })
   const [days, setDays] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [confirmRestart, setConfirmRestart] = useState(false)
   const [restartOutput, setRestartOutput] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (data) setDays(String(data.retention_days))
-  }, [data])
+  // サーバー値の到着・変化時に入力欄へ反映する（レンダー中の状態調整パターン）
+  const [loadedDays, setLoadedDays] = useState<number | null>(null)
+  if (data && data.retention_days !== loadedDays) {
+    setLoadedDays(data.retention_days)
+    setDays(String(data.retention_days))
+  }
 
   const restart = useMutation({
     mutationFn: () => adminApi.restart(),
@@ -40,7 +44,7 @@ export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsPro
   const update = useMutation({
     mutationFn: () => settingsApi.update({ retention_days: Number(days) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settings'] })
+      qc.invalidateQueries({ queryKey: queryKeys.settings })
       setError(null)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
