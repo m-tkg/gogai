@@ -33,6 +33,8 @@ struct LocalAIResultSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var result: String?
     @State private var errorMessage: String?
+    /// AI に渡す本文（記事ページから取得。失敗時は RSS 本文にフォールバック）
+    @State private var sourceText: String?
 
     private var usesTranslationFramework: Bool {
         mode == .translateToJapanese && TranslationEngine.current == .translationFramework
@@ -71,35 +73,48 @@ struct LocalAIResultSheet: View {
             }
             .background {
                 // Translation framework は translationTask modifier 経由でしか
-                // セッションを取得できないため、非表示ビューとして埋め込む
-                if usesTranslationFramework, #available(iOS 18.0, macCatalyst 26.0, *) {
+                // セッションを取得できないため、非表示ビューとして埋め込む。
+                // 本文の取得完了（sourceText 確定）を待ってからマウントする。
+                if usesTranslationFramework, let sourceText, #available(iOS 18.0, macCatalyst 26.0, *) {
                     TranslationFrameworkRunner(
-                        text: LocalArticleAI.preparePrompt(title: article.title, content: article.content ?? article.summary),
+                        text: sourceText,
                         onResult: { result = $0 },
                         onError: { errorMessage = "システム翻訳に失敗しました: \($0.localizedDescription)" }
                     )
                 }
             }
             .task {
+                let text = await loadSourceText()
+                sourceText = text
                 if !usesTranslationFramework {
-                    await runFoundationModel()
+                    await runFoundationModel(with: text)
                 }
             }
         }
     }
 
-    private func runFoundationModel() async {
+    /// AI に渡す本文を用意する。
+    /// 記事ページ（article.link）の本文を優先し、取得できない場合は RSS の本文にフォールバックする。
+    private func loadSourceText() async -> String {
+        if let link = article.link, let url = URL(string: link),
+           let pageText = try? await ArticleContentFetcher.fetchPlainText(from: url),
+           !pageText.isEmpty {
+            return LocalArticleAI.preparePrompt(title: article.title, content: pageText)
+        }
+        return LocalArticleAI.preparePrompt(title: article.title, content: article.content ?? article.summary)
+    }
+
+    private func runFoundationModel(with text: String) async {
         guard let ai = LocalAI.makeArticleAI() else {
             errorMessage = "この端末ではローカル AI を利用できません（iOS 27 以上と Apple Intelligence の有効化が必要です）"
             return
         }
         do {
-            let content = article.content ?? article.summary
             switch mode {
             case .summarize:
-                result = try await ai.summarize(title: article.title, content: content)
+                result = try await ai.summarize(title: nil, content: text)
             case .translateToJapanese:
-                result = try await ai.translateToJapanese(title: article.title, content: content)
+                result = try await ai.translateToJapanese(title: nil, content: text)
             }
         } catch LocalArticleAIError.emptyContent {
             errorMessage = "この記事には AI に渡せる本文がありません"
