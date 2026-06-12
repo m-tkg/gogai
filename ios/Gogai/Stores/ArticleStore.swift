@@ -84,10 +84,12 @@ final class ArticleStore: ObservableObject {
             guard myGeneration == fetchGeneration else { return }
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
-            // favoriteOnly は表示用のフィルターであり、
-            // コレクション（未読バッジ計算用）は全記事が必要。
-            // フィルターが有効な場合はフィルター済み記事で上書きせず保持する。
-            if !self.favoriteOnly {
+            // コレクション（未読バッジ・サイドバー表示判定用）は全記事が必要。
+            // unreadOnly / favoriteOnly のフィルターが有効なフェッチ結果は一部の記事しか
+            // 含まないため、これで上書きするとキャッシュが汚染される
+            // （例: unreadOnly のフェッチで既読のお気に入り記事が失われ、お気に入り表示時に
+            //  該当フィードがサイドバーから消える）。フィルターなしの全件フェッチ時のみ更新する。
+            if !self.unreadOnly && !self.favoriteOnly {
                 allCollection.merge(fetched, isFullFetch: feedId == nil && groupId == nil)
                 cache.saveAllArticles(allCollection.articles)
             }
