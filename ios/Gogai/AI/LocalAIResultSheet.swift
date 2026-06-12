@@ -1,10 +1,8 @@
 import SwiftUI
-import Translation
 
-/// ローカル AI の要約・翻訳結果を表示する sheet。
+/// ローカル AI（基盤モデル）の要約・翻訳結果を表示する sheet。
 /// 表示と同時に生成を開始し、結果はサーバーに保存しない。
-/// 翻訳は設定の TranslationEngine に応じて、基盤モデル（LLM）と
-/// システム翻訳（Translation framework）を切り替える。
+/// システム翻訳（Translation framework）選択時のページ内翻訳は TranslatedPageView が担う。
 struct LocalAIResultSheet: View {
     enum Mode: String, Identifiable {
         case summarize
@@ -33,12 +31,6 @@ struct LocalAIResultSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var result: String?
     @State private var errorMessage: String?
-    /// AI に渡す本文（記事ページから取得。失敗時は RSS 本文にフォールバック）
-    @State private var sourceText: String?
-
-    private var usesTranslationFramework: Bool {
-        mode == .translateToJapanese && TranslationEngine.current == .translationFramework
-    }
 
     var body: some View {
         NavigationStack {
@@ -54,7 +46,7 @@ struct LocalAIResultSheet: View {
                     } else {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text(usesTranslationFramework ? "システム翻訳が処理しています…" : "オンデバイス AI が生成しています…")
+                            Text("オンデバイス AI が生成しています…")
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -71,24 +63,8 @@ struct LocalAIResultSheet: View {
                     Button("閉じる") { dismiss() }
                 }
             }
-            .background {
-                // Translation framework は translationTask modifier 経由でしか
-                // セッションを取得できないため、非表示ビューとして埋め込む。
-                // 本文の取得完了（sourceText 確定）を待ってからマウントする。
-                if usesTranslationFramework, let sourceText, #available(iOS 18.0, macCatalyst 26.0, *) {
-                    TranslationFrameworkRunner(
-                        text: sourceText,
-                        onResult: { result = $0 },
-                        onError: { errorMessage = "システム翻訳に失敗しました: \($0.localizedDescription)" }
-                    )
-                }
-            }
             .task {
-                let text = await loadSourceText()
-                sourceText = text
-                if !usesTranslationFramework {
-                    await runFoundationModel(with: text)
-                }
+                await runFoundationModel(with: await loadSourceText())
             }
         }
     }
@@ -150,8 +126,9 @@ struct LocalAIButtons: View {
     }
 }
 
-/// 記事ページ（ブラウザ）の右下にローカル AI ボタンを重ね、結果 sheet を表示する modifier。
+/// 記事ページ（ブラウザ）の右下にローカル AI ボタンを重ね、結果を表示する modifier。
 /// iOS 27 + Apple Intelligence 有効時のみボタンを表示する。
+/// 翻訳はシステム翻訳選択時、レイアウト保持のページ内翻訳（TranslatedPageView）を開く。
 private struct LocalAIOverlayModifier: ViewModifier {
     let article: Article
     let bottomPadding: CGFloat
@@ -168,8 +145,20 @@ private struct LocalAIOverlayModifier: ViewModifier {
                 }
             }
             .sheet(item: $mode) { mode in
-                LocalAIResultSheet(article: article, mode: mode)
+                sheetContent(for: mode)
             }
+    }
+
+    @ViewBuilder
+    private func sheetContent(for mode: LocalAIResultSheet.Mode) -> some View {
+        if mode == .translateToJapanese,
+           case .translatedPage(let url) = TranslationDestination.forCurrentSettings(
+               engine: TranslationEngine.current, link: article.link),
+           #available(iOS 18.0, macCatalyst 26.0, *) {
+            TranslatedPageView(url: url)
+        } else {
+            LocalAIResultSheet(article: article, mode: mode)
+        }
     }
 }
 
@@ -177,45 +166,5 @@ extension View {
     /// 画面右下にローカル AI（日本語要約・翻訳）ボタンを重ねる
     func localAIOverlay(for article: Article, bottomPadding: CGFloat = 16) -> some View {
         modifier(LocalAIOverlayModifier(article: article, bottomPadding: bottomPadding))
-    }
-}
-
-/// Translation framework（システム翻訳）の実行用 hidden view。
-/// translationTask は SwiftUI modifier としてのみ提供されるため、
-/// 翻訳設定をセットしてセッションを受け取る役だけを担う。
-@available(iOS 18.0, macCatalyst 26.0, *)
-private struct TranslationFrameworkRunner: View {
-    let text: String
-    let onResult: (String) -> Void
-    let onError: (Error) -> Void
-
-    @State private var configuration: TranslationSession.Configuration?
-
-    var body: some View {
-        Color.clear
-            .frame(width: 0, height: 0)
-            .translationTask(configuration) { session in
-                // Why: TranslationSession は non-Sendable で、MainActor 隔離のクロージャから
-                // await 越しに使うと Swift 6 の region isolation エラーになる。
-                // このクロージャ内でしか session を使わず逐次アクセスのみのため unsafe 束縛で回避する。
-                nonisolated(unsafe) let session = session
-                do {
-                    let response = try await session.translate(text)
-                    onResult(response.targetText)
-                } catch {
-                    onError(error)
-                }
-            }
-            .onAppear {
-                guard !text.isEmpty else {
-                    onError(LocalArticleAIError.emptyContent)
-                    return
-                }
-                // 翻訳元は自動判定、翻訳先は日本語
-                configuration = TranslationSession.Configuration(
-                    source: nil,
-                    target: Locale.Language(identifier: "ja")
-                )
-            }
     }
 }
