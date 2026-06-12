@@ -19,8 +19,8 @@ struct SidebarView: View {
     @State private var rotationAngle: Double = 0
     @State private var isEditing = false
 
-    private var totalUnreadCount: Int {
-        articleStore.unreadCount(excludingFeedIds: groupStore.secretFeedIds(in: feedStore.feeds))
+    private var totalBadgeCount: Int {
+        articleStore.badgeCount(excludingFeedIds: groupStore.secretFeedIds(in: feedStore.feeds))
     }
 
     private var listSelectionBinding: Binding<String?> {
@@ -92,7 +92,7 @@ struct SidebarView: View {
                             .foregroundStyle(.secondary)
                         Text("すべての記事")
                             .foregroundStyle(.primary)
-                        UnreadCountBadge(count: totalUnreadCount)
+                        UnreadCountBadge(count: totalBadgeCount)
                     }
                 }
                 .tag("all")

@@ -30,7 +30,7 @@ struct FeedRowView: View {
                 Text(feed.title ?? feed.url)
                     .lineLimit(1)
                     .foregroundStyle(.primary)
-                UnreadCountBadge(count: articleStore.unreadCount(for: feed.id))
+                UnreadCountBadge(count: articleStore.badgeCount(for: feed.id))
             }
         }
         .contextMenu {

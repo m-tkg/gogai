@@ -243,19 +243,21 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertTrue(store.articles[0].isRead, "URLError ではロールバックせず pending に積む")
     }
 
-    func test_unreadCount_returnsCorrectCount() {
+    func test_badgeCount_unreadOnly_returnsCorrectCount() {
+        store.unreadOnly = true
         store.articles = [
             makeArticle(id: 1, isRead: 0),
             makeArticle(id: 2, isRead: 1),
             makeArticle(id: 3, isRead: 0),
         ]
 
-        XCTAssertEqual(store.unreadCount(for: nil), 2)
+        XCTAssertEqual(store.badgeCount(for: nil), 2)
     }
 
     // MARK: - unreadCount(forGroupFeedIds:)
 
-    func test_unreadCount_forGroupFeedIds_returnsUnreadCountForSpecifiedFeeds() {
+    func test_badgeCount_unreadOnly_forGroupFeedIds_returnsUnreadCountForSpecifiedFeeds() {
+        store.unreadOnly = true
         store.articles = [
             makeArticle(id: 1, feedId: 10, isRead: 0),
             makeArticle(id: 2, feedId: 10, isRead: 1),
@@ -263,45 +265,50 @@ final class ArticleStoreTests: XCTestCase {
             makeArticle(id: 4, feedId: 30, isRead: 0),
         ]
 
-        XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10, 20]), 2)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 2)
     }
 
-    func test_unreadCount_forGroupFeedIds_excludesFeedsNotInGroup() {
+    func test_badgeCount_unreadOnly_forGroupFeedIds_excludesFeedsNotInGroup() {
+        store.unreadOnly = true
         store.articles = [
             makeArticle(id: 1, feedId: 10, isRead: 0),
             makeArticle(id: 2, feedId: 20, isRead: 0),
         ]
 
-        XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10]), 1)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10]), 1)
     }
 
-    func test_unreadCount_forGroupFeedIds_returnsZeroForEmptyFeedIds() {
+    func test_badgeCount_unreadOnly_forGroupFeedIds_returnsZeroForEmptyFeedIds() {
+        store.unreadOnly = true
         store.articles = [
             makeArticle(id: 1, feedId: 10, isRead: 0),
         ]
 
-        XCTAssertEqual(store.unreadCount(forGroupFeedIds: []), 0)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: []), 0)
     }
 
-    func test_unreadCount_forGroupFeedIds_fallsBackToArticles_whenAllArticlesEmpty() {
+    func test_badgeCount_unreadOnly_forGroupFeedIds_fallsBackToArticles_whenAllArticlesEmpty() {
+        store.unreadOnly = true
         store.articles = [makeArticle(id: 1, feedId: 10, isRead: 0)]
         // allArticles が空の場合は articles を使う
-        XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10]), 1)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10]), 1)
     }
 
     @MainActor
-    func test_unreadCount_forGroupFeedIds_usesAllArticles_whenAllArticlesPopulated() async {
+    func test_badgeCount_unreadOnly_forGroupFeedIds_usesAllArticles_whenAllArticlesPopulated() async {
         // fetchArticles で allArticles を feed_id=10 の記事で埋める
+        // （フィルタ中はコレクションを更新しない仕様のため、フェッチはフィルタなしで行う）
         let feed10Articles = [makeArticle(id: 1, feedId: 10, isRead: 0), makeArticle(id: 2, feedId: 10, isRead: 1)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(feed10Articles)) }
         await store.fetchArticles(feedId: 10)
+        store.unreadOnly = true
 
         // articles は feed_id=10 のみ、allArticles も feed_id=10 が入っている
         // articles を feed_id=20 で上書き（allArticles は更新されない）
         store.articles = [makeArticle(id: 3, feedId: 20, isRead: 0)]
 
         // allArticles（feed_id=10 の未読1件）を使う
-        XCTAssertEqual(store.unreadCount(forGroupFeedIds: [10]), 1)
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10]), 1)
     }
 
     // MARK: - refresh() + unreadOnly 既読記事保持
@@ -831,7 +838,8 @@ final class ArticleStoreTests: XCTestCase {
 
     // MARK: - unreadCount(excludingFeedIds:)
 
-    func test_unreadCount_excludingFeedIds_excludesSpecifiedFeeds() {
+    func test_badgeCount_unreadOnly_excludingFeedIds_excludesSpecifiedFeeds() {
+        store.unreadOnly = true
         store.articles = [
             makeArticle(id: 1, feedId: 10, isRead: 0), // secret feed
             makeArticle(id: 2, feedId: 10, isRead: 0), // secret feed
@@ -840,31 +848,34 @@ final class ArticleStoreTests: XCTestCase {
         ]
 
         // feedId=10（シークレット）を除外した未読数は 1
-        XCTAssertEqual(store.unreadCount(excludingFeedIds: [10]), 1)
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: [10]), 1)
     }
 
-    func test_unreadCount_excludingFeedIds_emptyExcludeSet_returnsAllUnread() {
+    func test_badgeCount_unreadOnly_excludingFeedIds_emptyExcludeSet_returnsAllUnread() {
+        store.unreadOnly = true
         store.articles = [
             makeArticle(id: 1, feedId: 10, isRead: 0),
             makeArticle(id: 2, feedId: 20, isRead: 0),
         ]
 
         // 除外なしの場合は全未読を返す
-        XCTAssertEqual(store.unreadCount(excludingFeedIds: []), 2)
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: []), 2)
     }
 
     @MainActor
-    func test_unreadCount_excludingFeedIds_usesAllArticles_whenPopulated() async {
+    func test_badgeCount_unreadOnly_excludingFeedIds_usesAllArticles_whenPopulated() async {
+        // フィルタ中はコレクションを更新しない仕様のため、フェッチはフィルタなしで行う
         let feed10Articles = [makeArticle(id: 1, feedId: 10, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(feed10Articles)) }
         await store.fetchArticles(feedId: 10)
+        store.unreadOnly = true
 
         // allArticles には feedId=10 の未読1件がある
         // articles を別フィードで上書き
         store.articles = [makeArticle(id: 2, feedId: 20, isRead: 0)]
 
         // feedId=10 を除外 → 残るは feedId=20 だが allArticles には feedId=20 がないので 0
-        XCTAssertEqual(store.unreadCount(excludingFeedIds: [10]), 0)
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: [10]), 0)
     }
 
     // MARK: - お気に入り機能

@@ -13,9 +13,9 @@ struct GroupRowView: View {
     @State private var editName = ""
     @State private var showDeleteConfirm = false
 
-    private var groupUnreadCount: Int {
+    private var groupBadgeCount: Int {
         let feedIds = feedStore.feeds(for: group.id).map { $0.id }
-        return articleStore.unreadCount(forGroupFeedIds: feedIds)
+        return articleStore.badgeCount(forGroupFeedIds: feedIds)
     }
 
     var body: some View {
@@ -43,15 +43,7 @@ struct GroupRowView: View {
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                if groupUnreadCount > 0 {
-                    Text(groupUnreadCount >= 1000 ? "1000+" : "\(groupUnreadCount)")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor, in: Capsule())
-                }
+                UnreadCountBadge(count: groupBadgeCount)
             }
             .contentShape(Rectangle())
 
