@@ -20,8 +20,7 @@ final class ArticleRepositoryTests: XCTestCase {
         Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
                 link: "https://example.com/\(id)", summary: "Summary", content: nil,
                 published_at: "2024-01-01T00:00:00Z", is_read: isRead, is_favorite: 0,
-                created_at: "2024-01-01T00:00:00Z", ai_summary: nil, ai_translation: nil,
-                ai_audio_url: nil, read_at: nil)
+                created_at: "2024-01-01T00:00:00Z", read_at: nil)
     }
 
     func test_fetchAll_returnsArticles() async throws {
@@ -63,17 +62,6 @@ final class ArticleRepositoryTests: XCTestCase {
         try await repository.markAsUnread(id: 5)
     }
 
-    func test_fetchAll_withSummaryOnly_includesQueryParam() async throws {
-        MockURLProtocol.requestHandler = { request in
-            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
-            let summaryOnly = components.queryItems?.first(where: { $0.name == "summaryOnly" })?.value
-            XCTAssertEqual(summaryOnly, "true")
-            return (200, Data("[]".utf8))
-        }
-
-        let _ = try await repository.fetchAll(summaryOnly: true)
-    }
-
     func test_fetchAll_withFavoriteOnly_includesQueryParam() async throws {
         MockURLProtocol.requestHandler = { request in
             let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
@@ -83,19 +71,5 @@ final class ArticleRepositoryTests: XCTestCase {
         }
 
         let _ = try await repository.fetchAll(favoriteOnly: true)
-    }
-
-    func test_runAI_summarize_sendsCorrectBody() async throws {
-        let aiResult = ArticleRepository.AIResult(output: "Summary text", cached: false)
-        MockURLProtocol.requestHandler = { request in
-            XCTAssertTrue(request.url?.path.hasSuffix("/api/articles/1/claude") == true)
-            let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
-            XCTAssertEqual(body["action"] as? String, "summarize")
-            return (200, try JSONEncoder().encode(aiResult))
-        }
-
-        let result = try await repository.runAI(id: 1, action: .summarize)
-        XCTAssertEqual(result.output, "Summary text")
-        XCTAssertFalse(result.cached)
     }
 }

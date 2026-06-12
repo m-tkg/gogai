@@ -21,7 +21,7 @@ final class AppCacheTests: XCTestCase {
         Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
                 is_read: 0, is_favorite: 0, created_at: "2024-01-01T00:00:00Z",
-                ai_summary: nil, ai_translation: nil, ai_audio_url: nil, read_at: nil)
+                read_at: nil)
     }
 
     private func makeFeed(id: Int = 1) -> Feed {

@@ -55,7 +55,6 @@ struct SidebarView: View {
 
     private var isNetworkActive: Bool {
         articleStore.isLoading
-            || !articleStore.summarizingIds.isEmpty
             || feedStore.isLoading
             || feedStore.isRefreshing
             || groupStore.isLoading
@@ -141,7 +140,7 @@ struct SidebarView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, summaryOnly: $articleStore.summaryOnly, favoriteOnly: $articleStore.favoriteOnly)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly)
         }
         .navigationTitle("Feed list")
         .environment(\.editMode, .constant(isEditing ? .active : .inactive))

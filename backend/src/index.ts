@@ -12,6 +12,8 @@ import { SettingsService } from './services/settings.js'
 import { FeedsService } from './services/feeds.js'
 import { refreshAllFeeds } from './services/feed-refresher.js'
 import { runSafely } from './utils/safe-run.js'
+import { errorHandler } from './errors.js'
+import { RETENTION_DAYS_DEFAULT } from './config.js'
 import { mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -19,10 +21,8 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 mkdirSync(join(__dirname, '../data'), { recursive: true })
 
-const DEFAULT_RETENTION_DAYS = 180
-
 function purgeOldArticles() {
-  const days = new SettingsService(getDb()).get('retention_days', DEFAULT_RETENTION_DAYS)
+  const days = new SettingsService(getDb()).get('retention_days', RETENTION_DAYS_DEFAULT)
   const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
   const deleted = new ArticlesService(getDb()).deleteOlderThan(threshold)
   if (deleted > 0) {
@@ -46,6 +46,7 @@ async function autoRefreshFeeds() {
 setInterval(() => runSafely('feed-refresher', autoRefreshFeeds), 5 * 60 * 1000)
 
 const app = new Hono()
+app.onError(errorHandler)
 
 app.use('*', cors({
   origin: (origin) => origin ?? '*',
