@@ -1,45 +1,12 @@
 import axios from 'axios'
+import type { Group, Feed, Article, RefreshResult, Settings, UpdateCheck, SortBy } from './types'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 export const api = axios.create({ baseURL: BASE_URL })
 
-// Types
-export interface Group {
-  id: number
-  name: string
-  is_secret: number
-  created_at: string
-  display_order: number
-}
-
-export interface Feed {
-  id: number
-  url: string
-  title: string | null
-  favicon_url: string | null
-  group_id: number | null
-  last_fetched_at: string | null
-  created_at: string
-  display_order: number
-}
-
-export type SortBy = 'published_at' | 'read_at'
-
-export interface Article {
-  id: number
-  feed_id: number
-  guid: string
-  title: string | null
-  link: string | null
-  summary: string | null
-  content: string | null
-  published_at: string | null
-  is_read: number
-  is_favorite: number
-  created_at: string
-  read_at: string | null
-}
+// 型は types.ts に定義。既存 import 互換のため再エクスポートする。
+export type { Group, Feed, Article, RefreshResult, Settings, UpdateCheck, SortBy } from './types'
 
 // Groups API
 export const groupsApi = {
@@ -49,11 +16,6 @@ export const groupsApi = {
   remove: (id: number) => api.delete(`/api/groups/${id}`),
   refresh: (id: number) => api.post<RefreshResult>(`/api/groups/${id}/refresh`).then(r => r.data),
   reorder: (ids: number[]) => api.patch('/api/groups/reorder', { ids }),
-}
-
-export interface RefreshResult {
-  refreshed: number
-  failed: number
 }
 
 // Feeds API
@@ -68,22 +30,12 @@ export const feedsApi = {
 }
 
 // Settings API
-export interface Settings {
-  retention_days: number
-}
-
 export const settingsApi = {
   get: () => api.get<Settings>('/api/settings').then(r => r.data),
   update: (data: Partial<Settings>) => api.put<Settings>('/api/settings', data).then(r => r.data),
 }
 
 // Admin API
-export interface UpdateCheck {
-  local: string
-  remote: string
-  hasUpdate: boolean
-}
-
 export const adminApi = {
   updateCheck: () => api.get<UpdateCheck>('/api/admin/update-check').then(r => r.data),
   restart: () => api.post<{ output: string }>('/api/admin/restart').then(r => r.data),
