@@ -279,6 +279,19 @@ struct ArticleDetailView: View {
                     // （SFSafariViewController の下部ツールバーを避けて持ち上げる）
                     BrowserView(url: url)
                         .localAIOverlay(for: currentArticle, bottomPadding: 70)
+                        // 閉じる操作は右スワイプ（開く操作の左スワイプと対）。
+                        // sheet 標準の下スワイプ dismiss は無効化する
+                        .interactiveDismissDisabled()
+                        .simultaneousGesture(
+                            DragGesture(minimumDistance: 80, coordinateSpace: .local)
+                                .onEnded { value in
+                                    let isRightSwipe = value.translation.width > 80
+                                        && abs(value.translation.height) < abs(value.translation.width) * 0.5
+                                    if isRightSwipe {
+                                        showBrowser = false
+                                    }
+                                }
+                        )
                 }
             }
         #endif

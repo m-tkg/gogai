@@ -252,6 +252,7 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | 概要ページ（ArticleDetailView） | 左スワイプ: 記事ページ（BrowserView）を sheet で開く |
 | FilterFooterView | 「全て」「未読のみ」「お気に入り」ボタン（フィードページ・記事一覧ページ共通）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
+| 記事ページ（BrowserView） | 右スワイプで閉じる（下スワイプの dismiss は無効） |
 | AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
 
 ### ナビゲーション構造
