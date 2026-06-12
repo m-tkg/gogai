@@ -127,11 +127,7 @@ final class ArticleStore: ObservableObject {
         let localReadIds = Set(previouslyReadArticles.map { $0.id })
         let preserveReadState: (Article) -> Article = { a in
             guard localReadIds.contains(a.id), !a.isRead else { return a }
-            return Article(id: a.id, feed_id: a.feed_id, guid: a.guid,
-                           title: a.title, link: a.link, summary: a.summary,
-                           content: a.content, published_at: a.published_at,
-                           is_read: 1, is_favorite: a.is_favorite, created_at: a.created_at,
-                           read_at: a.read_at)
+            return a.updating(isRead: 1)
         }
         articles = articles.map(preserveReadState)
         allArticles = allArticles.map(preserveReadState)
@@ -166,13 +162,7 @@ final class ArticleStore: ObservableObject {
         guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
         let original = articles[idx]
         let nowISO = ISO8601DateFormatter().string(from: Date())
-        let updated = Article(
-            id: original.id, feed_id: original.feed_id, guid: original.guid,
-            title: original.title, link: original.link, summary: original.summary,
-            content: original.content, published_at: original.published_at,
-            is_read: 1, is_favorite: original.is_favorite, created_at: original.created_at,
-            read_at: nowISO
-        )
+        let updated = original.updating(isRead: 1, readAt: .set(nowISO))
         articles[idx] = updated
         updateAllArticles(updated)
 
@@ -199,11 +189,7 @@ final class ArticleStore: ObservableObject {
         let nowISO = ISO8601DateFormatter().string(from: Date())
         articles = articles.map { a in
             guard !a.isRead else { return a }
-            return Article(id: a.id, feed_id: a.feed_id, guid: a.guid, title: a.title,
-                           link: a.link, summary: a.summary, content: a.content,
-                           published_at: a.published_at, is_read: 1, is_favorite: a.is_favorite,
-                           created_at: a.created_at,
-                           read_at: nowISO)
+            return a.updating(isRead: 1, readAt: .set(nowISO))
         }
         for a in articles { updateAllArticles(a) }
 
@@ -228,13 +214,7 @@ final class ArticleStore: ObservableObject {
         guard let client else { return }
         guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
         let original = articles[idx]
-        let updated = Article(
-            id: original.id, feed_id: original.feed_id, guid: original.guid,
-            title: original.title, link: original.link, summary: original.summary,
-            content: original.content, published_at: original.published_at,
-            is_read: 0, is_favorite: original.is_favorite, created_at: original.created_at,
-            read_at: nil
-        )
+        let updated = original.updating(isRead: 0, readAt: .clear)
         articles[idx] = updated
         updateAllArticles(updated)
 
@@ -257,13 +237,7 @@ final class ArticleStore: ObservableObject {
         guard let client else { return }
         guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
         let original = articles[idx]
-        let updated = Article(
-            id: original.id, feed_id: original.feed_id, guid: original.guid,
-            title: original.title, link: original.link, summary: original.summary,
-            content: original.content, published_at: original.published_at,
-            is_read: original.is_read, is_favorite: 1, created_at: original.created_at,
-            read_at: original.read_at
-        )
+        let updated = original.updating(isFavorite: 1)
         articles[idx] = updated
         updateAllArticles(updated)
 
@@ -281,13 +255,7 @@ final class ArticleStore: ObservableObject {
         guard let client else { return }
         guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
         let original = articles[idx]
-        let updated = Article(
-            id: original.id, feed_id: original.feed_id, guid: original.guid,
-            title: original.title, link: original.link, summary: original.summary,
-            content: original.content, published_at: original.published_at,
-            is_read: original.is_read, is_favorite: 0, created_at: original.created_at,
-            read_at: original.read_at
-        )
+        let updated = original.updating(isFavorite: 0)
         articles[idx] = updated
         updateAllArticles(updated)
 
