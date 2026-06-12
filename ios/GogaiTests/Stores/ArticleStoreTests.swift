@@ -150,6 +150,99 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertFalse(store.articles[0].isRead, "未読操作の意図を尊重し、再フェッチで既読に戻してはいけない")
     }
 
+    // MARK: - mergeIntoAllArticles の分岐（再設計前の特性固定）
+
+    @MainActor
+    func test_fetchArticles_feedSpecific_replacesOnlyThatFeedInAllArticles() async {
+        // 全件フェッチで feed 1 と feed 2 の記事を allArticles に入れる
+        let initial = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 2)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+        XCTAssertEqual(store.allArticles.count, 2)
+
+        // feed 1 のみフェッチ: feed 1 の記事が差し替わり、feed 2 の記事は保持される
+        let feed1New = [makeArticle(id: 10, feedId: 1), makeArticle(id: 11, feedId: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(feed1New)) }
+        await store.fetchArticles(feedId: 1)
+
+        let allIds = Set(store.allArticles.map { $0.id })
+        XCTAssertEqual(allIds, [2, 10, 11], "feed 1 は新記事に差し替え、feed 2 は保持")
+    }
+
+    @MainActor
+    func test_fetchArticles_groupSpecific_replacesFetchedFeedsInAllArticles() async {
+        // feed 1（グループ内）と feed 9（グループ外）を allArticles に入れる
+        let initial = [makeArticle(id: 1, feedId: 1), makeArticle(id: 9, feedId: 9)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        // groupId 指定フェッチが feed 1 の記事を返す → feed 9 は保持される
+        let groupArticles = [makeArticle(id: 100, feedId: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(groupArticles)) }
+        await store.fetchArticles(groupId: 5)
+
+        let allIds = Set(store.allArticles.map { $0.id })
+        XCTAssertEqual(allIds, [9, 100], "フェッチ結果に含まれるフィードのみ差し替える")
+    }
+
+    @MainActor
+    func test_fetchArticles_fullFetch_replacesAllArticlesEntirely() async {
+        let initial = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 2)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        let next = [makeArticle(id: 3, feedId: 3)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(next)) }
+        await store.fetchArticles()
+
+        XCTAssertEqual(store.allArticles.map { $0.id }, [3], "全件フェッチは全置換")
+    }
+
+    // MARK: - markAsRead / markAllAsRead と allArticles の同期
+
+    @MainActor
+    func test_markAsRead_updatesAllArticles() async {
+        let initial = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+        await store.markAsRead(id: 1)
+
+        XCTAssertTrue(store.allArticles[0].isRead, "allArticles も同期して既読になる")
+    }
+
+    @MainActor
+    func test_markAllAsRead_marksAllUnreadAndSyncsAllArticles() async {
+        let initial = [
+            makeArticle(id: 1, feedId: 1, isRead: 0),
+            makeArticle(id: 2, feedId: 1, isRead: 1),
+            makeArticle(id: 3, feedId: 1, isRead: 0),
+        ]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+        await store.markAllAsRead()
+
+        XCTAssertTrue(store.articles.allSatisfy { $0.isRead })
+        XCTAssertTrue(store.allArticles.allSatisfy { $0.isRead }, "allArticles も全て既読")
+        XCTAssertNotNil(store.articles[0].read_at, "既読化で read_at が設定される")
+        XCTAssertEqual(store.articles[1].read_at, nil, "元から既読の記事は read_at を上書きしない")
+    }
+
+    @MainActor
+    func test_markAllAsRead_onURLError_keepsOptimisticUpdate() async {
+        let initial = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(initial)) }
+        await store.fetchArticles()
+
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+        await store.markAllAsRead()
+
+        XCTAssertTrue(store.articles[0].isRead, "URLError ではロールバックせず pending に積む")
+    }
+
     func test_unreadCount_returnsCorrectCount() {
         store.articles = [
             makeArticle(id: 1, isRead: 0),
