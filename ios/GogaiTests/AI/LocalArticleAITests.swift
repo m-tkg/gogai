@@ -93,6 +93,32 @@ final class LocalArticleAITests: XCTestCase {
         XCTAssertTrue(text.contains("本文"))
     }
 
+    // MARK: - TranslationEngine（翻訳エンジン選択）
+
+    func test_translationEngine_デフォルトはローカルAI() {
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.translationEngine)
+        XCTAssertEqual(TranslationEngine.current, .foundationModel)
+    }
+
+    func test_translationEngine_選択がUserDefaultsに永続化される() {
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.translationEngine)
+        TranslationEngine.current = .translationFramework
+        XCTAssertEqual(TranslationEngine.current, .translationFramework)
+        XCTAssertEqual(
+            UserDefaults.standard.string(forKey: DefaultsKeys.translationEngine),
+            TranslationEngine.translationFramework.rawValue
+        )
+        TranslationEngine.current = .foundationModel
+        XCTAssertEqual(TranslationEngine.current, .foundationModel)
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.translationEngine)
+    }
+
+    func test_translationEngine_不正な保存値はデフォルトにフォールバックする() {
+        UserDefaults.standard.set("bogus", forKey: DefaultsKeys.translationEngine)
+        XCTAssertEqual(TranslationEngine.current, .foundationModel)
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.translationEngine)
+    }
+
     // MARK: - LocalAI.isAvailable（OS ゲート）
 
     func test_isAvailable_iOS27未満ではfalse() {
