@@ -26,6 +26,9 @@
 		FF00000000000000000011AB /* FeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000011AB /* FeedStore.swift */; };
 		FF00000000000000000012AB /* ArticleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000012AB /* ArticleStore.swift */; };
 		FF0000000000000000003FAB /* ArticleCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003FAB /* ArticleCollection.swift */; };
+		FF00000000000000000041AB /* LocalArticleAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000041AB /* LocalArticleAI.swift */; };
+		FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000042AB /* FoundationModelTextGenerator.swift */; };
+		FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000043AB /* LocalAIResultSheet.swift */; };
 		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
 		FF00000000000000000014AB /* ServerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000014AB /* ServerSetupView.swift */; };
 		FF00000000000000000015AB /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000015AB /* SidebarView.swift */; };
@@ -96,6 +99,9 @@
 		DD00000000000000000011AB /* FeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000012AB /* ArticleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStore.swift; sourceTree = "<group>"; };
 		DD0000000000000000003FAB /* ArticleCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollection.swift; sourceTree = "<group>"; };
+		DD00000000000000000041AB /* LocalArticleAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalArticleAI.swift; sourceTree = "<group>"; };
+		DD00000000000000000042AB /* FoundationModelTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGenerator.swift; sourceTree = "<group>"; };
+		DD00000000000000000043AB /* LocalAIResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIResultSheet.swift; sourceTree = "<group>"; };
 		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000014AB /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
 		DD00000000000000000015AB /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -167,6 +173,7 @@
 				CC00000000000000000005AB /* Repositories */,
 				CC00000000000000000006AB /* Stores */,
 				CC00000000000000000007AB /* Views */,
+				CC00000000000000000016AB /* AI */,
 				CC00000000000000000009AB /* Utilities */,
 				DD00000000000000000024AB /* Assets.xcassets */,
 				DD00000000000000000025AB /* Info.plist */,
@@ -241,6 +248,16 @@
 				CC0000000000000000000EAB /* Settings */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000016AB /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000041AB /* LocalArticleAI.swift */,
+				DD00000000000000000042AB /* FoundationModelTextGenerator.swift */,
+				DD00000000000000000043AB /* LocalAIResultSheet.swift */,
+			);
+			path = AI;
 			sourceTree = "<group>";
 		};
 		CC00000000000000000009AB /* Utilities */ = {
@@ -475,6 +492,9 @@
 				FF00000000000000000011AB /* FeedStore.swift in Sources */,
 				FF00000000000000000012AB /* ArticleStore.swift in Sources */,
 				FF0000000000000000003FAB /* ArticleCollection.swift in Sources */,
+				FF00000000000000000041AB /* LocalArticleAI.swift in Sources */,
+				FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */,
+				FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */,
 				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
 				FF00000000000000000014AB /* ServerSetupView.swift in Sources */,
 				FF00000000000000000015AB /* SidebarView.swift in Sources */,
