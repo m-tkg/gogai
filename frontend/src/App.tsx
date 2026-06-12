@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Sidebar } from './components/Sidebar'
 import { ArticleList } from './components/ArticleList'
 import { ArticleDetail } from './components/ArticleDetail'
 import { Settings } from './components/Settings'
-import type { Article } from './api/client'
+import { useSelectionState } from './hooks/useSelectionState'
+import { useDarkMode } from './hooks/useDarkMode'
+import { useLocalStorageBool } from './hooks/useLocalStorageBool'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -14,74 +16,45 @@ const queryClient = new QueryClient({
 })
 
 function RssReader() {
-  const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null)
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
-  // モバイルでは一度に一パネルのみ表示する（list: 記事一覧, detail: 記事詳細）
-  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list')
-  // サイドバー開閉状態（localStorage で永続化）
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    const saved = localStorage.getItem('sidebarOpen')
-    return saved !== null ? saved === 'true' : true
-  })
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('darkMode')
-    if (saved !== null) return saved === 'true'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
+  const selection = useSelectionState()
+  const { darkMode, toggleDarkMode } = useDarkMode()
+  const [sidebarOpen, toggleSidebar] = useLocalStorageBool('sidebarOpen', true)
   // シークレットグループの表示フラグ（保存されない）
   const [showSecretGroups, setShowSecretGroups] = useState(false)
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode)
-    localStorage.setItem('darkMode', String(darkMode))
-  }, [darkMode])
-
-  const toggleSidebar = () => {
-    const next = !sidebarOpen
-    setSidebarOpen(next)
-    localStorage.setItem('sidebarOpen', String(next))
-  }
-
-  const handleSelectArticle = (article: Article) => {
-    setSelectedArticle(article)
-    setMobileView('detail')
-  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-gray-900">
       <Sidebar
-        selectedFeedId={selectedFeedId}
-        selectedGroupId={selectedGroupId}
-        onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedArticle(null); setShowSettings(false); setMobileView('list') }}
-        onSelectGroup={(id) => { setSelectedGroupId(id); setSelectedArticle(null); setShowSettings(false); setMobileView('list') }}
+        selectedFeedId={selection.feedId}
+        selectedGroupId={selection.groupId}
+        onSelectFeed={selection.selectFeed}
+        onSelectGroup={selection.selectGroup}
         darkMode={darkMode}
-        onToggleDark={() => setDarkMode(d => !d)}
-        onOpenSettings={() => setShowSettings(true)}
-        showSettings={showSettings}
+        onToggleDark={toggleDarkMode}
+        onOpenSettings={selection.openSettings}
+        showSettings={selection.showSettings}
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}
         showSecretGroups={showSecretGroups}
       />
-      {showSettings ? (
+      {selection.showSettings ? (
         <Settings showSecretGroups={showSecretGroups} onToggleSecretGroups={() => setShowSecretGroups(v => !v)} />
       ) : (
         <>
           {/* 記事一覧: モバイルでは detail 表示中は隠す */}
-          <div className={`border-r border-gray-200 dark:border-gray-700 flex-shrink-0 md:w-80 ${mobileView === 'detail' ? 'hidden md:block' : 'flex-1 md:flex-initial'}`}>
+          <div className={`border-r border-gray-200 dark:border-gray-700 flex-shrink-0 md:w-80 ${selection.mobileView === 'detail' ? 'hidden md:block' : 'flex-1 md:flex-initial'}`}>
             <ArticleList
-              feedId={selectedFeedId}
-              groupId={selectedGroupId}
-              onSelectArticle={handleSelectArticle}
-              selectedArticleId={selectedArticle?.id ?? null}
+              feedId={selection.feedId}
+              groupId={selection.groupId}
+              onSelectArticle={selection.selectArticle}
+              selectedArticleId={selection.article?.id ?? null}
               onOpenSidebar={toggleSidebar}
               showSecretGroups={showSecretGroups}
             />
           </div>
           {/* 記事詳細: モバイルでは list 表示中は隠す */}
-          <div className={`flex-1 min-w-0 ${mobileView === 'list' ? 'hidden md:block' : 'block'}`}>
-            <ArticleDetail article={selectedArticle} onBack={() => setMobileView('list')} />
+          <div className={`flex-1 min-w-0 ${selection.mobileView === 'list' ? 'hidden md:block' : 'block'}`}>
+            <ArticleDetail article={selection.article} onBack={selection.backToList} />
           </div>
         </>
       )}

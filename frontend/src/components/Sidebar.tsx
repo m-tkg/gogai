@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { groupsApi, feedsApi, type Group, type Feed } from '../api/client'
+import { queryKeys } from '../api/queryKeys'
+import { useFeedMutations } from '../hooks/useFeedMutations'
+import { useGroupMutations } from '../hooks/useGroupMutations'
+import { useDragReorder } from '../hooks/useDragReorder'
+import { GroupSection } from './sidebar/GroupSection'
+import { FeedList } from './sidebar/FeedList'
+import { AddFeedForm, AddGroupForm } from './sidebar/AddForms'
 
 interface SidebarProps {
   selectedFeedId: number | null
@@ -17,23 +24,25 @@ interface SidebarProps {
 }
 
 export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelectGroup, darkMode, onToggleDark, onOpenSettings, showSettings, isOpen, onToggle, showSecretGroups }: SidebarProps) {
-  const qc = useQueryClient()
-  const [addFeedUrl, setAddFeedUrl] = useState('')
-  const [addFeedGroupId, setAddFeedGroupId] = useState<number | undefined>()
-  const [addGroupName, setAddGroupName] = useState('')
-  const [showAddFeed, setShowAddFeed] = useState(false)
-  const [showAddGroup, setShowAddGroup] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [confirmGroupId, setConfirmGroupId] = useState<number | null>(null)
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<number>>(new Set())
-  const [dragGroupId, setDragGroupId] = useState<number | null>(null)
-  const [dragOverGroupId, setDragOverGroupId] = useState<number | null>(null)
+
+  const { data: groups = [] } = useQuery({ queryKey: queryKeys.groups, queryFn: groupsApi.list })
+  const { data: feeds = [] } = useQuery({ queryKey: queryKeys.feeds, queryFn: feedsApi.list })
+
+  const feedMutations = useFeedMutations()
+  const groupMutations = useGroupMutations()
+  const feedDnd = useDragReorder<Feed>((ids) => feedMutations.reorderFeeds.mutate(ids))
+  const groupDnd = useDragReorder<Group>((ids) => groupMutations.reorderGroups.mutate(ids))
 
   const isExpanded = (id: number) => !collapsedGroupIds.has(id)
   const toggleExpanded = (id: number) => {
     setCollapsedGroupIds(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -56,151 +65,17 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
     }
   }
 
-  const [dragFeedId, setDragFeedId] = useState<number | null>(null)
-  const [dragOverFeedId, setDragOverFeedId] = useState<number | null>(null)
-
-  const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list })
-  const { data: feeds = [] } = useQuery({ queryKey: ['feeds'], queryFn: feedsApi.list })
-
-  const addFeed = useMutation({
-    mutationFn: () => feedsApi.create(addFeedUrl, addFeedGroupId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
-      setAddFeedUrl('')
-      setAddFeedGroupId(undefined)
-      setShowAddFeed(false)
-      setError(null)
-    },
-    onError: (e: { response?: { data?: { error?: string } } }) => {
-      setError(e.response?.data?.error ?? 'フィードの追加に失敗しました')
-    },
-  })
-
-  const removeFeed = useMutation({
-    mutationFn: (id: number) => feedsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
-  })
-
-  const updateFeed = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { url?: string; groupId?: number | null } }) =>
-      feedsApi.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
-    },
-  })
-
-  const refreshFeed = useMutation({
-    mutationFn: (id: number) => feedsApi.refresh(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
-    },
-  })
-
-  const refreshAllFeedsMutation = useMutation({
-    mutationFn: feedsApi.refreshAll,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
-    },
-  })
-
-  const reorderFeeds = useMutation({
-    mutationFn: (ids: number[]) => feedsApi.reorder(ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feeds'] }),
-  })
-
-  const refreshGroup = useMutation({
-    mutationFn: (id: number) => groupsApi.refresh(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['feeds'] })
-      qc.invalidateQueries({ queryKey: ['articles'] })
-    },
-  })
-
-  const reorderGroups = useMutation({
-    mutationFn: (ids: number[]) => groupsApi.reorder(ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
-  })
-
-  const handleGroupDragStart = (groupId: number) => setDragGroupId(groupId)
-  const handleGroupDragOver = (e: React.DragEvent, groupId: number) => {
-    e.preventDefault()
-    setDragOverGroupId(groupId)
+  const selectFeed = (id: number) => {
+    onSelectFeed(id)
+    onSelectGroup(null)
+    closeSidebarIfMobile()
   }
-  const handleGroupDrop = (visibleGroups: Group[]) => {
-    if (dragGroupId === null || dragOverGroupId === null || dragGroupId === dragOverGroupId) {
-      setDragGroupId(null)
-      setDragOverGroupId(null)
-      return
-    }
-    const reordered = [...visibleGroups]
-    const fromIdx = reordered.findIndex(g => g.id === dragGroupId)
-    const toIdx = reordered.findIndex(g => g.id === dragOverGroupId)
-    if (fromIdx === -1 || toIdx === -1) return
-    const [moved] = reordered.splice(fromIdx, 1)
-    reordered.splice(toIdx, 0, moved)
-    reorderGroups.mutate(reordered.map(g => g.id))
-    setDragGroupId(null)
-    setDragOverGroupId(null)
-  }
-  const handleGroupDragEnd = () => {
-    setDragGroupId(null)
-    setDragOverGroupId(null)
-  }
-
-  const addGroup = useMutation({
-    mutationFn: () => groupsApi.create(addGroupName),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['groups'] })
-      setAddGroupName('')
-      setShowAddGroup(false)
-    },
-  })
-
-  const removeGroup = useMutation({
-    mutationFn: (id: number) => groupsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
-  })
-
-  const toggleGroupSecret = useMutation({
-    mutationFn: ({ id, name, isSecret }: { id: number; name: string; isSecret: number }) =>
-      groupsApi.update(id, name, isSecret),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
-  })
 
   const feedsByGroup = (groupId: number | null) =>
     feeds.filter((f: Feed) => f.group_id === groupId)
 
-  const handleDragStart = (feedId: number) => setDragFeedId(feedId)
-  const handleDragOver = (e: React.DragEvent, feedId: number) => {
-    e.preventDefault()
-    setDragOverFeedId(feedId)
-  }
-  const handleDrop = (groupFeeds: Feed[]) => {
-    if (dragFeedId === null || dragOverFeedId === null || dragFeedId === dragOverFeedId) {
-      setDragFeedId(null)
-      setDragOverFeedId(null)
-      return
-    }
-    const reordered = [...groupFeeds]
-    const fromIdx = reordered.findIndex(f => f.id === dragFeedId)
-    const toIdx = reordered.findIndex(f => f.id === dragOverFeedId)
-    if (fromIdx === -1 || toIdx === -1) return
-    const [moved] = reordered.splice(fromIdx, 1)
-    reordered.splice(toIdx, 0, moved)
-    reorderFeeds.mutate(reordered.map(f => f.id))
-    setDragFeedId(null)
-    setDragOverFeedId(null)
-  }
-  const handleDragEnd = () => {
-    setDragFeedId(null)
-    setDragOverFeedId(null)
-  }
-
   const ungroupedFeeds = feedsByGroup(null)
+  const visibleGroups = groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups)
 
   // useQuery はサイドバーが閉じていても実行し続ける（5分ごとの自動更新を維持するため意図的）
   if (!isOpen) {
@@ -274,404 +149,59 @@ export function Sidebar({ selectedFeedId, selectedGroupId, onSelectFeed, onSelec
             📋 すべての記事
           </button>
           <button
-            onClick={() => refreshAllFeedsMutation.mutate()}
-            disabled={refreshAllFeedsMutation.isPending}
+            onClick={() => feedMutations.refreshAllFeeds.mutate()}
+            disabled={feedMutations.refreshAllFeeds.isPending}
             className="hidden group-hover/all:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
             title="全フィードを更新"
           >
-            {refreshAllFeedsMutation.isPending ? '…' : '↻'}
+            {feedMutations.refreshAllFeeds.isPending ? '…' : '↻'}
           </button>
         </div>
 
-        {(() => {
-          const visibleGroups = groups.filter((g: Group) => g.is_secret !== 1 || showSecretGroups)
-          return visibleGroups.map((group: Group) => (
-          <div
+        {visibleGroups.map((group: Group) => (
+          <GroupSection
             key={group.id}
-            className={`mb-1 ${dragOverGroupId === group.id ? 'border-t-2 border-blue-400' : ''} ${dragGroupId === group.id ? 'opacity-40' : ''}`}
-            draggable
-            onDragStart={() => handleGroupDragStart(group.id)}
-            onDragOver={(e) => handleGroupDragOver(e, group.id)}
-            onDrop={() => handleGroupDrop(visibleGroups)}
-            onDragEnd={handleGroupDragEnd}
-          >
-            <div className="flex items-center group/group">
-              {/* ドラッグハンドル */}
-              <span
-                className="hidden group-hover/group:flex cursor-grab text-gray-300 dark:text-gray-600 text-xs px-0.5 select-none"
-                title="ドラッグして並び替え"
-              >
-                ⠿
-              </span>
-              {/* フォルダアイコン: クリックで展開・折りたたみ */}
-              <button
-                onClick={() => toggleExpanded(group.id)}
-                className="px-2 py-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm flex items-center gap-0.5"
-                title={isExpanded(group.id) ? '折りたたむ' : '展開する'}
-              >
-                <span>{group.is_secret === 1 ? '🔒' : '📁'}</span>
-                <span className="text-xs">{isExpanded(group.id) ? '▾' : '▸'}</span>
-              </button>
-              {/* グループ名: クリックでグループ記事一覧へ */}
-              <button
-                onClick={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile(); setConfirmGroupId(null) }}
-                className={`flex-1 text-left px-2 py-1.5 rounded-md text-sm font-medium ${
-                  selectedGroupId === group.id
-                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                {group.name}
-              </button>
-              {confirmGroupId === group.id ? (
-                <div className="flex items-center gap-1 px-1">
-                  <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
-                  <button
-                    onClick={() => removeGroup.mutate(group.id, { onSuccess: () => setConfirmGroupId(null) })}
-                    className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    削除
-                  </button>
-                  <button
-                    onClick={() => setConfirmGroupId(null)}
-                    className="px-1.5 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                  >
-                    キャンセル
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => refreshGroup.mutate(group.id)}
-                    disabled={refreshGroup.isPending && refreshGroup.variables === group.id}
-                    className="hidden group-hover/group:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
-                    title="グループのフィードを更新"
-                  >
-                    {refreshGroup.isPending && refreshGroup.variables === group.id ? '…' : '↻'}
-                  </button>
-                  <button
-                    onClick={() => toggleGroupSecret.mutate({ id: group.id, name: group.name, isSecret: group.is_secret === 1 ? 0 : 1 })}
-                    className="hidden group-hover/group:block px-1 text-gray-400 hover:text-yellow-500 text-xs"
-                    title={group.is_secret === 1 ? 'シークレットを解除' : 'シークレットに設定'}
-                  >
-                    {group.is_secret === 1 ? '🔓' : '🔒'}
-                  </button>
-                  <button
-                    onClick={() => setConfirmGroupId(group.id)}
-                    className="hidden group-hover/group:block px-1 text-gray-400 hover:text-red-500 text-xs"
-                    title="グループを削除"
-                    aria-label="グループを削除"
-                  >
-                    ✕
-                  </button>
-                </>
-              )}
-            </div>
-            {isExpanded(group.id) && (() => {
-              const groupFeeds = feedsByGroup(group.id)
-              return groupFeeds.map((feed: Feed) => (
-                <FeedItem
-                  key={feed.id}
-                  feed={feed}
-                  groups={groups}
-                  selected={selectedFeedId === feed.id}
-                  onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
-                  onRemove={(onSuccess) => removeFeed.mutate(feed.id, { onSuccess })}
-                  onRefresh={() => refreshFeed.mutate(feed.id)}
-                  onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
-                  isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
-                  isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
-                  isDragging={dragFeedId === feed.id}
-                  isDragOver={dragOverFeedId === feed.id}
-                  onDragStart={() => handleDragStart(feed.id)}
-                  onDragOver={(e) => handleDragOver(e, feed.id)}
-                  onDrop={() => handleDrop(groupFeeds)}
-                  onDragEnd={handleDragEnd}
-                />
-              ))
-            })()}
-          </div>
-          ))
-        })()}
+            group={group}
+            groupFeeds={feedsByGroup(group.id)}
+            groups={groups}
+            selected={selectedGroupId === group.id}
+            selectedFeedId={selectedFeedId}
+            onSelectGroup={() => { onSelectGroup(group.id); onSelectFeed(null); closeSidebarIfMobile() }}
+            onSelectFeed={selectFeed}
+            isExpanded={isExpanded(group.id)}
+            onToggleExpanded={() => toggleExpanded(group.id)}
+            groupMutations={groupMutations}
+            feedMutations={feedMutations}
+            feedDnd={feedDnd}
+            isDragging={groupDnd.dragId === group.id}
+            isDragOver={groupDnd.dragOverId === group.id}
+            onDragStart={() => groupDnd.handleDragStart(group.id)}
+            onDragOver={(e) => groupDnd.handleDragOver(e, group.id)}
+            onDrop={() => groupDnd.handleDrop(visibleGroups)}
+            onDragEnd={groupDnd.handleDragEnd}
+          />
+        ))}
 
         {ungroupedFeeds.length > 0 && (
           <div className="mt-2">
             <p className="text-xs text-gray-400 dark:text-gray-500 px-3 mb-1">グループなし</p>
-            {ungroupedFeeds.map((feed: Feed) => (
-              <FeedItem
-                key={feed.id}
-                feed={feed}
-                groups={groups}
-                selected={selectedFeedId === feed.id}
-                onSelect={() => { onSelectFeed(feed.id); onSelectGroup(null); closeSidebarIfMobile() }}
-                onRemove={(onSuccess) => removeFeed.mutate(feed.id, { onSuccess })}
-                onRefresh={() => refreshFeed.mutate(feed.id)}
-                onUpdate={(data, onSuccess, onError) => updateFeed.mutate({ id: feed.id, data }, { onSuccess, onError })}
-                isRefreshing={refreshFeed.isPending && refreshFeed.variables === feed.id}
-                isUpdating={updateFeed.isPending && updateFeed.variables?.id === feed.id}
-                isDragging={dragFeedId === feed.id}
-                isDragOver={dragOverFeedId === feed.id}
-                onDragStart={() => handleDragStart(feed.id)}
-                onDragOver={(e) => handleDragOver(e, feed.id)}
-                onDrop={() => handleDrop(ungroupedFeeds)}
-                onDragEnd={handleDragEnd}
-              />
-            ))}
+            <FeedList
+              feeds={ungroupedFeeds}
+              groups={groups}
+              selectedFeedId={selectedFeedId}
+              onSelectFeed={selectFeed}
+              feedMutations={feedMutations}
+              feedDnd={feedDnd}
+            />
           </div>
         )}
       </nav>
 
-      {error && (
-        <div className="mx-2 mb-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
-          {error}
-          <button onClick={() => setError(null)} className="ml-1 font-bold">✕</button>
-        </div>
-      )}
-
       <div className="p-2 border-t border-gray-200 dark:border-gray-700">
-        {showAddFeed ? (
-          <div className="space-y-1">
-            <input
-              type="url"
-              placeholder="Feed URL"
-              value={addFeedUrl}
-              onChange={e => setAddFeedUrl(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-            <select
-              value={addFeedGroupId ?? ''}
-              onChange={e => setAddFeedGroupId(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            >
-              <option value="">グループなし</option>
-              {groups.map((g: Group) => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
-            <div className="flex gap-1">
-              <button
-                onClick={() => addFeed.mutate()}
-                disabled={!addFeedUrl || addFeed.isPending}
-                className="flex-1 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-              >
-                {addFeed.isPending ? '追加中...' : '追加'}
-              </button>
-              <button
-                onClick={() => { setShowAddFeed(false); setError(null) }}
-                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowAddFeed(true)}
-            className="w-full px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-left"
-          >
-            ＋ フィードを追加
-          </button>
-        )}
-
-        {showAddGroup ? (
-          <div className="mt-1 space-y-1">
-            <input
-              type="text"
-              placeholder="グループ名"
-              value={addGroupName}
-              onChange={e => setAddGroupName(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-            <div className="flex gap-1">
-              <button
-                onClick={() => addGroup.mutate()}
-                disabled={!addGroupName || addGroup.isPending}
-                className="flex-1 px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
-              >
-                作成
-              </button>
-              <button
-                onClick={() => setShowAddGroup(false)}
-                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowAddGroup(true)}
-            className="w-full px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-left mt-1"
-          >
-            ＋ グループを追加
-          </button>
-        )}
+        <AddFeedForm groups={groups} feedMutations={feedMutations} />
+        <AddGroupForm groupMutations={groupMutations} />
       </div>
     </aside>
     </>
-  )
-}
-
-function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh, onUpdate, isRefreshing, isUpdating, isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd }: {
-  feed: Feed
-  groups: Group[]
-  selected: boolean
-  onSelect: () => void
-  onRemove: (onSuccess: () => void) => void
-  onRefresh: () => void
-  onUpdate: (data: { url?: string; groupId?: number | null }, onSuccess: () => void, onError: () => void) => void
-  isRefreshing: boolean
-  isUpdating: boolean
-  isDragging?: boolean
-  isDragOver?: boolean
-  onDragStart?: () => void
-  onDragOver?: (e: React.DragEvent) => void
-  onDrop?: () => void
-  onDragEnd?: () => void
-}) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [editUrl, setEditUrl] = useState(feed.url)
-  const [editGroupId, setEditGroupId] = useState<number | null>(feed.group_id)
-  const [editError, setEditError] = useState<string | null>(null)
-
-  const handleSave = () => {
-    setEditError(null)
-    onUpdate(
-      { url: editUrl.trim() || feed.url, groupId: editGroupId },
-      () => setIsEditing(false),
-      () => setEditError('保存に失敗しました。URLを確認してください。'),
-    )
-  }
-
-  const handleCancel = () => {
-    setEditUrl(feed.url)
-    setEditGroupId(feed.group_id)
-    setEditError(null)
-    setIsEditing(false)
-  }
-
-  if (isEditing) {
-    return (
-      <div className="pl-3 pr-1 py-1 space-y-1">
-        <input
-          type="url"
-          value={editUrl}
-          onChange={e => setEditUrl(e.target.value)}
-          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-          placeholder="Feed URL"
-        />
-        <select
-          value={editGroupId ?? ''}
-          onChange={e => setEditGroupId(e.target.value ? Number(e.target.value) : null)}
-          className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-        >
-          <option value="">グループなし</option>
-          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>
-        {editError && (
-          <p className="text-xs text-red-500 dark:text-red-400">{editError}</p>
-        )}
-        <div className="flex gap-1">
-          <button
-            onClick={handleSave}
-            disabled={isUpdating}
-            className="flex-1 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isUpdating ? '保存中…' : '保存'}
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={isUpdating}
-            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-          >
-            キャンセル
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className={`flex items-center group/feed pl-3 ${isDragOver ? 'border-t-2 border-blue-400' : ''} ${isDragging ? 'opacity-40' : ''}`}
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-    >
-      <span
-        className="hidden group-hover/feed:flex cursor-grab text-gray-300 dark:text-gray-600 text-xs px-0.5 select-none"
-        title="ドラッグして並び替え"
-      >
-        ⠿
-      </span>
-      <button
-        onClick={onSelect}
-        className={`flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-sm ${
-          selected
-            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-        }`}
-      >
-        <FeedFavicon url={feed.favicon_url} />
-        <span className="truncate">{feed.title ?? feed.url}</span>
-      </button>
-      {confirmDelete ? (
-        <div className="flex items-center gap-1 px-1">
-          <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
-          <button
-            onClick={() => onRemove(() => setConfirmDelete(false))}
-            className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            削除
-          </button>
-          <button
-            onClick={() => setConfirmDelete(false)}
-            className="px-1.5 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-          >
-            キャンセル
-          </button>
-        </div>
-      ) : (
-        <>
-          <button
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-blue-500 text-xs disabled:opacity-50"
-            title="フィードを更新"
-          >
-            {isRefreshing ? '…' : '↻'}
-          </button>
-          <button
-            onClick={() => setIsEditing(true)}
-            className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-green-500 text-xs"
-            title="フィードを編集"
-            aria-label="フィードを編集"
-          >
-            ✎
-          </button>
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="hidden group-hover/feed:block px-1 text-gray-400 hover:text-red-500 text-xs"
-            title="フィードを削除"
-            aria-label="フィードを削除"
-          >
-            ✕
-          </button>
-        </>
-      )}
-    </div>
-  )
-}
-
-function FeedFavicon({ url }: { url: string | null }) {
-  if (!url) return <span className="text-xs">📰</span>
-  return (
-    <img
-      src={url}
-      alt=""
-      className="w-4 h-4 object-contain"
-      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-    />
   )
 }
