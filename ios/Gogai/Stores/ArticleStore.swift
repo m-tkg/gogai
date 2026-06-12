@@ -9,13 +9,13 @@ final class ArticleStore: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var error: Error?
     @Published var unreadOnly: Bool {
-        didSet { UserDefaults.standard.set(unreadOnly, forKey: "unreadOnly") }
+        didSet { UserDefaults.standard.set(unreadOnly, forKey: DefaultsKeys.unreadOnly) }
     }
     @Published var favoriteOnly: Bool {
-        didSet { UserDefaults.standard.set(favoriteOnly, forKey: "favoriteOnly") }
+        didSet { UserDefaults.standard.set(favoriteOnly, forKey: DefaultsKeys.favoriteOnly) }
     }
     @Published var sortOrder: ArticleSortOrder {
-        didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: "sortOrder") }
+        didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: DefaultsKeys.sortOrder) }
     }
 
     private let cache: AppCache
@@ -40,9 +40,9 @@ final class ArticleStore: ObservableObject {
 
     init(cache: AppCache = .shared) {
         self.cache = cache
-        self.unreadOnly = UserDefaults.standard.bool(forKey: "unreadOnly")
-        self.favoriteOnly = UserDefaults.standard.bool(forKey: "favoriteOnly")
-        let savedSort = UserDefaults.standard.string(forKey: "sortOrder") ?? ""
+        self.unreadOnly = UserDefaults.standard.bool(forKey: DefaultsKeys.unreadOnly)
+        self.favoriteOnly = UserDefaults.standard.bool(forKey: DefaultsKeys.favoriteOnly)
+        let savedSort = UserDefaults.standard.string(forKey: DefaultsKeys.sortOrder) ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
         // 起動時にキャッシュから allArticles を読み込み、未読カウントを即座に表示する
         self.allArticles = cache.loadAllArticles()

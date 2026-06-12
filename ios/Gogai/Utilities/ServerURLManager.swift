@@ -2,8 +2,8 @@ import Foundation
 
 @MainActor
 final class ServerURLManager: ObservableObject {
-    private let userDefaultsKey = "serverURL"
-    private let resolvedURLKey = "resolvedServerURL"
+    private let userDefaultsKey = DefaultsKeys.serverURL
+    private let resolvedURLKey = DefaultsKeys.resolvedServerURL
     private let session: URLSession
     private let failureDebounceInterval: TimeInterval
     private var lastReportedFailureAt: Date?
