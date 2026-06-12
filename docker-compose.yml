@@ -7,8 +7,6 @@ services:
     environment:
       - PORT=3040
       - DB_PATH=/app/data/rss.db
-      # claude -p を使う場合は ANTHROPIC_API_KEY を設定
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3040/health"]
       interval: 30s
