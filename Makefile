@@ -28,9 +28,10 @@ build:
 	cd backend && npm run build
 	cd frontend && npm run build
 
-# バックエンドのテストを実行
+# バックエンド + フロントエンドのテストを実行
 test:
 	cd backend && npm test
+	cd frontend && npm test
 
 # バックエンドのテストをウォッチモードで実行
 test-watch:
