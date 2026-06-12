@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var saveError: Error?
     @State private var isCacheCleared = false
     @State private var cacheSize: Int64 = 0
+    @State private var translationEngine = TranslationEngine.current
 
     var body: some View {
         NavigationStack {
@@ -69,6 +70,23 @@ struct SettingsView: View {
                     Text("データ管理")
                 } footer: {
                     Text("指定した日数より古い記事は自動的に削除されます。ローカルキャッシュを削除すると、次回起動時にサーバーから再取得します。")
+                }
+
+                if LocalAI.isAvailable {
+                    Section {
+                        Picker("翻訳エンジン", selection: $translationEngine) {
+                            ForEach(TranslationEngine.allCases) { engine in
+                                Text(engine.label).tag(engine)
+                            }
+                        }
+                        .onChange(of: translationEngine) { _, newValue in
+                            TranslationEngine.current = newValue
+                        }
+                    } header: {
+                        Text("ローカル AI")
+                    } footer: {
+                        Text("「システム翻訳」は翻訳専用モデル（Translation framework）を使います。初回は言語パックのダウンロードが必要な場合があります。要約は常にローカル AI（基盤モデル）を使用します。")
+                    }
                 }
 
                 if let saveError {
