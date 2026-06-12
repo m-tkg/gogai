@@ -17,14 +17,36 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
     var isRead: Bool { is_read == 1 }
     var isFavorite: Bool { is_favorite == 1 }
 
-    /// 既読状態にした新しい Article を返す（フィールドの手動コピーを一箇所に集約）
+    /// read_at の更新方法（nil 設定と「変更しない」を区別するため）
+    enum ReadAtUpdate {
+        case keep
+        case clear
+        case set(String)
+
+        func apply(to current: String?) -> String? {
+            switch self {
+            case .keep: return current
+            case .clear: return nil
+            case .set(let value): return value
+            }
+        }
+    }
+
+    /// 指定フィールドだけ差し替えた新しい Article を返す（全フィールド手動コピーの集約先）
+    func updating(isRead: Int? = nil, isFavorite: Int? = nil, readAt: ReadAtUpdate = .keep) -> Article {
+        Article(id: id, feed_id: feed_id, guid: guid,
+                title: title, link: link, summary: summary,
+                content: content, published_at: published_at,
+                is_read: isRead ?? is_read,
+                is_favorite: isFavorite ?? is_favorite,
+                created_at: created_at,
+                read_at: readAt.apply(to: read_at))
+    }
+
+    /// 既読状態にした新しい Article を返す
     func markingAsRead(at dateString: String) -> Article {
         guard !isRead else { return self }
-        return Article(id: id, feed_id: feed_id, guid: guid,
-                       title: title, link: link, summary: summary,
-                       content: content, published_at: published_at,
-                       is_read: 1, is_favorite: is_favorite, created_at: created_at,
-                       read_at: read_at ?? dateString)
+        return updating(isRead: 1, readAt: .set(read_at ?? dateString))
     }
 }
 

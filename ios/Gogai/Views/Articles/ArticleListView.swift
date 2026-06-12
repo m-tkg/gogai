@@ -17,13 +17,9 @@ struct ArticleListView: View {
     @State private var hasAppeared = false
 
     private var secretFeedIds: Set<Int> {
-        guard feedId == nil, groupId == nil, !groupStore.showSecretGroups else { return [] }
-        return Set(feedStore.feeds.compactMap { feed -> Int? in
-            guard let gid = feed.group_id,
-                  groupStore.groups.first(where: { $0.id == gid })?.isSecret == true
-            else { return nil }
-            return feed.id
-        })
+        // 全記事表示時のみシークレットグループのフィードを除外する
+        guard feedId == nil, groupId == nil else { return [] }
+        return groupStore.secretFeedIds(in: feedStore.feeds)
     }
 
     private var displayedArticles: [Article] {
@@ -52,13 +48,7 @@ struct ArticleListView: View {
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
-                            Task {
-                                if article.isRead {
-                                    await articleStore.markAsUnread(id: article.id)
-                                } else {
-                                    await articleStore.markAsRead(id: article.id)
-                                }
-                            }
+                            Task { await articleStore.toggleRead(article) }
                         } label: {
                             Label(
                                 article.isRead ? "未読にする" : "既読にする",
@@ -69,13 +59,7 @@ struct ArticleListView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
-                            Task {
-                                if article.isFavorite {
-                                    await articleStore.unfavorite(id: article.id)
-                                } else {
-                                    await articleStore.favorite(id: article.id)
-                                }
-                            }
+                            Task { await articleStore.toggleFavorite(article) }
                         } label: {
                             Label(
                                 article.isFavorite ? "お気に入り解除" : "お気に入り",

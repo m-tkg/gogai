@@ -63,13 +63,7 @@ struct ArticleRowView: View {
             Spacer()
             VStack(spacing: 8) {
                 Button {
-                    Task {
-                        if article.isRead {
-                            await articleStore.markAsUnread(id: article.id)
-                        } else {
-                            await articleStore.markAsRead(id: article.id)
-                        }
-                    }
+                    Task { await articleStore.toggleRead(article) }
                 } label: {
                     Image(systemName: article.isRead ? "envelope" : "envelope.open")
                         .foregroundStyle(article.isRead ? Color.secondary : Color.accentColor)
