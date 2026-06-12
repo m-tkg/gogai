@@ -72,11 +72,18 @@ export function initSchema(db: Database.Database): void {
   `)
 
   // カラムが存在しない場合のみ追加（既存 DB への移行）
-  for (const col of ['ai_summary', 'ai_translation', 'read_at']) {
+  try {
+    db.exec(`ALTER TABLE articles ADD COLUMN read_at TEXT`)
+  } catch {
+    // already exists — ignore
+  }
+
+  // AI 要約・翻訳・NotebookLM 音声機能の削除に伴い、残存カラムを除去する
+  for (const col of ['ai_summary', 'ai_translation', 'ai_audio_url']) {
     try {
-      db.exec(`ALTER TABLE articles ADD COLUMN ${col} TEXT`)
+      db.exec(`ALTER TABLE articles DROP COLUMN ${col}`)
     } catch {
-      // already exists — ignore
+      // column doesn't exist — ignore
     }
   }
 
@@ -117,12 +124,4 @@ export function initSchema(db: Database.Database): void {
   } catch {
     // already exists — ignore
   }
-
-  // articles テーブルへの移行: NotebookLM 音声共有 URL カラムを追加
-  try {
-    db.exec(`ALTER TABLE articles ADD COLUMN ai_audio_url TEXT`)
-  } catch {
-    // already exists — ignore
-  }
-
 }
