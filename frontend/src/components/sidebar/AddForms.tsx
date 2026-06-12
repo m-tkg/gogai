@@ -3,6 +3,7 @@ import type { Group } from '../../api/client'
 import { getApiErrorMessage } from '../../api/errors'
 import type { FeedMutations } from './FeedList'
 import type { GroupMutations } from './GroupSection'
+import { inputSm, secondaryBtnXs, selectSm } from '../ui/formStyles'
 
 // フィード追加フォーム（開閉・入力・エラー表示を自己管理する）
 export function AddFeedForm({ groups, feedMutations }: { groups: Group[]; feedMutations: FeedMutations }) {
@@ -50,12 +51,12 @@ export function AddFeedForm({ groups, feedMutations }: { groups: Group[]; feedMu
         placeholder="Feed URL"
         value={url}
         onChange={e => setUrl(e.target.value)}
-        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+        className={inputSm}
       />
       <select
         value={groupId ?? ''}
         onChange={e => setGroupId(e.target.value ? Number(e.target.value) : undefined)}
-        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+        className={selectSm}
       >
         <option value="">グループなし</option>
         {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -70,7 +71,7 @@ export function AddFeedForm({ groups, feedMutations }: { groups: Group[]; feedMu
         </button>
         <button
           onClick={() => { setOpen(false); setError(null) }}
-          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+          className={secondaryBtnXs}
         >
           キャンセル
         </button>
@@ -112,7 +113,7 @@ export function AddGroupForm({ groupMutations }: { groupMutations: GroupMutation
         placeholder="グループ名"
         value={name}
         onChange={e => setName(e.target.value)}
-        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+        className={inputSm}
       />
       <div className="flex gap-1">
         <button
@@ -124,7 +125,7 @@ export function AddGroupForm({ groupMutations }: { groupMutations: GroupMutation
         </button>
         <button
           onClick={() => setOpen(false)}
-          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+          className={secondaryBtnXs}
         >
           キャンセル
         </button>
