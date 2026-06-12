@@ -1,26 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import Database from 'better-sqlite3'
 import { initSchema, setDb, closeDb } from '../../db/schema.js'
 import { FeedsService } from '../../services/feeds.js'
 import { ArticlesService } from '../../services/articles.js'
-import { fetchArticleContent } from '../../services/article-content.js'
-import { getAIProvider } from '../../services/ai-provider.js'
 import articlesRouter, { parseNonNegativeInt } from '../../routes/articles.js'
-
-vi.mock('../../services/article-content.js', () => ({
-  fetchArticleContent: vi.fn(),
-}))
-
-vi.mock('../../services/ai-provider.js', () => ({
-  getAIProvider: vi.fn(),
-}))
-
-vi.mock('../../services/ai-config.js', () => ({
-  aiConfig: { provider: 'claude' },
-}))
-
-const fetchArticleContentMock = vi.mocked(fetchArticleContent)
-const getAIProviderMock = vi.mocked(getAIProvider)
 
 let db: Database.Database
 let articleId: number
@@ -30,7 +13,6 @@ beforeEach(() => {
   db.pragma('foreign_keys = ON')
   initSchema(db)
   setDb(db)
-  vi.clearAllMocks()
 
   const feed = new FeedsService(db).create({ url: 'https://example.com/feed.xml', title: 'Feed' })
   const articles = new ArticlesService(db)
@@ -44,14 +26,6 @@ beforeEach(() => {
 afterEach(() => {
   closeDb()
 })
-
-function jsonReq(path: string, body: unknown, method = 'POST') {
-  return articlesRouter.request(path, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-}
 
 describe('articles ルート（HTTP 契約）', () => {
   describe('GET /', () => {
@@ -125,105 +99,25 @@ describe('articles ルート（HTTP 契約）', () => {
     })
   })
 
-  describe('POST /:id/audio', () => {
-    it('URL を登録して { ai_audio_url } を返す', async () => {
-      const res = await jsonReq(`/${articleId}/audio`, { url: 'https://notebooklm.google.com/x' })
-      expect(res.status).toBe(200)
-      expect((await res.json()).ai_audio_url).toBe('https://notebooklm.google.com/x')
-    })
-
-    it('url 未指定は 400 で { error } を返す', async () => {
-      const res = await jsonReq(`/${articleId}/audio`, {})
-      expect(res.status).toBe(400)
-      expect((await res.json()).error).toBeTypeOf('string')
-    })
-
-    it('不正な URL は 400 を返す', async () => {
-      const res = await jsonReq(`/${articleId}/audio`, { url: 'not a url' })
-      expect(res.status).toBe(400)
-    })
-
-    it('http(s) 以外のスキームは 400 を返す', async () => {
-      const res = await jsonReq(`/${articleId}/audio`, { url: 'ftp://example.com/x' })
-      expect(res.status).toBe(400)
-    })
-
-    it('存在しない記事は 404 を返す', async () => {
-      const res = await jsonReq('/9999/audio', { url: 'https://example.com/x' })
-      expect(res.status).toBe(404)
-    })
-  })
-
-  describe('DELETE /:id/audio', () => {
-    it('204 を返し ai_audio_url が消える', async () => {
-      new ArticlesService(db).setAudioUrl(articleId, 'https://example.com/x')
-      const res = await articlesRouter.request(`/${articleId}/audio`, { method: 'DELETE' })
-      expect(res.status).toBe(204)
-      expect(new ArticlesService(db).findById(articleId)?.ai_audio_url).toBeNull()
-    })
-
-    it('存在しない記事は 404 を返す', async () => {
-      const res = await articlesRouter.request('/9999/audio', { method: 'DELETE' })
-      expect(res.status).toBe(404)
-    })
-  })
-
-  describe('POST /:id/claude', () => {
-    it('不正な action は 400 で { error } を返す', async () => {
-      const res = await jsonReq(`/${articleId}/claude`, { action: 'invalid' })
-      expect(res.status).toBe(400)
-      expect((await res.json()).error).toBeTypeOf('string')
-    })
-
-    it('存在しない記事は 404 を返す', async () => {
-      const res = await jsonReq('/9999/claude', { action: 'summarize' })
+  describe('削除済み機能のエンドポイントが存在しない', () => {
+    it('POST /:id/claude は 404 を返す（AI 機能は削除済み）', async () => {
+      const res = await articlesRouter.request(`/${articleId}/claude`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'summarize' }),
+      })
       expect(res.status).toBe(404)
     })
 
-    it('AI を実行して { output, cached: false } を返し、結果が保存される', async () => {
-      fetchArticleContentMock.mockResolvedValue('full article text')
-      getAIProviderMock.mockReturnValue({ run: vi.fn().mockResolvedValue('要約結果') })
-
-      const res = await jsonReq(`/${articleId}/claude`, { action: 'summarize' })
-      expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ output: '要約結果', cached: false })
-      expect(new ArticlesService(db).findById(articleId)?.ai_summary).toBe('要約結果')
-    })
-
-    it('キャッシュ済みなら provider を呼ばず { output, cached: true } を返す', async () => {
-      new ArticlesService(db).saveAiResult(articleId, 'summarize', 'キャッシュ済み要約')
-      const res = await jsonReq(`/${articleId}/claude`, { action: 'summarize' })
-      expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ output: 'キャッシュ済み要約', cached: true })
-      expect(getAIProviderMock).not.toHaveBeenCalled()
-    })
-
-    it('force: true はキャッシュを無視して再実行する', async () => {
-      new ArticlesService(db).saveAiResult(articleId, 'summarize', '古い要約')
-      fetchArticleContentMock.mockResolvedValue('full article text')
-      getAIProviderMock.mockReturnValue({ run: vi.fn().mockResolvedValue('新しい要約') })
-
-      const res = await jsonReq(`/${articleId}/claude`, { action: 'summarize', force: true })
-      expect(await res.json()).toEqual({ output: '新しい要約', cached: false })
-    })
-
-    it('本文取得に失敗したら RSS の content にフォールバックする', async () => {
-      fetchArticleContentMock.mockRejectedValue(new Error('fetch failed'))
-      const run = vi.fn().mockResolvedValue('要約')
-      getAIProviderMock.mockReturnValue({ run })
-
-      const res = await jsonReq(`/${articleId}/claude`, { action: 'summarize' })
-      expect(res.status).toBe(200)
-      expect(run).toHaveBeenCalledWith('summarize', 'body1')
-    })
-
-    it('provider が失敗したら 500 で { error } を返す', async () => {
-      fetchArticleContentMock.mockResolvedValue('text')
-      getAIProviderMock.mockReturnValue({ run: vi.fn().mockRejectedValue(new Error('AI error')) })
-
-      const res = await jsonReq(`/${articleId}/claude`, { action: 'summarize' })
-      expect(res.status).toBe(500)
-      expect((await res.json()).error).toBe('AI error')
+    it('POST /:id/audio と DELETE /:id/audio は 404 を返す（音声機能は削除済み）', async () => {
+      const post = await articlesRouter.request(`/${articleId}/audio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: 'https://example.com/x' }),
+      })
+      expect(post.status).toBe(404)
+      const del = await articlesRouter.request(`/${articleId}/audio`, { method: 'DELETE' })
+      expect(del.status).toBe(404)
     })
   })
 })
