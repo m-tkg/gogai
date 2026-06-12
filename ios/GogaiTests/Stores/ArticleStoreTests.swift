@@ -452,6 +452,47 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_refreshAllArticlesCache_fetchesAllArticles_ignoringUnreadOnly() async {
+        // 全記事キャッシュは「バッジ計算 + サイドバー表示判定」用の全記事が契約。
+        // unreadOnly フィルタを引き継ぐと既読のお気に入り記事が欠落し、
+        // 「お気に入りのみ」表示でグループが全て消える。
+        store.unreadOnly = true
+        var capturedURL: URL?
+        MockURLProtocol.requestHandler = { req in
+            capturedURL = req.url
+            return (200, try JSONEncoder().encode([self.makeArticle()]))
+        }
+
+        await store.refreshAllArticlesCache()
+
+        XCTAssertFalse(capturedURL?.query?.contains("unreadOnly=true") ?? true,
+                       "unreadOnly 中でもキャッシュ更新は全記事を取得すること")
+    }
+
+    @MainActor
+    func test_hasVisibleArticle_favoriteOnly_findsReadFavorite_whenUnreadOnlyWasActive() async {
+        // 「未読のみ」運用中にキャッシュが更新されても、既読のお気に入りが
+        // キャッシュに残り、お気に入り表示でフィード/グループが見えること
+        store.unreadOnly = true
+        let all = [
+            makeArticle(id: 1, feedId: 10, isRead: 1, isFavorite: 1), // 既読のお気に入り
+            makeArticle(id: 2, feedId: 20, isRead: 0, isFavorite: 0),
+        ]
+        // サーバーと同様に unreadOnly=true なら未読のみを返すモック
+        MockURLProtocol.requestHandler = { req in
+            let unreadOnly = req.url?.query?.contains("unreadOnly=true") ?? false
+            let result = unreadOnly ? all.filter { $0.is_read == 0 } : all
+            return (200, try JSONEncoder().encode(result))
+        }
+        await store.refreshAllArticlesCache()
+
+        store.unreadOnly = false
+        store.favoriteOnly = true
+        XCTAssertTrue(store.hasVisibleArticle(for: 10),
+                      "既読のお気に入りを持つフィードはお気に入り表示で見えるべき")
+    }
+
+    @MainActor
     func test_refresh_updatesAllArticlesWithSecretArticles_whenFullFetchWithoutSecret() async {
         // includeSecret=false で全記事フェッチ（currentIncludeSecret=false を確立）
         store.unreadOnly = false
