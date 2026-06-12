@@ -26,6 +26,18 @@ final class GroupStore: ObservableObject {
         showSecretGroups ? groups : groups.filter { !$0.isSecret }
     }
 
+    /// 非表示にすべきシークレットグループ所属フィードの ID 集合。
+    /// シークレット表示中（showSecretGroups=true）は隠すものがないため空集合。
+    func secretFeedIds(in feeds: [Feed]) -> Set<Int> {
+        guard !showSecretGroups else { return [] }
+        let secretGroupIds = Set(groups.filter { $0.isSecret }.map { $0.id })
+        guard !secretGroupIds.isEmpty else { return [] }
+        return Set(feeds.compactMap { feed in
+            guard let gid = feed.group_id, secretGroupIds.contains(gid) else { return nil }
+            return feed.id
+        })
+    }
+
     @MainActor
     func isExpanded(id: Int) -> Bool {
         !collapsedGroupIds.contains(id)
