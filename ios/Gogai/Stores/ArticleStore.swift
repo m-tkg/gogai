@@ -2,10 +2,11 @@ import Foundation
 
 final class ArticleStore: ObservableObject {
     @Published var articles: [Article] = []
-    /// 全フィードの記事キャッシュ（未読バッジの計算に使用）
+    /// 全フィードの記事キャッシュ（未読バッジの計算に使用）。
     /// articles はフィルタ表示用なので特定フィードのみになることがあるが、
-    /// allArticles は常に全体を保持して sidebar の未読カウントを正確にする
-    @Published private(set) var allArticles: [Article] = []
+    /// collection は常に全体を保持して sidebar の未読カウントを正確にする。
+    /// 更新は必ず mutateBoth / merge 経由で行い、articles との手動二重更新をしない。
+    @Published private(set) var allCollection = ArticleCollection()
     @Published private(set) var isLoading = false
     @Published var error: Error?
     @Published var unreadOnly: Bool {
@@ -17,6 +18,9 @@ final class ArticleStore: ObservableObject {
     @Published var sortOrder: ArticleSortOrder {
         didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: DefaultsKeys.sortOrder) }
     }
+
+    /// 互換 API: 旧 allArticles プロパティ（コレクションの内容を公開する）
+    var allArticles: [Article] { allCollection.articles }
 
     private let cache: AppCache
     private var client: (any APIClientProtocol)?
@@ -44,8 +48,8 @@ final class ArticleStore: ObservableObject {
         self.favoriteOnly = UserDefaults.standard.bool(forKey: DefaultsKeys.favoriteOnly)
         let savedSort = UserDefaults.standard.string(forKey: DefaultsKeys.sortOrder) ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
-        // 起動時にキャッシュから allArticles を読み込み、未読カウントを即座に表示する
-        self.allArticles = cache.loadAllArticles()
+        // 起動時にキャッシュから全記事を読み込み、未読カウントを即座に表示する
+        self.allCollection.replaceAll(cache.loadAllArticles())
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -81,10 +85,11 @@ final class ArticleStore: ObservableObject {
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
             // favoriteOnly は表示用のフィルターであり、
-            // allArticles（未読バッジ計算用）は全記事が必要。
-            // フィルターが有効な場合はフィルター済み記事で allArticles を上書きせず保持する。
+            // コレクション（未読バッジ計算用）は全記事が必要。
+            // フィルターが有効な場合はフィルター済み記事で上書きせず保持する。
             if !self.favoriteOnly {
-                mergeIntoAllArticles(fetched, feedId: feedId, groupId: groupId)
+                allCollection.merge(fetched, isFullFetch: feedId == nil && groupId == nil)
+                cache.saveAllArticles(allCollection.articles)
             }
             // サーバーに届かなかった既読状態をローカルに復元し、バックグラウンドで再送する
             if !pendingReadIds.isEmpty {
@@ -112,8 +117,8 @@ final class ArticleStore: ObservableObject {
         // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
         guard fetchGeneration == genBefore + 1 else { return }
 
-        // シークレットなしのフル更新の場合、バッジ用にシークレット記事も取得して allArticles を更新する
-        // （fetchArticles が includeSecret=false だと allArticles からシークレット記事が抜けるため）
+        // シークレットなしのフル更新の場合、バッジ用にシークレット記事も取得してコレクションを更新する
+        // （fetchArticles が includeSecret=false だとコレクションからシークレット記事が抜けるため）
         // 注: 保持ロジックの前に実行することで、以降の既読状態補正がシークレット記事にも適用される
         if currentFeedId == nil && currentGroupId == nil && !currentIncludeSecret {
             await refreshAllArticlesCache()
@@ -130,11 +135,11 @@ final class ArticleStore: ObservableObject {
             return a.updating(isRead: 1)
         }
         articles = articles.map(preserveReadState)
-        allArticles = allArticles.map(preserveReadState)
+        allCollection.updateAll(preserveReadState)
 
         // unreadOnly: true の場合、fetch 結果に含まれなかった既読記事をリストに保持する
         // （このセッションで読んだ記事が自動 refresh で消えないようにするため）
-        // allArticles は未読バッジ計算用のため、既読になった記事は追加不要
+        // コレクションは未読バッジ計算用のため、既読になった記事は追加不要
         if unreadOnly {
             let newIds = Set(articles.map { $0.id })
             let toPreserve = previouslyReadArticles.filter { !newIds.contains($0.id) }
@@ -175,29 +180,16 @@ final class ArticleStore: ObservableObject {
         }
     }
 
-    // Optimistic update: immediately update local state, rollback on failure
     @MainActor
     func markAsRead(id: Int) async {
         guard let client else { return }
-        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
-        let original = articles[idx]
         let nowISO = ISO8601DateFormatter().string(from: Date())
-        let updated = original.updating(isRead: 1, readAt: .set(nowISO))
-        articles[idx] = updated
-        updateAllArticles(updated)
-
-        do {
-            try await ArticleRepository(client: client).markAsRead(id: id)
-            pendingReadIds.remove(id)
-        } catch is URLError {
-            // ネットワーク障害（サーバー再起動など）: ロールバックせず再送キューに追加
-            pendingReadIds.insert(id)
-        } catch {
-            // 4xx など再送しても無意味なエラー: ロールバックしてエラー表示
-            articles[idx] = original
-            updateAllArticles(original)
-            self.error = error
-        }
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(isRead: 1, readAt: .set(nowISO)) },
+            apiCall: { try await ArticleRepository(client: client).markAsRead(id: id) },
+            onURLError: .enqueuePendingRead
+        )
     }
 
     @MainActor
@@ -205,13 +197,15 @@ final class ArticleStore: ObservableObject {
         let unread = articles.filter { !$0.isRead }
         guard !unread.isEmpty, let client else { return }
 
-        // Optimistic update
+        // Optimistic update（articles とコレクションを同一変換で同期）
         let nowISO = ISO8601DateFormatter().string(from: Date())
-        articles = articles.map { a in
-            guard !a.isRead else { return a }
+        let unreadIds = Set(unread.map { $0.id })
+        let markRead: (Article) -> Article = { a in
+            guard unreadIds.contains(a.id) else { return a }
             return a.updating(isRead: 1, readAt: .set(nowISO))
         }
-        for a in articles { updateAllArticles(a) }
+        articles = articles.map(markRead)
+        allCollection.updateAll(markRead)
 
         // API calls: URLError → pending queue, others → rollback
         for original in unread {
@@ -221,10 +215,7 @@ final class ArticleStore: ObservableObject {
             } catch is URLError {
                 pendingReadIds.insert(original.id)
             } catch {
-                if let idx = articles.firstIndex(where: { $0.id == original.id }) {
-                    articles[idx] = original
-                }
-                updateAllArticles(original)
+                mutateBoth(id: original.id) { _ in original }
             }
         }
     }
@@ -232,60 +223,34 @@ final class ArticleStore: ObservableObject {
     @MainActor
     func markAsUnread(id: Int) async {
         guard let client else { return }
-        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
-        let original = articles[idx]
-        let updated = original.updating(isRead: 0, readAt: .clear)
-        articles[idx] = updated
-        updateAllArticles(updated)
-
-        do {
-            try await ArticleRepository(client: client).markAsUnread(id: id)
-            pendingReadIds.remove(id)
-        } catch is URLError {
-            // ネットワーク障害: 未読操作のユーザー意図を尊重して楽観更新は維持し、
-            // 未送信の既読リトライをキャンセルする（applyPendingReads で既読に戻されないように）
-            pendingReadIds.remove(id)
-        } catch {
-            articles[idx] = original
-            updateAllArticles(original)
-            self.error = error
-        }
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(isRead: 0, readAt: .clear) },
+            apiCall: { try await ArticleRepository(client: client).markAsUnread(id: id) },
+            onURLError: .cancelPendingRead
+        )
     }
 
     @MainActor
     func favorite(id: Int) async {
         guard let client else { return }
-        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
-        let original = articles[idx]
-        let updated = original.updating(isFavorite: 1)
-        articles[idx] = updated
-        updateAllArticles(updated)
-
-        do {
-            try await ArticleRepository(client: client).markAsFavorite(id: id)
-        } catch {
-            articles[idx] = original
-            updateAllArticles(original)
-            self.error = error
-        }
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(isFavorite: 1) },
+            apiCall: { try await ArticleRepository(client: client).markAsFavorite(id: id) },
+            onURLError: .rollback
+        )
     }
 
     @MainActor
     func unfavorite(id: Int) async {
         guard let client else { return }
-        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return }
-        let original = articles[idx]
-        let updated = original.updating(isFavorite: 0)
-        articles[idx] = updated
-        updateAllArticles(updated)
-
-        do {
-            try await ArticleRepository(client: client).markAsUnfavorite(id: id)
-        } catch {
-            articles[idx] = original
-            updateAllArticles(original)
-            self.error = error
-        }
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(isFavorite: 0) },
+            apiCall: { try await ArticleRepository(client: client).markAsUnfavorite(id: id) },
+            onURLError: .rollback
+        )
     }
 
     /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
@@ -293,7 +258,7 @@ final class ArticleStore: ObservableObject {
     /// フィルタが何も有効でない場合は常に true。
     func hasVisibleArticle(for feedId: Int) -> Bool {
         if !unreadOnly && !favoriteOnly { return true }
-        let source = allArticles.isEmpty ? articles : allArticles
+        let source = allCollection.isEmpty ? articles : allCollection.articles
         return source.contains { article in
             guard article.feed_id == feedId else { return false }
             if unreadOnly && article.isRead { return false }
@@ -303,24 +268,24 @@ final class ArticleStore: ObservableObject {
     }
 
     func unreadCount(for feedId: Int?) -> Int {
-        // allArticles（全フィードキャッシュ）を優先して使用する
-        let source = allArticles.isEmpty ? articles : allArticles
+        // コレクション（全フィードキャッシュ）を優先して使用する
+        let source = allCollection.isEmpty ? articles : allCollection.articles
         let filtered = feedId.map { fid in source.filter { $0.feed_id == fid } } ?? source
         return filtered.filter { !$0.isRead }.count
     }
 
     func unreadCount(forGroupFeedIds feedIds: [Int]) -> Int {
-        let source = allArticles.isEmpty ? articles : allArticles
+        let source = allCollection.isEmpty ? articles : allCollection.articles
         let feedIdSet = Set(feedIds)
         return source.filter { feedIdSet.contains($0.feed_id) && !$0.isRead }.count
     }
 
     func unreadCount(excludingFeedIds feedIds: Set<Int>) -> Int {
-        let source = allArticles.isEmpty ? articles : allArticles
+        let source = allCollection.isEmpty ? articles : allCollection.articles
         return source.filter { !feedIds.contains($0.feed_id) && !$0.isRead }.count
     }
 
-    /// allArticles のキャッシュをシークレット記事を含む全件で更新する
+    /// コレクションのキャッシュをシークレット記事を含む全件で更新する
     /// articles（表示中の記事リスト）は変更しない
     /// SidebarView の未読バッジ計算に使用する
     @MainActor
@@ -332,7 +297,7 @@ final class ArticleStore: ObservableObject {
                 sortOrder: sortOrder,
                 includeSecret: true
             )
-            allArticles = fetched
+            allCollection.replaceAll(fetched)
             cache.saveAllArticles(fetched)
         } catch {
             // ベストエフォート: キャッシュ更新失敗は無視する
@@ -341,16 +306,60 @@ final class ArticleStore: ObservableObject {
 
     // MARK: - Private
 
-    /// フェッチ結果を allArticles にマージする
-    /// 全記事フェッチ時は全置換、特定フィード/グループのフェッチ時は該当フィードの記事を差し替える
-    private func mergeIntoAllArticles(_ fetched: [Article], feedId: Int?, groupId: Int?) {
-        if feedId == nil && groupId == nil {
-            allArticles = fetched
-        } else {
-            let fetchedFeedIds = Set(fetched.map { $0.feed_id })
-            allArticles = allArticles.filter { !fetchedFeedIds.contains($0.feed_id) } + fetched
+    /// URLError（ネットワーク障害）発生時の振る舞い
+    private enum URLErrorPolicy: Equatable {
+        /// 楽観更新を維持し、既読リトライキューに積む（markAsRead）
+        case enqueuePendingRead
+        /// 楽観更新を維持し、既読リトライキューから取り除く（markAsUnread）
+        case cancelPendingRead
+        /// 通常エラーと同様にロールバックする（favorite / unfavorite）
+        case rollback
+    }
+
+    /// 楽観的更新の唯一の経路。
+    /// articles とコレクションを同一の変換で同期更新し、API 失敗時はロールバックする。
+    @MainActor
+    private func optimisticUpdate(
+        id: Int,
+        transform: (Article) -> Article,
+        apiCall: () async throws -> Void,
+        onURLError: URLErrorPolicy
+    ) async {
+        guard let original = mutateBoth(id: id, transform) else { return }
+
+        do {
+            try await apiCall()
+            // 既読系の成功時のみ pending を解消する（favorite 系は既読リトライに関与しない）
+            if onURLError != .rollback {
+                pendingReadIds.remove(id)
+            }
+        } catch let error as URLError {
+            switch onURLError {
+            case .enqueuePendingRead:
+                pendingReadIds.insert(id)
+            case .cancelPendingRead:
+                pendingReadIds.remove(id)
+            case .rollback:
+                mutateBoth(id: id) { _ in original }
+                self.error = error
+            }
+        } catch {
+            mutateBoth(id: id) { _ in original }
+            self.error = error
         }
-        cache.saveAllArticles(allArticles)
+    }
+
+    /// articles とコレクションの該当記事を同一の変換で更新する（同期漏れを構造的に防ぐ）。
+    /// - Returns: 変換前の記事（articles に存在しない場合は nil で何もしない）
+    @MainActor
+    @discardableResult
+    private func mutateBoth(id: Int, _ transform: (Article) -> Article) -> Article? {
+        guard let idx = articles.firstIndex(where: { $0.id == id }) else { return nil }
+        let original = articles[idx]
+        let updated = transform(original)
+        articles[idx] = updated
+        allCollection.upsert(updated)
+        return original
     }
 
     /// pendingReadIds に含まれる記事をローカルで既読に上書きする（fetchArticles 後に呼ぶ）
@@ -363,7 +372,7 @@ final class ArticleStore: ObservableObject {
             return article.markingAsRead(at: nowISO)
         }
         articles = articles.map(apply)
-        allArticles = allArticles.map(apply)
+        allCollection.updateAll(apply)
     }
 
     /// pendingReadIds の記事に対してサーバーへ markAsRead を再送する
@@ -380,16 +389,6 @@ final class ArticleStore: ObservableObject {
             } catch {
                 // 再送失敗 - 次回 fetchArticles で再試行
             }
-        }
-    }
-
-    /// allArticles 内の該当記事を更新する
-    /// ファイルキャッシュへの書き込みは行わない（ベストエフォート設計）。
-    /// markAsRead/markAsUnread/favorite/unfavorite 等の楽観的更新はメモリのみ更新し、
-    /// 次回 fetchArticles/refreshAllArticlesCache 時にキャッシュが上書きされる。
-    private func updateAllArticles(_ article: Article) {
-        if let idx = allArticles.firstIndex(where: { $0.id == article.id }) {
-            allArticles[idx] = article
         }
     }
 }
