@@ -7,4 +7,5 @@ enum DefaultsKeys {
     static let sortOrder = "sortOrder"
     static let serverURL = "serverURL"
     static let resolvedServerURL = "resolvedServerURL"
+    static let translationEngine = "translationEngine"
 }

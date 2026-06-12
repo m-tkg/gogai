@@ -12,6 +12,33 @@ enum LocalArticleAIError: Error, Equatable {
     case emptyContent
 }
 
+/// 日本語翻訳に使うエンジンの選択（設定画面で切り替え、UserDefaults で永続化）
+enum TranslationEngine: String, CaseIterable, Identifiable {
+    /// オンデバイス基盤モデル（Foundation Models framework）に翻訳させる
+    case foundationModel
+    /// システムの翻訳専用モデル（Translation framework）を使う
+    case translationFramework
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .foundationModel: return "ローカル AI（基盤モデル）"
+        case .translationFramework: return "システム翻訳"
+        }
+    }
+
+    static var current: TranslationEngine {
+        get {
+            let saved = UserDefaults.standard.string(forKey: DefaultsKeys.translationEngine) ?? ""
+            return TranslationEngine(rawValue: saved) ?? .foundationModel
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: DefaultsKeys.translationEngine)
+        }
+    }
+}
+
 /// 記事の日本語要約・日本語翻訳をローカル AI で行うサービス。
 /// 結果はサーバーに保存しない（オンデバイス生成は無料・即時のため都度生成する）。
 struct LocalArticleAI: Sendable {
