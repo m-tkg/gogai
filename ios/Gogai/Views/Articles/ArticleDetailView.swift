@@ -77,7 +77,6 @@ struct ArticleDetailView: View {
     @State private var showBrowser = false
     @State private var showShareSheet = false
     @State private var contentHeight: CGFloat = 200
-    @State private var localAIMode: LocalAIResultSheet.Mode?
     #if targetEnvironment(macCatalyst)
     @StateObject private var macBrowser = BrowserModel()
     #endif
@@ -141,29 +140,6 @@ struct ArticleDetailView: View {
         )
     }
 
-    // MARK: - Local AI buttons
-
-    private var localAIButtons: some View {
-        VStack(spacing: 12) {
-            localAIButton(for: .summarize)
-            localAIButton(for: .translateToJapanese)
-        }
-    }
-
-    private func localAIButton(for mode: LocalAIResultSheet.Mode) -> some View {
-        Button {
-            localAIMode = mode
-        } label: {
-            Image(systemName: mode.iconName)
-                .font(.title3)
-                .frame(width: 48, height: 48)
-                .background(.regularMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(.quaternary))
-                .shadow(radius: 2, y: 1)
-        }
-        .accessibilityLabel(mode.title)
-    }
-
     // MARK: - Article detail pane
 
     private var articleDetailPane: some View {
@@ -199,14 +175,6 @@ struct ArticleDetailView: View {
                 .padding(.bottom, 16)
             }
             .id(currentArticle.id)
-            // 画面右下のローカル AI ボタン（iOS/iPadOS 27 + Apple Intelligence 有効時のみ）
-            .overlay(alignment: .bottomTrailing) {
-                if LocalAI.isAvailable {
-                    localAIButtons
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 16)
-                }
-            }
 
             Divider()
             bottomBar
@@ -241,9 +209,6 @@ struct ArticleDetailView: View {
                     ShareSheet(items: [url])
                 }
             }
-            .sheet(item: $localAIMode) { mode in
-                LocalAIResultSheet(article: currentArticle, mode: mode)
-            }
             .onAppear {
                 if !isRead {
                     Task { await articleStore.markAsRead(id: currentArticle.id) }
@@ -253,7 +218,6 @@ struct ArticleDetailView: View {
                 contentHeight = 200
                 showBrowser = false
                 showShareSheet = false
-                localAIMode = nil
                 Task {
                     if let next = articleStore.articles.first(where: { $0.id == newId }), !next.isRead {
                         await articleStore.markAsRead(id: newId)
@@ -291,6 +255,7 @@ struct ArticleDetailView: View {
                     }
                 }
                 .onAppear { macBrowser.webView.load(URLRequest(url: url)) }
+                .localAIOverlay(for: currentArticle)
         } else {
             articleDetailPane
         }
@@ -308,7 +273,10 @@ struct ArticleDetailView: View {
             )
             .sheet(isPresented: $showBrowser) {
                 if let link = currentArticle.link, let url = URL(string: link) {
+                    // 記事ページ右下にローカル AI ボタンを表示
+                    // （SFSafariViewController の下部ツールバーを避けて持ち上げる）
                     BrowserView(url: url)
+                        .localAIOverlay(for: currentArticle, bottomPadding: 70)
                 }
             }
         #endif
