@@ -28,6 +28,8 @@
 		FF0000000000000000003FAB /* ArticleCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003FAB /* ArticleCollection.swift */; };
 		FF00000000000000000041AB /* LocalArticleAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000041AB /* LocalArticleAI.swift */; };
 		FF00000000000000000046AB /* ArticleContentFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000046AB /* ArticleContentFetcher.swift */; };
+		FF00000000000000000047AB /* TranslatedPageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000047AB /* TranslatedPageModel.swift */; };
+		FF00000000000000000048AB /* TranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000048AB /* TranslatedPageView.swift */; };
 		FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000042AB /* FoundationModelTextGenerator.swift */; };
 		FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000043AB /* LocalAIResultSheet.swift */; };
 		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
@@ -104,6 +106,8 @@
 		DD0000000000000000003FAB /* ArticleCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollection.swift; sourceTree = "<group>"; };
 		DD00000000000000000041AB /* LocalArticleAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalArticleAI.swift; sourceTree = "<group>"; };
 		DD00000000000000000046AB /* ArticleContentFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleContentFetcher.swift; sourceTree = "<group>"; };
+		DD00000000000000000047AB /* TranslatedPageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageModel.swift; sourceTree = "<group>"; };
+		DD00000000000000000048AB /* TranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageView.swift; sourceTree = "<group>"; };
 		DD00000000000000000042AB /* FoundationModelTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGenerator.swift; sourceTree = "<group>"; };
 		DD00000000000000000043AB /* LocalAIResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIResultSheet.swift; sourceTree = "<group>"; };
 		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
@@ -261,6 +265,8 @@
 			children = (
 				DD00000000000000000041AB /* LocalArticleAI.swift */,
 				DD00000000000000000046AB /* ArticleContentFetcher.swift */,
+				DD00000000000000000047AB /* TranslatedPageModel.swift */,
+				DD00000000000000000048AB /* TranslatedPageView.swift */,
 				DD00000000000000000042AB /* FoundationModelTextGenerator.swift */,
 				DD00000000000000000043AB /* LocalAIResultSheet.swift */,
 			);
@@ -503,6 +509,8 @@
 				FF0000000000000000003FAB /* ArticleCollection.swift in Sources */,
 				FF00000000000000000041AB /* LocalArticleAI.swift in Sources */,
 				FF00000000000000000046AB /* ArticleContentFetcher.swift in Sources */,
+				FF00000000000000000047AB /* TranslatedPageModel.swift in Sources */,
+				FF00000000000000000048AB /* TranslatedPageView.swift in Sources */,
 				FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */,
 				FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */,
 				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
