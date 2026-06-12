@@ -25,6 +25,7 @@
 		FF00000000000000000010AB /* GroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000010AB /* GroupStore.swift */; };
 		FF00000000000000000011AB /* FeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000011AB /* FeedStore.swift */; };
 		FF00000000000000000012AB /* ArticleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000012AB /* ArticleStore.swift */; };
+		FF0000000000000000003FAB /* ArticleCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003FAB /* ArticleCollection.swift */; };
 		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
 		FF00000000000000000014AB /* ServerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000014AB /* ServerSetupView.swift */; };
 		FF00000000000000000015AB /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000015AB /* SidebarView.swift */; };
@@ -93,6 +94,7 @@
 		DD00000000000000000010AB /* GroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000011AB /* FeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000012AB /* ArticleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStore.swift; sourceTree = "<group>"; };
+		DD0000000000000000003FAB /* ArticleCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollection.swift; sourceTree = "<group>"; };
 		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000014AB /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
 		DD00000000000000000015AB /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 				DD00000000000000000010AB /* GroupStore.swift */,
 				DD00000000000000000011AB /* FeedStore.swift */,
 				DD00000000000000000012AB /* ArticleStore.swift */,
+				DD0000000000000000003FAB /* ArticleCollection.swift */,
 				DD00000000000000000013AB /* SettingsStore.swift */,
 			);
 			path = Stores;
@@ -460,6 +463,7 @@
 				FF00000000000000000010AB /* GroupStore.swift in Sources */,
 				FF00000000000000000011AB /* FeedStore.swift in Sources */,
 				FF00000000000000000012AB /* ArticleStore.swift in Sources */,
+				FF0000000000000000003FAB /* ArticleCollection.swift in Sources */,
 				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
 				FF00000000000000000014AB /* ServerSetupView.swift in Sources */,
 				FF00000000000000000015AB /* SidebarView.swift in Sources */,
