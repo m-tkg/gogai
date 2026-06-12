@@ -42,30 +42,6 @@ make ios-deploy     # iOS 実機インストール＆起動
 - テーブル: `groups` → `feeds` → `articles`、`settings`
 - 新カラム追加は `initSchema` 内で `ALTER TABLE ... ADD COLUMN` + try/catch で移行
 
-### AI プロバイダー
-
-設定ファイル: `backend/ai.config.json`
-
-```json
-{ "provider": "claude" }   // claude | openai | gemini
-```
-
-- `claude`: `~/.local/bin/claude -p` を `spawn` で呼び出す
-  - **stdin を `/dev/null` にしないと exit 143 になる**（TTY チェック回避）
-  - バイナリパスは環境変数 `CLAUDE_PATH` で上書き可能
-- `openai`: 環境変数 `OPENAI_API_KEY` が必要
-- `gemini`: 環境変数 `GEMINI_API_KEY` が必要
-
-実装: `backend/src/services/providers/`
-
-### AI キャッシュ
-
-- `articles.ai_summary` / `ai_translation` カラムに結果を保存
-- `/api/articles/:id/claude` はキャッシュ済みなら即返却
-- `{ force: true }` を付けるとキャッシュを無視して再実行
-- AI に渡すテキストは `article.link` から本文を fetch して取得（`article-content.ts`）
-  - fetch 失敗時は RSS の `content` / `summary` にフォールバック
-
 ### favicon
 
 `GET /api/feeds` レスポンス時に Google favicon サービス URL を動的に生成して返す。
@@ -133,10 +109,6 @@ API クライアントの `BASE_URL` は空文字（相対パス）にするこ�
 - 初期値: localStorage → システム設定の優先順
 - `localStorage` キー: `darkMode`
 
-### 翻訳タブ
-
-`openTranslationTab()` で新しいウィンドウを開き、`marked.parse()` で Markdown → HTML に変換して表示。
-
 ## iOS アプリ
 
 - **Xcode プロジェクト**: `ios/Gogai.xcodeproj`
@@ -157,16 +129,14 @@ ios/
 │   ├── Repositories/         Group / Feed / Article / Settings リポジトリ
 │   ├── Stores/               GroupStore / FeedStore / ArticleStore / SettingsStore
 │   ├── Views/
-│   │   ├── FilterFooterView.swift   フィルター footer（全て/未読のみ/要約あり）
+│   │   ├── FilterFooterView.swift   フィルター footer（全て/未読のみ/お気に入り）
 │   │   ├── Onboarding/      ServerSetupView（初回 URL 設定）
 │   │   ├── Sidebar/         SidebarView / FeedRowView / GroupRowView / AddFeedView / AddGroupView
 │   │   │                    EditFeedView（フィードタイトル・グループ編集）
 │   │   ├── Articles/        ArticleListView / ArticleRowView / ArticleDetailView
 │   │   │                    HTMLContentView（WKWebView で HTML レンダリング）
 │   │   │                    BrowserView（アプリ内ブラウザ）
-│   │   ├── AI/              AISummaryView
 │   │   └── Settings/        SettingsView / AdminView
-│   ├── ViewModels/           ArticleListViewModel / ArticleDetailViewModel
 │   └── Utilities/            ServerURLManager / DateFormatter+
 └── GogaiTests/               XCTest ユニットテスト
 ```
@@ -232,13 +202,11 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - `allArticles`: 全フィードの記事キャッシュ（**未読バッジ計算に使用**）
   - `articles` は特定フィード表示時にそのフィードのみになるため、sidebar の unreadCount がずれる問題を回避
   - フェッチ時: 全件取得なら全置換、特定フィードなら該当フィード分を差し替え
-  - markAsRead / markAsUnread / summarize 時: `articles` と `allArticles` 両方を同期更新
+  - markAsRead / markAsUnread / favorite 時: `articles` と `allArticles` 両方を同期更新
 - `unreadOnly: Bool` — `UserDefaults` で永続化（キー: `"unreadOnly"`）
-- `summaryOnly: Bool` — `UserDefaults` で永続化（キー: `"summaryOnly"`）。クライアント側フィルター（`ai_summary != nil`）
-- `summarizingIds: Set<Int>` — AI 要約生成中の記事 ID セット（ProgressView 表示用）
+- `favoriteOnly: Bool` — `UserDefaults` で永続化（キー: `"favoriteOnly"`）
 - `markAsRead` / `markAsUnread` — 楽観的更新（失敗時ロールバック）
 - `markAllAsRead()` — 表示中の未読記事を sequential API 呼び出しで一括既読
-- `summarize(id:)` — AI 要約を生成し `articles` / `allArticles` の `ai_summary` を更新
 
 ### GogaiApp の自動更新
 
@@ -252,7 +220,7 @@ make ios-deploy DEVICE_ID=<device-uuid>
 |----------|------|------|
 | **フィードページ** | `SidebarView` | 起動直後に表示。フィード・グループ一覧 |
 | **記事一覧ページ** | `ArticleListView` | フィード/グループ選択後の記事一覧 |
-| **概要ページ** | `ArticleDetailView` | 記事タイトル・要約・AI 要約を表示 |
+| **概要ページ** | `ArticleDetailView` | 記事タイトル・要約を表示 |
 | **記事ページ** | `BrowserView`（SFSafariViewController）| 記事本文を Safari で表示 |
 
 ### 画面・インタラクション仕様
@@ -263,11 +231,10 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | フィードページ（SidebarView） | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
 | 記事一覧ページ（ArticleListView） | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
 | 記事一覧ページ（ArticleListView） | 右スワイプ 12.5% でボタン表示、25% で確定: 既読/未読トグル |
-| 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: AI 要約生成 |
-| 記事一覧ページ（ArticleListView） | 要約済み記事行に ✦ アイコン、生成中はスピナー表示 |
+| 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: お気に入りトグル |
 | 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
 | 概要ページ（ArticleDetailView） | 上スワイプ: 記事ページ（BrowserView）を sheet で開く |
-| FilterFooterView | 「全て」「未読のみ」「要約あり」ボタン（フィードページ・記事一覧ページ共通）|
+| FilterFooterView | 「全て」「未読のみ」「お気に入り」ボタン（フィードページ・記事一覧ページ共通）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
 
@@ -296,10 +263,6 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 |-----|---------|------|
 | `PORT` | `3040` | バックエンドのポート番号 |
 | `DB_PATH` | `backend/data/rss.db` | SQLite ファイルパス |
-| `AI_CONFIG_PATH` | `backend/ai.config.json` | AI 設定ファイルパス |
-| `CLAUDE_PATH` | `~/.local/bin/claude` | Claude CLI バイナリパス |
-| `OPENAI_API_KEY` | — | OpenAI 使用時に必要 |
-| `GEMINI_API_KEY` | — | Gemini 使用時に必要 |
 
 ## Docker Compose
 
