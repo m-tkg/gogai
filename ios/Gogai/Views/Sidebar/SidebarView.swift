@@ -16,7 +16,6 @@ struct SidebarView: View {
     @State private var showSettings = false
     @State private var refreshError: Error?
     @State private var reorderError: Error?
-    @State private var rotationAngle: Double = 0
     @State private var isEditing = false
 
     private var totalBadgeCount: Int {
@@ -139,21 +138,18 @@ struct SidebarView: View {
                 Button {
                     Task { await refreshAll() }
                 } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(rotationAngle))
-                }
-                .disabled(feedStore.isRefreshing)
-                .onChange(of: feedStore.isRefreshing) { _, isRefreshing in
-                    if isRefreshing {
-                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
-                            rotationAngle = 360
-                        }
+                    // Why: 自前の rotationEffect + repeatForever は SwiftUI の状態を
+                    // 毎フレーム更新し、iOS 26 の Liquid Glass ツールバーで
+                    // 「glassEffect() tried to update multiple times per frame」を誘発して
+                    // クラッシュする。標準 ProgressView は UIKit 内部アニメで描画されるため
+                    // glass を毎フレーム更新せず安全。
+                    if feedStore.isRefreshing {
+                        ProgressView()
                     } else {
-                        withAnimation(.default) {
-                            rotationAngle = 0
-                        }
+                        Image(systemName: "arrow.clockwise")
                     }
                 }
+                .disabled(feedStore.isRefreshing)
 
                 Menu {
                     Button {
@@ -187,8 +183,9 @@ struct SidebarView: View {
                 .accessibilityHint("長押しでシークレットグループの表示を切り替え")
 
                 if isNetworkActive {
+                    // Why: .transition によるフェードは glass ツールバー上で同フレーム多重更新の
+                    // 一因になるため付けない（条件出し入れのみに留める）。
                     ProgressView()
-                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
                 }
             }
         }
