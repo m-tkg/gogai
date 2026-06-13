@@ -77,6 +77,7 @@
 		FF00000000000000000035AB /* AppCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000035AB /* AppCache.swift */; };
 		FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000BAB /* ServerURLManagerTests.swift */; };
 		FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004AAB /* HorizontalSwipeTests.swift */; };
+		FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004FAB /* BackgroundExecutionTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -163,6 +164,7 @@
 		EE0000000000000000000AAB /* AppCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCacheTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000BAB /* ServerURLManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManagerTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000004AAB /* HorizontalSwipeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalSwipeTests.swift; sourceTree = "<group>"; };
+		EE0000000000000000004FAB /* BackgroundExecutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundExecutionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -409,6 +411,7 @@
 				EE0000000000000000000AAB /* AppCacheTests.swift */,
 				EE0000000000000000000BAB /* ServerURLManagerTests.swift */,
 				EE0000000000000000004AAB /* HorizontalSwipeTests.swift */,
+				EE0000000000000000004FAB /* BackgroundExecutionTests.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -579,6 +582,7 @@
 				FF0000000000000000002EAB /* AppCacheTests.swift in Sources */,
 				FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */,
 				FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */,
+				FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
