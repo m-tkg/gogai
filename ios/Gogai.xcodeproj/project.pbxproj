@@ -33,6 +33,7 @@
 		FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000042AB /* FoundationModelTextGenerator.swift */; };
 		FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000043AB /* LocalAIResultSheet.swift */; };
 		FF0000000000000000004CAB /* LocalAIOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000004CAB /* LocalAIOverlay.swift */; };
+		FF0000000000000000004EAB /* TranslationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000004EAB /* TranslationCache.swift */; };
 		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
 		FF00000000000000000014AB /* ServerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000014AB /* ServerSetupView.swift */; };
 		FF00000000000000000015AB /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000015AB /* SidebarView.swift */; };
@@ -61,6 +62,7 @@
 		FF00000000000000000040AB /* LocalArticleAITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000040AB /* LocalArticleAITests.swift */; };
 		FF00000000000000000045AB /* ArticleContentFetcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000045AB /* ArticleContentFetcherTests.swift */; };
 		FF00000000000000000049AB /* TranslatedPageModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000049AB /* TranslatedPageModelTests.swift */; };
+		FF0000000000000000004DAB /* TranslationCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004DAB /* TranslationCacheTests.swift */; };
 		FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000008AB /* MockURLProtocol.swift */; };
 		FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000009AB /* ArticleSortOrderTests.swift */; };
 		FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000003AAB /* ArticleUpdatingTests.swift */; };
@@ -114,6 +116,7 @@
 		DD00000000000000000042AB /* FoundationModelTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGenerator.swift; sourceTree = "<group>"; };
 		DD00000000000000000043AB /* LocalAIResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIResultSheet.swift; sourceTree = "<group>"; };
 		DD0000000000000000004CAB /* LocalAIOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIOverlay.swift; sourceTree = "<group>"; };
+		DD0000000000000000004EAB /* TranslationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCache.swift; sourceTree = "<group>"; };
 		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000014AB /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
 		DD00000000000000000015AB /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -153,6 +156,7 @@
 		EE00000000000000000040AB /* LocalArticleAITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalArticleAITests.swift; sourceTree = "<group>"; };
 		EE00000000000000000045AB /* ArticleContentFetcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleContentFetcherTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000049AB /* TranslatedPageModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageModelTests.swift; sourceTree = "<group>"; };
+		EE0000000000000000004DAB /* TranslationCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCacheTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000008AB /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		EE00000000000000000009AB /* ArticleSortOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSortOrderTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000003AAB /* ArticleUpdatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleUpdatingTests.swift; sourceTree = "<group>"; };
@@ -276,6 +280,7 @@
 				DD00000000000000000042AB /* FoundationModelTextGenerator.swift */,
 				DD00000000000000000043AB /* LocalAIResultSheet.swift */,
 				DD0000000000000000004CAB /* LocalAIOverlay.swift */,
+				DD0000000000000000004EAB /* TranslationCache.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -355,6 +360,7 @@
 				EE00000000000000000040AB /* LocalArticleAITests.swift */,
 				EE00000000000000000045AB /* ArticleContentFetcherTests.swift */,
 				EE00000000000000000049AB /* TranslatedPageModelTests.swift */,
+				EE0000000000000000004DAB /* TranslationCacheTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -523,6 +529,7 @@
 				FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */,
 				FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */,
 				FF0000000000000000004CAB /* LocalAIOverlay.swift in Sources */,
+				FF0000000000000000004EAB /* TranslationCache.swift in Sources */,
 				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
 				FF00000000000000000014AB /* ServerSetupView.swift in Sources */,
 				FF00000000000000000015AB /* SidebarView.swift in Sources */,
@@ -566,6 +573,7 @@
 				FF00000000000000000040AB /* LocalArticleAITests.swift in Sources */,
 				FF00000000000000000045AB /* ArticleContentFetcherTests.swift in Sources */,
 				FF00000000000000000049AB /* TranslatedPageModelTests.swift in Sources */,
+				FF0000000000000000004DAB /* TranslationCacheTests.swift in Sources */,
 				FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */,
 				FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */,
 				FF0000000000000000002EAB /* AppCacheTests.swift in Sources */,
