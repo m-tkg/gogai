@@ -90,7 +90,15 @@ struct LocalAIResultSheet: View {
             case .summarize:
                 result = try await ai.summarize(title: nil, content: text)
             case .translateToJapanese:
-                result = try await ai.translateToJapanese(title: nil, content: text)
+                // 同じ本文の訳は1週間ローカルキャッシュから返す
+                if let cached = TranslationCache.shared.target(for: text, engine: .foundationModel) {
+                    result = cached
+                    return
+                }
+                let translated = try await ai.translateToJapanese(title: nil, content: text)
+                TranslationCache.shared.store(source: text, target: translated, engine: .foundationModel)
+                TranslationCache.shared.persist()
+                result = translated
             }
         } catch LocalArticleAIError.emptyContent {
             errorMessage = "この記事には AI に渡せる本文がありません"
