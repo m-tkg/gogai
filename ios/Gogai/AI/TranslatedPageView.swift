@@ -29,33 +29,12 @@ struct TranslatedPageView: View {
     @State private var configuration: TranslationSession.Configuration?
 
     var body: some View {
-        NavigationStack {
-            TranslatedPageWebView(model: model)
-                .ignoresSafeArea(edges: .bottom)
-                .overlay(alignment: .top) { statusBar }
-                .navigationTitle("翻訳ページ")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("閉じる") { dismiss() }
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        // 翻訳完了後、原文 ⇄ 訳文をトグルできる
-                        if model.status == .done && model.hasTranslations {
-                            Button(model.isShowingOriginal ? "翻訳を表示" : "原文を表示") {
-                                Task {
-                                    if model.isShowingOriginal {
-                                        await model.showTranslation()
-                                    } else {
-                                        await model.showOriginal()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-        }
-        .translationTask(configuration) { session in
+        TranslatedPageWebView(model: model)
+            .ignoresSafeArea()
+            .overlay(alignment: .top) { statusBar }
+            // 記事ページ（翻訳前）と同じ右下フローティング配置でボタンを並べる
+            .overlay(alignment: .bottomTrailing) { floatingButtons }
+            .translationTask(configuration) { session in
             // Why: TranslationSession は non-Sendable のため unsafe 束縛で
             // region isolation を回避する（このクロージャ内で逐次アクセスのみ）
             nonisolated(unsafe) let session = session
@@ -71,6 +50,30 @@ struct TranslatedPageView: View {
                 )
             }
         }
+    }
+
+    /// 右下フローティングボタン群（翻訳前の記事ページと同じ位置・スタイル）。
+    /// 上: 原文 ⇄ 訳文トグル（翻訳完了後のみ）/ 下: 閉じる
+    private var floatingButtons: some View {
+        VStack(spacing: 12) {
+            if model.status == .done && model.hasTranslations {
+                CircleIconButton(
+                    systemName: model.isShowingOriginal ? "character.bubble" : "doc.plaintext",
+                    accessibilityLabel: model.isShowingOriginal ? "翻訳を表示" : "原文を表示"
+                ) {
+                    Task {
+                        if model.isShowingOriginal {
+                            await model.showTranslation()
+                        } else {
+                            await model.showOriginal()
+                        }
+                    }
+                }
+            }
+            CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる") { dismiss() }
+        }
+        .padding(.trailing, 16)
+        .padding(.bottom, 70)
     }
 
     @ViewBuilder
@@ -100,7 +103,7 @@ struct TranslatedPageView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(.regularMaterial, in: Capsule())
-        .padding(.top, 8)
+        .padding(.top, 12)
     }
 
     @available(iOS 18.0, macCatalyst 26.0, *)
