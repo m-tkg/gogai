@@ -105,6 +105,14 @@ struct TranslatedPageView: View {
 
     @available(iOS 18.0, macCatalyst 26.0, *)
     private func translatePage(using session: TranslationSession) async {
+        // 翻訳中にバックグラウンドへ移っても継続する（システム猶予内）
+        await BackgroundExecution.run(name: "LocalAI.translatePage") {
+            await runTranslation(using: session)
+        }
+    }
+
+    @available(iOS 18.0, macCatalyst 26.0, *)
+    private func runTranslation(using session: TranslationSession) async {
         do {
             let texts = try await model.extractTexts()
             guard !texts.isEmpty else {
