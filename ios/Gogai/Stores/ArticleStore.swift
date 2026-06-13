@@ -255,21 +255,13 @@ final class ArticleStore: ObservableObject {
         )
     }
 
-    /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
-    /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
-    /// フィルタが何も有効でない場合は常に true。
-    func hasVisibleArticle(for feedId: Int) -> Bool {
-        if !unreadOnly && !favoriteOnly { return true }
-        let source = allCollection.isEmpty ? articles : allCollection.articles
-        return source.contains { article in
-            guard article.feed_id == feedId else { return false }
-            if unreadOnly && article.isRead { return false }
-            if favoriteOnly && !article.isFavorite { return false }
-            return true
-        }
-    }
+    // MARK: - バッジ件数・表示判定（現在のフィルタに連動）
 
-    // MARK: - バッジ件数（現在のフィルタに連動）
+    /// バッジ計算・表示判定に使う記事ソース。
+    /// 全フィードキャッシュ（コレクション）を優先し、空のときだけ表示中リストにフォールバックする。
+    private var badgeSource: [Article] {
+        allCollection.isEmpty ? articles : allCollection.articles
+    }
 
     /// 現在のフィルタ（全て / 未読のみ / お気に入り）に記事が合致するか
     private func matchesCurrentFilter(_ article: Article) -> Bool {
@@ -278,24 +270,29 @@ final class ArticleStore: ObservableObject {
         return true
     }
 
+    /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
+    /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
+    /// フィルタが何も有効でない場合は常に true。
+    func hasVisibleArticle(for feedId: Int) -> Bool {
+        if !unreadOnly && !favoriteOnly { return true }
+        return badgeSource.contains { $0.feed_id == feedId && matchesCurrentFilter($0) }
+    }
+
     /// フィードのバッジ件数。「全て」=全記事数、「未読のみ」=未読数、「お気に入り」=お気に入り数
     func badgeCount(for feedId: Int?) -> Int {
-        let source = allCollection.isEmpty ? articles : allCollection.articles
-        let filtered = feedId.map { fid in source.filter { $0.feed_id == fid } } ?? source
+        let filtered = feedId.map { fid in badgeSource.filter { $0.feed_id == fid } } ?? badgeSource
         return filtered.filter(matchesCurrentFilter).count
     }
 
     /// グループ（所属フィード群）のバッジ件数
     func badgeCount(forGroupFeedIds feedIds: [Int]) -> Int {
-        let source = allCollection.isEmpty ? articles : allCollection.articles
         let feedIdSet = Set(feedIds)
-        return source.filter { feedIdSet.contains($0.feed_id) && matchesCurrentFilter($0) }.count
+        return badgeSource.filter { feedIdSet.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
     /// 「すべての記事」のバッジ件数（シークレットフィード除外用）
     func badgeCount(excludingFeedIds feedIds: Set<Int>) -> Int {
-        let source = allCollection.isEmpty ? articles : allCollection.articles
-        return source.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
+        badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
     /// コレクションのキャッシュをシークレット記事を含む全件で更新する

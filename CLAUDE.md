@@ -146,7 +146,12 @@ ios/
 │   │   │                    HTMLContentView（WKWebView で HTML レンダリング）
 │   │   │                    BrowserView（アプリ内ブラウザ）
 │   │   └── Settings/        SettingsView / AdminView
-│   └── Utilities/            ServerURLManager / DefaultsKeys / DateFormatter+
+│   ├── AI/                   ローカル AI（要約・翻訳）
+│   │                         LocalArticleAI（プロンプト整形）/ FoundationModelTextGenerator
+│   │                         LocalAIResultSheet（結果表示）/ LocalAIOverlay（右下ボタン群）
+│   │                         TranslatedPageView+Model（レイアウト保持のページ内翻訳）
+│   │                         ArticleContentFetcher（記事 URL から本文抽出）
+│   └── Utilities/            ServerURLManager / DefaultsKeys / HorizontalSwipe / DateFormatter+
 └── GogaiTests/               XCTest ユニットテスト
 ```
 
@@ -223,6 +228,17 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - `unreadOnly: Bool` / `favoriteOnly: Bool` — `UserDefaults`（`DefaultsKeys`）で永続化
 - `markAllAsRead()` — 表示中の未読記事を sequential API 呼び出しで一括既読
 - シークレットフィード判定は `GroupStore.secretFeedIds(in:)` を使う
+
+### ローカル AI（要約・翻訳、iOS/iPadOS 27 以上）
+
+- ゲート: `LocalAI.isAvailable`（iOS 27 以上 + `SystemLanguageModel` が available）。条件を満たさない端末ではボタン非表示
+- 記事ページ（BrowserView）右下に `.localAIOverlay(for:)` でボタンを表示。結果はサーバーに保存しない
+- **要約**: 常にオンデバイス基盤モデル（Foundation Models）。`TextGenerating` プロトコルが provider 差し替えの seam
+- **翻訳**: 設定の `TranslationEngine` で切り替え
+  - システム翻訳（デフォルト外）→ `TranslatedPageView`: WKWebView でテキストノードだけ翻訳し、レイアウト・画像を保持
+  - ローカル AI（基盤モデル）→ 訳文テキストを sheet 表示
+- AI への入力は `ArticleContentFetcher` が記事 URL から本文抽出（失敗時は RSS 本文にフォールバック）。4096 トークン制限のため 3,000 字に切り詰め
+- Translation framework はシミュレーター不可（実機で確認）。Foundation Models は iOS 27 シミュレーターで動作確認可能
 
 ### GogaiApp の自動更新
 
