@@ -39,6 +39,20 @@ struct TranslatedPageView: View {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("閉じる") { dismiss() }
                     }
+                    ToolbarItem(placement: .primaryAction) {
+                        // 翻訳完了後、原文 ⇄ 訳文をトグルできる
+                        if model.status == .done && model.hasTranslations {
+                            Button(model.isShowingOriginal ? "翻訳を表示" : "原文を表示") {
+                                Task {
+                                    if model.isShowingOriginal {
+                                        await model.showTranslation()
+                                    } else {
+                                        await model.showOriginal()
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
         }
         .translationTask(configuration) { session in

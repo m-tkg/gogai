@@ -17,6 +17,15 @@ final class TranslatedPageModel: NSObject, ObservableObject, WKNavigationDelegat
     @Published private(set) var status: Status = .loading
     @Published private(set) var translatedCount = 0
     @Published private(set) var totalCount = 0
+    /// 原文表示中かどうか（訳文 ⇄ 原文のトグル状態）
+    @Published private(set) var isShowingOriginal = false
+
+    /// extractTexts 時点の原文（index = ノード index）
+    private var originalTexts: [String] = []
+    /// 適用済みの訳文（key = ノード index）
+    private var translations: [Int: String] = [:]
+
+    var hasTranslations: Bool { !translations.isEmpty }
 
     let webView: WKWebView
 
@@ -57,7 +66,11 @@ final class TranslatedPageModel: NSObject, ObservableObject, WKNavigationDelegat
     /// （window.__gogaiNodes）に保持する。返り値の index がそのままノードの index。
     func extractTexts() async throws -> [String] {
         let result = try await webView.evaluateJavaScript(Self.extractScript)
-        return result as? [String] ?? []
+        let texts = result as? [String] ?? []
+        originalTexts = texts
+        translations = [:]
+        isShowingOriginal = false
+        return texts
     }
 
     /// index 番目のテキストノードの中身だけを訳文に差し替える（タグ・画像は不変）
@@ -68,7 +81,38 @@ final class TranslatedPageModel: NSObject, ObservableObject, WKNavigationDelegat
               let jsonArray = String(data: data, encoding: .utf8) else { return }
         let script = "window.__gogaiApply(\(index), (\(jsonArray))[0]); true;"
         _ = try? await webView.evaluateJavaScript(script)
+        translations[index] = text
         translatedCount += 1
+    }
+
+    // MARK: - 原文 ⇄ 訳文のトグル
+
+    /// 翻訳済みノードを原文表示に戻す
+    func showOriginal() async {
+        let indices = translations.keys.sorted()
+        await bulkApply(indices: indices, texts: indices.compactMap { originalTexts.indices.contains($0) ? originalTexts[$0] : nil })
+        isShowingOriginal = true
+    }
+
+    /// 原文表示から訳文表示に戻す
+    func showTranslation() async {
+        let indices = translations.keys.sorted()
+        await bulkApply(indices: indices, texts: indices.compactMap { translations[$0] })
+        isShowingOriginal = false
+    }
+
+    private struct BulkApplyPayload: Encodable {
+        let i: [Int]
+        let t: [String]
+    }
+
+    /// 複数ノードを1回の JS 実行でまとめて書き換える
+    private func bulkApply(indices: [Int], texts: [String]) async {
+        guard !indices.isEmpty, indices.count == texts.count,
+              let data = try? JSONEncoder().encode(BulkApplyPayload(i: indices, t: texts)),
+              let json = String(data: data, encoding: .utf8) else { return }
+        let script = "window.__gogaiApplyAll(\(json)); true;"
+        _ = try? await webView.evaluateJavaScript(script)
     }
 
     func beginTranslating(total: Int) {
@@ -92,6 +136,12 @@ final class TranslatedPageModel: NSObject, ObservableObject, WKNavigationDelegat
       window.__gogaiApply = function(i, t) {
         const n = window.__gogaiNodes[i];
         if (n) { n.nodeValue = t; }
+      };
+      window.__gogaiApplyAll = function(p) {
+        for (let k = 0; k < p.i.length; k++) {
+          const n = window.__gogaiNodes[p.i[k]];
+          if (n) { n.nodeValue = p.t[k]; }
+        }
       };
       const reject = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE', 'TEXTAREA'];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
