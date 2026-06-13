@@ -13,30 +13,15 @@ struct LocalAIButtons: View {
                 button(for: .translateToJapanese)
             }
             if let onClose {
-                Button(action: onClose) {
-                    circleIcon("xmark")
-                }
-                .accessibilityLabel("閉じる")
+                CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる", action: onClose)
             }
         }
     }
 
     private func button(for mode: LocalAIResultSheet.Mode) -> some View {
-        Button {
+        CircleIconButton(systemName: mode.iconName, accessibilityLabel: mode.title) {
             onSelect(mode)
-        } label: {
-            circleIcon(mode.iconName)
         }
-        .accessibilityLabel(mode.title)
-    }
-
-    private func circleIcon(_ systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.title3)
-            .frame(width: 48, height: 48)
-            .background(.regularMaterial, in: Circle())
-            .overlay(Circle().strokeBorder(.quaternary))
-            .shadow(radius: 2, y: 1)
     }
 }
 

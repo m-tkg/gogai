@@ -33,6 +33,7 @@
 		FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000042AB /* FoundationModelTextGenerator.swift */; };
 		FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000043AB /* LocalAIResultSheet.swift */; };
 		FF0000000000000000004CAB /* LocalAIOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000004CAB /* LocalAIOverlay.swift */; };
+		FF00000000000000000051AB /* CircleIconButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000051AB /* CircleIconButton.swift */; };
 		FF0000000000000000004EAB /* TranslationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000004EAB /* TranslationCache.swift */; };
 		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
 		FF00000000000000000014AB /* ServerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000014AB /* ServerSetupView.swift */; };
@@ -118,6 +119,7 @@
 		DD00000000000000000042AB /* FoundationModelTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGenerator.swift; sourceTree = "<group>"; };
 		DD00000000000000000043AB /* LocalAIResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIResultSheet.swift; sourceTree = "<group>"; };
 		DD0000000000000000004CAB /* LocalAIOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIOverlay.swift; sourceTree = "<group>"; };
+		DD00000000000000000051AB /* CircleIconButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircleIconButton.swift; sourceTree = "<group>"; };
 		DD0000000000000000004EAB /* TranslationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCache.swift; sourceTree = "<group>"; };
 		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000014AB /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
@@ -284,6 +286,7 @@
 				DD00000000000000000042AB /* FoundationModelTextGenerator.swift */,
 				DD00000000000000000043AB /* LocalAIResultSheet.swift */,
 				DD0000000000000000004CAB /* LocalAIOverlay.swift */,
+				DD00000000000000000051AB /* CircleIconButton.swift */,
 				DD0000000000000000004EAB /* TranslationCache.swift */,
 			);
 			path = AI;
@@ -535,6 +538,7 @@
 				FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */,
 				FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */,
 				FF0000000000000000004CAB /* LocalAIOverlay.swift in Sources */,
+				FF00000000000000000051AB /* CircleIconButton.swift in Sources */,
 				FF0000000000000000004EAB /* TranslationCache.swift in Sources */,
 				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
 				FF00000000000000000014AB /* ServerSetupView.swift in Sources */,
