@@ -59,6 +59,46 @@ final class TranslatedPageModelTests: XCTestCase {
         XCTAssertEqual(pTag, "P", "タグ構造は変わらない")
     }
 
+    // MARK: - 原文 ⇄ 訳文のトグル
+
+    func test_showOriginal_翻訳後に原文へ戻せる() async throws {
+        let model = try await makeLoadedModel(html: """
+        <html><body><p id="p1">Hello</p><p id="p2">World</p></body></html>
+        """)
+        let texts = try await model.extractTexts()
+        let helloIndex = try XCTUnwrap(texts.firstIndex { $0.contains("Hello") })
+        await model.applyTranslation(at: helloIndex, text: "こんにちは")
+        XCTAssertFalse(model.isShowingOriginal)
+
+        await model.showOriginal()
+
+        let pText = try await model.webView.evaluateJavaScript("document.getElementById('p1').textContent") as? String
+        XCTAssertEqual(pText, "Hello", "原文に戻る")
+        XCTAssertTrue(model.isShowingOriginal)
+    }
+
+    func test_showTranslation_原文表示から訳文へ戻せる() async throws {
+        let model = try await makeLoadedModel(html: "<html><body><p id=\"p1\">Hello</p></body></html>")
+        let texts = try await model.extractTexts()
+        let index = try XCTUnwrap(texts.firstIndex { $0.contains("Hello") })
+        await model.applyTranslation(at: index, text: "こんにちは")
+
+        await model.showOriginal()
+        await model.showTranslation()
+
+        let pText = try await model.webView.evaluateJavaScript("document.getElementById('p1').textContent") as? String
+        XCTAssertEqual(pText, "こんにちは", "訳文表示に戻る")
+        XCTAssertFalse(model.isShowingOriginal)
+    }
+
+    func test_hasTranslations_訳を適用するまでfalse() async throws {
+        let model = try await makeLoadedModel(html: "<html><body><p>Hello</p></body></html>")
+        _ = try await model.extractTexts()
+        XCTAssertFalse(model.hasTranslations)
+        await model.applyTranslation(at: 0, text: "こんにちは")
+        XCTAssertTrue(model.hasTranslations)
+    }
+
     func test_applyTranslation_引用符や改行を含む訳文も安全に書き戻せる() async throws {
         let model = try await makeLoadedModel(html: "<html><body><p id=\"p1\">Hello</p></body></html>")
         let texts = try await model.extractTexts()
