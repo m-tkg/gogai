@@ -53,20 +53,19 @@ struct TranslatedPageView: View {
     }
 
     /// 右下フローティングボタン群（翻訳前の記事ページと同じ位置・スタイル）。
-    /// 上: 原文 ⇄ 訳文トグル（翻訳完了後のみ）/ 下: 閉じる
+    /// 上: 原文 ⇄ 訳文トグル（常時表示、翻訳完了まで無効）/ 下: 閉じる
     private var floatingButtons: some View {
         VStack(spacing: 12) {
-            if model.status == .done && model.hasTranslations {
-                CircleIconButton(
-                    systemName: model.isShowingOriginal ? "character.bubble" : "doc.plaintext",
-                    accessibilityLabel: model.isShowingOriginal ? "翻訳を表示" : "原文を表示"
-                ) {
-                    Task {
-                        if model.isShowingOriginal {
-                            await model.showTranslation()
-                        } else {
-                            await model.showOriginal()
-                        }
+            CircleIconButton(
+                systemName: model.isShowingOriginal ? "character.bubble" : "doc.plaintext",
+                accessibilityLabel: model.isShowingOriginal ? "翻訳を表示" : "原文を表示",
+                isEnabled: isToggleEnabled
+            ) {
+                Task {
+                    if model.isShowingOriginal {
+                        await model.showTranslation()
+                    } else {
+                        await model.showOriginal()
                     }
                 }
             }
@@ -74,6 +73,11 @@ struct TranslatedPageView: View {
         }
         .padding(.trailing, 16)
         .padding(.bottom, 70)
+    }
+
+    /// 原文/翻訳トグルは翻訳が完了し、訳が1件以上あるときだけ操作可能
+    private var isToggleEnabled: Bool {
+        model.status == .done && model.hasTranslations
     }
 
     @ViewBuilder
