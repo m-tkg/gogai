@@ -5,6 +5,7 @@ import SwiftUI
 struct CircleIconButton: View {
     let systemName: String
     let accessibilityLabel: String
+    var isEnabled: Bool = true
     let action: () -> Void
 
     var body: some View {
@@ -16,6 +17,8 @@ struct CircleIconButton: View {
                 .overlay(Circle().strokeBorder(.quaternary))
                 .shadow(radius: 2, y: 1)
         }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.4)
         .accessibilityLabel(accessibilityLabel)
     }
 }
