@@ -98,14 +98,27 @@ struct TranslatedPageView: View {
                 return
             }
             model.beginTranslating(total: texts.count)
+
+            // キャッシュ済みのノードは即座に書き戻し、未訳のものだけ翻訳セッションへ。
             // clientIdentifier にノード index を載せ、訳が届き次第その場で書き戻す
-            let batch = texts.enumerated().map { index, text in
-                TranslationSession.Request(sourceText: text, clientIdentifier: String(index))
-            }
-            for try await response in session.translate(batch: batch) {
-                if let id = response.clientIdentifier, let index = Int(id) {
-                    await model.applyTranslation(at: index, text: response.targetText)
+            let cache = TranslationCache.shared
+            var batch: [TranslationSession.Request] = []
+            for (index, text) in texts.enumerated() {
+                if let cached = cache.target(for: text, engine: .translationFramework) {
+                    await model.applyTranslation(at: index, text: cached)
+                } else {
+                    batch.append(TranslationSession.Request(sourceText: text, clientIdentifier: String(index)))
                 }
+            }
+
+            if !batch.isEmpty {
+                for try await response in session.translate(batch: batch) {
+                    if let id = response.clientIdentifier, let index = Int(id) {
+                        await model.applyTranslation(at: index, text: response.targetText)
+                        cache.store(source: texts[index], target: response.targetText, engine: .translationFramework)
+                    }
+                }
+                cache.persist()
             }
             model.markDone()
         } catch {
