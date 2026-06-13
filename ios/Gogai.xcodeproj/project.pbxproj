@@ -32,6 +32,7 @@
 		FF00000000000000000048AB /* TranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000048AB /* TranslatedPageView.swift */; };
 		FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000042AB /* FoundationModelTextGenerator.swift */; };
 		FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000043AB /* LocalAIResultSheet.swift */; };
+		FF0000000000000000004CAB /* LocalAIOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000004CAB /* LocalAIOverlay.swift */; };
 		FF00000000000000000013AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000013AB /* SettingsStore.swift */; };
 		FF00000000000000000014AB /* ServerSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000014AB /* ServerSetupView.swift */; };
 		FF00000000000000000015AB /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000015AB /* SidebarView.swift */; };
@@ -46,6 +47,7 @@
 		FF0000000000000000001FAB /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000001FAB /* AdminView.swift */; };
 		FF00000000000000000022AB /* ServerURLManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000022AB /* ServerURLManager.swift */; };
 		FF0000000000000000003BAB /* DefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003BAB /* DefaultsKeys.swift */; };
+		FF0000000000000000004BAB /* HorizontalSwipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000004BAB /* HorizontalSwipe.swift */; };
 		FF00000000000000000023AB /* DateFormatter+.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000023AB /* DateFormatter+.swift */; };
 		FF00000000000000000024AB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000024AB /* Assets.xcassets */; };
 		FF00000000000000000025AB /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000001AB /* APIClientTests.swift */; };
@@ -72,6 +74,7 @@
 		FF00000000000000000034AB /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000034AB /* ShareSheet.swift */; };
 		FF00000000000000000035AB /* AppCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000035AB /* AppCache.swift */; };
 		FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000BAB /* ServerURLManagerTests.swift */; };
+		FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004AAB /* HorizontalSwipeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -110,6 +113,7 @@
 		DD00000000000000000048AB /* TranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageView.swift; sourceTree = "<group>"; };
 		DD00000000000000000042AB /* FoundationModelTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGenerator.swift; sourceTree = "<group>"; };
 		DD00000000000000000043AB /* LocalAIResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIResultSheet.swift; sourceTree = "<group>"; };
+		DD0000000000000000004CAB /* LocalAIOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIOverlay.swift; sourceTree = "<group>"; };
 		DD00000000000000000013AB /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		DD00000000000000000014AB /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
 		DD00000000000000000015AB /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -124,6 +128,7 @@
 		DD0000000000000000001FAB /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		DD00000000000000000022AB /* ServerURLManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManager.swift; sourceTree = "<group>"; };
 		DD0000000000000000003BAB /* DefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsKeys.swift; sourceTree = "<group>"; };
+		DD0000000000000000004BAB /* HorizontalSwipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalSwipe.swift; sourceTree = "<group>"; };
 		DD00000000000000000023AB /* DateFormatter+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DateFormatter+.swift"; sourceTree = "<group>"; };
 		DD00000000000000000024AB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD00000000000000000025AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -153,6 +158,7 @@
 		EE0000000000000000003AAB /* ArticleUpdatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleUpdatingTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000AAB /* AppCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCacheTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000BAB /* ServerURLManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManagerTests.swift; sourceTree = "<group>"; };
+		EE0000000000000000004AAB /* HorizontalSwipeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalSwipeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -269,6 +275,7 @@
 				DD00000000000000000048AB /* TranslatedPageView.swift */,
 				DD00000000000000000042AB /* FoundationModelTextGenerator.swift */,
 				DD00000000000000000043AB /* LocalAIResultSheet.swift */,
+				DD0000000000000000004CAB /* LocalAIOverlay.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -278,6 +285,7 @@
 			children = (
 				DD00000000000000000022AB /* ServerURLManager.swift */,
 				DD0000000000000000003BAB /* DefaultsKeys.swift */,
+				DD0000000000000000004BAB /* HorizontalSwipe.swift */,
 				DD00000000000000000023AB /* DateFormatter+.swift */,
 				DD00000000000000000034AB /* ShareSheet.swift */,
 				DD00000000000000000035AB /* AppCache.swift */,
@@ -394,6 +402,7 @@
 			children = (
 				EE0000000000000000000AAB /* AppCacheTests.swift */,
 				EE0000000000000000000BAB /* ServerURLManagerTests.swift */,
+				EE0000000000000000004AAB /* HorizontalSwipeTests.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -513,6 +522,7 @@
 				FF00000000000000000048AB /* TranslatedPageView.swift in Sources */,
 				FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */,
 				FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */,
+				FF0000000000000000004CAB /* LocalAIOverlay.swift in Sources */,
 				FF00000000000000000013AB /* SettingsStore.swift in Sources */,
 				FF00000000000000000014AB /* ServerSetupView.swift in Sources */,
 				FF00000000000000000015AB /* SidebarView.swift in Sources */,
@@ -533,6 +543,7 @@
 				FF0000000000000000003DAB /* UnreadCountBadge.swift in Sources */,
 				FF00000000000000000022AB /* ServerURLManager.swift in Sources */,
 				FF0000000000000000003BAB /* DefaultsKeys.swift in Sources */,
+				FF0000000000000000004BAB /* HorizontalSwipe.swift in Sources */,
 				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,
 				FF00000000000000000034AB /* ShareSheet.swift in Sources */,
 				FF00000000000000000035AB /* AppCache.swift in Sources */,
@@ -559,6 +570,7 @@
 				FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */,
 				FF0000000000000000002EAB /* AppCacheTests.swift in Sources */,
 				FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */,
+				FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

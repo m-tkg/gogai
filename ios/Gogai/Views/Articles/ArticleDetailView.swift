@@ -212,16 +212,7 @@ struct ArticleDetailView: View {
                 .localAIOverlay(for: currentArticle, bottomPadding: 70, onClose: { showBrowser = false })
                 .toolbar(.hidden, for: .navigationBar)
                 // 閉じる操作は右スワイプ（開く操作の左スワイプと対）
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 80, coordinateSpace: .local)
-                        .onEnded { value in
-                            let isRightSwipe = value.translation.width > 80
-                                && abs(value.translation.height) < abs(value.translation.width) * 0.5
-                            if isRightSwipe {
-                                showBrowser = false
-                            }
-                        }
-                )
+                .onHorizontalSwipe(.right) { showBrowser = false }
         }
     }
     #endif
@@ -287,18 +278,12 @@ struct ArticleDetailView: View {
         }
         #else
         articleDetailPane
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 80, coordinateSpace: .local)
-                    .onEnded { value in
-                        // 左スワイプで記事ページを開く
-                        // （縦成分が大きい場合はスクロールとみなして発火させない）
-                        let isLeftSwipe = value.translation.width < -80
-                            && abs(value.translation.height) < abs(value.translation.width) * 0.5
-                        if isLeftSwipe, let link = currentArticle.link, URL(string: link) != nil {
-                            showBrowser = true
-                        }
-                    }
-            )
+            // 左スワイプで記事ページを開く
+            .onHorizontalSwipe(.left) {
+                if let link = currentArticle.link, URL(string: link) != nil {
+                    showBrowser = true
+                }
+            }
             // 記事ページは sheet（下から）ではなく push 遷移（右から左）で表示する
             .navigationDestination(isPresented: $showBrowser) {
                 browserDestination
