@@ -64,7 +64,10 @@ struct LocalAIResultSheet: View {
                 }
             }
             .task {
-                await runFoundationModel(with: await loadSourceText())
+                // 生成中にバックグラウンドへ移っても継続する（システム猶予内）
+                await BackgroundExecution.run(name: "LocalAI.generate") {
+                    await runFoundationModel(with: await loadSourceText())
+                }
             }
         }
     }
