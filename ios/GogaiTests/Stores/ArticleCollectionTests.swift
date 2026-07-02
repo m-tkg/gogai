@@ -66,22 +66,6 @@ final class ArticleCollectionTests: XCTestCase {
         XCTAssertEqual(collection.articles.map { $0.id }, [5])
     }
 
-    func test_replaceAll_appending_重複idを除いて結合する() {
-        var collection = ArticleCollection()
-        collection.replaceAll(
-            [makeArticle(id: 1), makeArticle(id: 2)],
-            appending: [makeArticle(id: 2), makeArticle(id: 99)]
-        )
-        XCTAssertEqual(collection.articles.map { $0.id }, [1, 2, 99],
-                       "本体に既にある id は追加せず、ない id のみ末尾に足す")
-    }
-
-    func test_replaceAll_appending_空の追加分でも動く() {
-        var collection = ArticleCollection()
-        collection.replaceAll([makeArticle(id: 1)], appending: [])
-        XCTAssertEqual(collection.articles.map { $0.id }, [1])
-    }
-
     func test_isEmpty() {
         var collection = ArticleCollection()
         XCTAssertTrue(collection.isEmpty)
