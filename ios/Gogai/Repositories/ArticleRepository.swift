@@ -21,6 +21,10 @@ struct ArticleRepository: Sendable {
         return try await client.send(.get("/api/articles", queryItems: queryItems))
     }
 
+    func fetchCounts() async throws -> [FeedCount] {
+        try await client.send(.get("/api/articles/counts"))
+    }
+
     func fetch(id: Int) async throws -> Article {
         try await client.send(.get("/api/articles/\(id)"))
     }
