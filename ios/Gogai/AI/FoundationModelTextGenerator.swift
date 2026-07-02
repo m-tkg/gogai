@@ -17,8 +17,14 @@ enum LocalAI {
 
     /// 利用可能なら既定のオンデバイス実装で LocalArticleAI を作る
     static func makeArticleAI() -> LocalArticleAI? {
+        guard let generator = makeGenerator() else { return nil }
+        return LocalArticleAI(generator: generator)
+    }
+
+    /// 利用可能なら既定のオンデバイス TextGenerating 実装を返す(ストック要約など LocalArticleAI 以外の用途で共用)
+    static func makeGenerator() -> (any TextGenerating)? {
         guard #available(iOS 27.0, *), isAvailable else { return nil }
-        return LocalArticleAI(generator: FoundationModelTextGenerator())
+        return FoundationModelTextGenerator()
     }
 }
 

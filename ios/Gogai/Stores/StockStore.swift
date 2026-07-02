@@ -10,7 +10,12 @@ final class StockStore: ObservableObject {
     }
     @Published private(set) var isGeneratingSummaries = false
 
+    /// テスト用の差し替えポイント。デフォルトはオンデバイス Foundation Models(利用不可なら nil)。
+    var makeSummaryGenerator: () -> (any TextGenerating)? = { LocalAI.makeGenerator() }
+
     private var client: (any APIClientProtocol)?
+    /// 要約生成に失敗したストック ID(セッション内のみ。次回フォアグラウンドで再試行する)
+    private var failedSummaryStockIds: Set<Int> = []
 
     init() {
         self.sortAscending = UserDefaults.standard.bool(forKey: DefaultsKeys.stockSortAscending)
@@ -76,6 +81,33 @@ final class StockStore: ObservableObject {
         try await StockRepository(client: client).saveSummary(id: id, summary: summary)
         if let idx = stocks.firstIndex(where: { $0.id == id }) {
             stocks[idx] = stocks[idx].updating(summary: summary)
+        }
+    }
+
+    /// summary が未生成のストックを stocked_at の古い順に逐次生成する。
+    /// オンデバイス AI が利用できない端末や、既に実行中の場合は何もしない。
+    @MainActor
+    func generatePendingSummaries(session: URLSession = .shared) async {
+        guard !isGeneratingSummaries, let generator = makeSummaryGenerator() else { return }
+        let pending = stocks
+            .filter { $0.summary == nil && !failedSummaryStockIds.contains($0.id) }
+            .sorted { $0.stocked_at < $1.stocked_at }
+        guard !pending.isEmpty else { return }
+
+        isGeneratingSummaries = true
+        defer { isGeneratingSummaries = false }
+
+        let summarizer = StockSummarizer(generator: generator)
+        for stock in pending {
+            guard let url = URL(string: stock.url) else { continue }
+            do {
+                let summary = try await BackgroundExecution.run(name: "Stock.summarize") {
+                    try await summarizer.summarize(url: url, title: stock.title, session: session)
+                }
+                try await saveSummary(id: stock.id, summary: summary)
+            } catch {
+                failedSummaryStockIds.insert(stock.id)
+            }
         }
     }
 
