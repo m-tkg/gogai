@@ -73,14 +73,12 @@ struct GogaiApp: App {
         // async let や withTaskGroup は Store が non-Sendable のため使えない
         // （Store は @MainActor 宣言なしでクラスレベル sendable でない）。
         // 代わりに @MainActor な Task を 3 つ投げて並列実行する。
-        // refreshAllArticlesCache は fetchArticles と同じ allArticles を書き換えるため
-        // articles Task 内で順次に繋ぐ。
         Task { @MainActor in await groupStore.fetchGroups() }
         Task { @MainActor in await feedStore.fetchFeeds() }
         Task { @MainActor in
             await articleStore.fetchArticles()
-            // シークレット記事を含む全記事でバッジ用キャッシュを更新する
-            await articleStore.refreshAllArticlesCache()
+            // バッジ用のサーバー集計（シークレット込み・1 リクエスト）を最新化する
+            await articleStore.refreshCounts()
         }
     }
 }
