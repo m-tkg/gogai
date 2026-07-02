@@ -1189,6 +1189,46 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_refresh_alsoRefreshesCounts() async {
+        let articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+        await store.fetchArticles()
+
+        let counts = [makeCount(feedId: 1, total: 9, unread: 6, favorite: 0)]
+        MockURLProtocol.requestHandler = { req in
+            if req.url?.path.hasSuffix("/api/articles/counts") == true {
+                return (200, try JSONEncoder().encode(counts))
+            }
+            return (200, try JSONEncoder().encode(articles))
+        }
+
+        await store.refresh()
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 6, "refresh() でサーバー集計も更新される")
+    }
+
+    @MainActor
+    func test_refresh_refreshesCounts_evenWhenFeedIdIsSet() async {
+        // 特定フィード表示中の refresh でも counts はグローバルに更新する
+        // （他フィードの新着がバッジに反映されない「バッジ凍結」を防ぐ）
+        let articles = [makeArticle(id: 1, feedId: 5, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
+        await store.fetchArticles(feedId: 5)
+
+        let counts = [makeCount(feedId: 7, total: 3, unread: 3, favorite: 0)]
+        MockURLProtocol.requestHandler = { req in
+            if req.url?.path.hasSuffix("/api/articles/counts") == true {
+                return (200, try JSONEncoder().encode(counts))
+            }
+            return (200, try JSONEncoder().encode(articles))
+        }
+
+        await store.refresh()
+
+        XCTAssertEqual(store.feedCounts[7]?.unread, 3, "表示外フィードの counts も更新される")
+    }
+
+    @MainActor
     func test_refreshCounts_savesToCache_andInitRestores() async {
         let (testCache, tmpDir) = makeTmpCache()
         defer { try? FileManager.default.removeItem(at: tmpDir) }
