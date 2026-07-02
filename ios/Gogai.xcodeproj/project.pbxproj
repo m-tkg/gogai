@@ -12,6 +12,7 @@
 		FF00000000000000000003AB /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000003AB /* Group.swift */; };
 		FF00000000000000000004AB /* Feed.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000004AB /* Feed.swift */; };
 		FF00000000000000000005AB /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000005AB /* Article.swift */; };
+		FF00000000000000000052AB /* FeedCount.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000052AB /* FeedCount.swift */; };
 		FF00000000000000000006AB /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000006AB /* Settings.swift */; };
 		FF00000000000000000007AB /* UpdateCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000007AB /* UpdateCheck.swift */; };
 		FF00000000000000000008AB /* RefreshResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000008AB /* RefreshResult.swift */; };
@@ -99,6 +100,7 @@
 		DD00000000000000000003AB /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
 		DD00000000000000000004AB /* Feed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feed.swift; sourceTree = "<group>"; };
 		DD00000000000000000005AB /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		DD00000000000000000052AB /* FeedCount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedCount.swift; sourceTree = "<group>"; };
 		DD00000000000000000006AB /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		DD00000000000000000007AB /* UpdateCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheck.swift; sourceTree = "<group>"; };
 		DD00000000000000000008AB /* RefreshResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshResult.swift; sourceTree = "<group>"; };
@@ -224,6 +226,7 @@
 				DD00000000000000000003AB /* Group.swift */,
 				DD00000000000000000004AB /* Feed.swift */,
 				DD00000000000000000005AB /* Article.swift */,
+				DD00000000000000000052AB /* FeedCount.swift */,
 				DD00000000000000000006AB /* Settings.swift */,
 				DD00000000000000000007AB /* UpdateCheck.swift */,
 				DD00000000000000000008AB /* RefreshResult.swift */,
@@ -520,6 +523,7 @@
 				FF00000000000000000003AB /* Group.swift in Sources */,
 				FF00000000000000000004AB /* Feed.swift in Sources */,
 				FF00000000000000000005AB /* Article.swift in Sources */,
+				FF00000000000000000052AB /* FeedCount.swift in Sources */,
 				FF00000000000000000006AB /* Settings.swift in Sources */,
 				FF00000000000000000007AB /* UpdateCheck.swift in Sources */,
 				FF00000000000000000008AB /* RefreshResult.swift in Sources */,
