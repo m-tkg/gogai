@@ -7,6 +7,9 @@ final class ArticleStore: ObservableObject {
     /// collection は常に全体を保持して sidebar の未読カウントを正確にする。
     /// 更新は必ず mutateBoth / merge 経由で行い、articles との手動二重更新をしない。
     @Published private(set) var allCollection = ArticleCollection()
+    /// フィードごとのサーバー集計（GET /api/articles/counts）。バッジ計算の第一ソース。
+    /// 空（未取得）のときは allCollection ベースの計算にフォールバックする。
+    @Published private(set) var feedCounts: [Int: FeedCount] = [:]
     @Published private(set) var isLoading = false
     @Published var error: Error?
     @Published var unreadOnly: Bool {
@@ -50,6 +53,11 @@ final class ArticleStore: ObservableObject {
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
         // 起動時にキャッシュから全記事を読み込み、未読カウントを即座に表示する
         self.allCollection.replaceAll(cache.loadAllArticles())
+        self.feedCounts = Self.indexed(cache.loadFeedCounts())
+    }
+
+    private static func indexed(_ counts: [FeedCount]) -> [Int: FeedCount] {
+        Dictionary(counts.map { ($0.feed_id, $0) }, uniquingKeysWith: { _, new in new })
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -293,6 +301,16 @@ final class ArticleStore: ObservableObject {
     /// 「すべての記事」のバッジ件数（シークレットフィード除外用）
     func badgeCount(excludingFeedIds feedIds: Set<Int>) -> Int {
         badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
+    }
+
+    /// サーバー集計（フィードごとの total/unread/favorite）を取得してバッジ計算を最新化する。
+    /// ベストエフォート: 失敗時は前回値（起動時はディスクキャッシュ復元値）を維持し error を立てない。
+    @MainActor
+    func refreshCounts() async {
+        guard let client else { return }
+        guard let fetched = try? await ArticleRepository(client: client).fetchCounts() else { return }
+        feedCounts = Self.indexed(fetched)
+        cache.saveFeedCounts(fetched)
     }
 
     /// コレクションのキャッシュをシークレット記事を含む全件で更新する
