@@ -57,6 +57,7 @@
 		FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000002AB /* GroupRepositoryTests.swift */; };
 		FF00000000000000000027AB /* FeedRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000003AB /* FeedRepositoryTests.swift */; };
 		FF00000000000000000028AB /* ArticleRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000004AB /* ArticleRepositoryTests.swift */; };
+		FF00000000000000000053AB /* FeedCountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000052AB /* FeedCountTests.swift */; };
 		FF00000000000000000029AB /* GroupStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000005AB /* GroupStoreTests.swift */; };
 		FF0000000000000000002AAB /* FeedStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000006AB /* FeedStoreTests.swift */; };
 		FF0000000000000000002BAB /* ArticleStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000007AB /* ArticleStoreTests.swift */; };
@@ -154,6 +155,7 @@
 		EE00000000000000000002AB /* GroupRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRepositoryTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000003AB /* FeedRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepositoryTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000004AB /* ArticleRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleRepositoryTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000052AB /* FeedCountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedCountTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000005AB /* GroupStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupStoreTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000006AB /* FeedStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStoreTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000007AB /* ArticleStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStoreTests.swift; sourceTree = "<group>"; };
@@ -387,6 +389,7 @@
 				EE00000000000000000002AB /* GroupRepositoryTests.swift */,
 				EE00000000000000000003AB /* FeedRepositoryTests.swift */,
 				EE00000000000000000004AB /* ArticleRepositoryTests.swift */,
+				EE00000000000000000052AB /* FeedCountTests.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -577,6 +580,7 @@
 				FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */,
 				FF00000000000000000027AB /* FeedRepositoryTests.swift in Sources */,
 				FF00000000000000000028AB /* ArticleRepositoryTests.swift in Sources */,
+				FF00000000000000000053AB /* FeedCountTests.swift in Sources */,
 				FF00000000000000000029AB /* GroupStoreTests.swift in Sources */,
 				FF0000000000000000002AAB /* FeedStoreTests.swift in Sources */,
 				FF0000000000000000002BAB /* ArticleStoreTests.swift in Sources */,
