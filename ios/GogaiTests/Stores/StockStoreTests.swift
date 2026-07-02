@@ -47,25 +47,37 @@ final class StockStoreTests: XCTestCase {
     }
 
     @MainActor
-    func test_createStock_appendsToStocks() async {
+    func test_createStock_appendsToStocks() async throws {
         let created = makeStock(id: 5)
         MockURLProtocol.requestHandler = { _ in (201, try JSONEncoder().encode(created)) }
 
-        let result = await store.createStock(url: "https://example.com/5", source: "Tech")
+        let result = try await store.createStock(url: "https://example.com/5", source: "Tech")
 
-        XCTAssertEqual(result?.id, 5)
+        XCTAssertEqual(result.id, 5)
         XCTAssertEqual(store.stocks.count, 1)
     }
 
     @MainActor
-    func test_createStock_duplicateUrl_updatesExistingRatherThanAppending() async {
+    func test_createStock_duplicateUrl_updatesExistingRatherThanAppending() async throws {
         store.stocks = [makeStock(id: 1)]
         let existing = makeStock(id: 1)
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(existing)) }
 
-        _ = await store.createStock(url: "https://example.com/1", source: "Tech")
+        _ = try await store.createStock(url: "https://example.com/1", source: "Tech")
 
         XCTAssertEqual(store.stocks.count, 1)
+    }
+
+    @MainActor
+    func test_createStock_failure_throws() async {
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        do {
+            _ = try await store.createStock(url: "https://example.com/1", source: "Tech")
+            XCTFail("エラーが throw されるはず")
+        } catch {
+            // 期待通り
+        }
     }
 
     @MainActor

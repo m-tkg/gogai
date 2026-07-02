@@ -73,7 +73,7 @@ struct GogaiApp: App {
             guard let stockStore, let link = article.link else { return }
             let groupName = feedStore?.feeds.first(where: { $0.id == article.feed_id })?.group_id
                 .flatMap { groupId in groupStore?.groups.first(where: { $0.id == groupId })?.name }
-            Task { await stockStore.createStock(url: link, title: article.title, source: groupName ?? "未分類") }
+            Task { try? await stockStore.createStock(url: link, title: article.title, source: groupName ?? "未分類") }
         })
         settingsStore.configure(with: client)
         stockStore.configure(with: client)

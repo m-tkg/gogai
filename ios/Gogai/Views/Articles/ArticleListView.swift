@@ -5,6 +5,7 @@ struct ArticleListView: View {
     let groupId: Int?
     @Binding var selectedArticle: Article?
     var onArticleSelected: ((Article) -> Void)?
+    var onStockTap: (() -> Void)?
 
     @EnvironmentObject private var articleStore: ArticleStore
     @EnvironmentObject private var feedStore: FeedStore
@@ -117,7 +118,7 @@ struct ArticleListView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly, onStockTap: onStockTap)
         }
         .onChange(of: articleStore.unreadOnly) { _, newVal in
             Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal, includeSecret: groupStore.showSecretGroups) }

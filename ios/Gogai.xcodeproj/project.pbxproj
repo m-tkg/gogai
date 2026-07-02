@@ -87,6 +87,11 @@
 		FF00000000000000000056AB /* StockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000056AB /* StockStore.swift */; };
 		FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000057AB /* StockRepositoryTests.swift */; };
 		FF00000000000000000058AB /* StockStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000058AB /* StockStoreTests.swift */; };
+		FF00000000000000000059AB /* StockCategoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000059AB /* StockCategoryListView.swift */; };
+		FF0000000000000000005AAB /* StockListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005AAB /* StockListView.swift */; };
+		FF0000000000000000005BAB /* StockDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005BAB /* StockDetailView.swift */; };
+		FF0000000000000000005CAB /* AddStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005CAB /* AddStockView.swift */; };
+		FF0000000000000000005DAB /* EditStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005DAB /* EditStockView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -183,6 +188,11 @@
 		DD00000000000000000056AB /* StockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStore.swift; sourceTree = "<group>"; };
 		EE00000000000000000057AB /* StockRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepositoryTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000058AB /* StockStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStoreTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005CAB /* AddStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005DAB /* EditStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditStockView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -290,6 +300,7 @@
 				CC0000000000000000000BAB /* Sidebar */,
 				CC0000000000000000000CAB /* Articles */,
 				CC0000000000000000000EAB /* Settings */,
+				CC00000000000000000017AB /* Stocks */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -364,6 +375,18 @@
 				DD0000000000000000001FAB /* AdminView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		CC00000000000000000017AB /* Stocks */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000059AB /* StockCategoryListView.swift */,
+				DD0000000000000000005AAB /* StockListView.swift */,
+				DD0000000000000000005BAB /* StockDetailView.swift */,
+				DD0000000000000000005CAB /* AddStockView.swift */,
+				DD0000000000000000005DAB /* EditStockView.swift */,
+			);
+			path = Stocks;
 			sourceTree = "<group>";
 		};
 		CC0000000000000000000FAB /* GogaiTests */ = {
@@ -590,6 +613,11 @@
 				FF00000000000000000054AB /* Stock.swift in Sources */,
 				FF00000000000000000055AB /* StockRepository.swift in Sources */,
 				FF00000000000000000056AB /* StockStore.swift in Sources */,
+				FF00000000000000000059AB /* StockCategoryListView.swift in Sources */,
+				FF0000000000000000005AAB /* StockListView.swift in Sources */,
+				FF0000000000000000005BAB /* StockDetailView.swift in Sources */,
+				FF0000000000000000005CAB /* AddStockView.swift in Sources */,
+				FF0000000000000000005DAB /* EditStockView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
