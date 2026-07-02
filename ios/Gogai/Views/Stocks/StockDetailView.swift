@@ -1,7 +1,39 @@
 import SwiftUI
 
+/// サマリーの4セクション(何についての記事か/何の目的で書かれたか/
+/// 筆者が一番伝えたいこと/要約)を表示する。パース失敗時は生テキストにフォールバックする。
+private struct StockSummarySections: View {
+    let summary: String
+
+    var body: some View {
+        if let parsed = StockSummary.parse(summary) {
+            VStack(alignment: .leading, spacing: 16) {
+                section(title: "何についての記事か", body: parsed.topic)
+                section(title: "何の目的で書かれたか", body: parsed.purpose)
+                section(title: "筆者が一番伝えたいこと", body: parsed.mainMessage)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("要約")
+                        .font(.headline)
+                    ForEach(Array(parsed.summaryLines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                    }
+                }
+            }
+        } else {
+            Text(summary)
+        }
+    }
+
+    private func section(title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.headline)
+            Text(body)
+        }
+    }
+}
+
 /// ストックの詳細(タイトル・ストック元・日付・サマリー)。
-/// サマリーの4セクション構成表示は StockSummary パーサ導入後に対応する。
 struct StockDetailView: View {
     let stock: Stock
 
@@ -38,7 +70,7 @@ struct StockDetailView: View {
                 Divider()
 
                 if let summary = currentStock.summary {
-                    Text(summary)
+                    StockSummarySections(summary: summary)
                 } else {
                     Label("要約を生成中です…", systemImage: "hourglass")
                         .foregroundStyle(.secondary)

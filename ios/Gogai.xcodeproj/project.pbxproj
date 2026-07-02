@@ -92,6 +92,10 @@
 		FF0000000000000000005BAB /* StockDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005BAB /* StockDetailView.swift */; };
 		FF0000000000000000005CAB /* AddStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005CAB /* AddStockView.swift */; };
 		FF0000000000000000005DAB /* EditStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005DAB /* EditStockView.swift */; };
+		FF0000000000000000005EAB /* StockSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005EAB /* StockSummarizer.swift */; };
+		FF0000000000000000005FAB /* StockSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005FAB /* StockSummary.swift */; };
+		FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000060AB /* StockSummarizerTests.swift */; };
+		FF00000000000000000061AB /* StockSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000061AB /* StockSummaryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,6 +192,10 @@
 		DD00000000000000000056AB /* StockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStore.swift; sourceTree = "<group>"; };
 		EE00000000000000000057AB /* StockRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepositoryTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000058AB /* StockStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStoreTests.swift; sourceTree = "<group>"; };
+		DD0000000000000000005EAB /* StockSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizer.swift; sourceTree = "<group>"; };
+		DD0000000000000000005FAB /* StockSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummary.swift; sourceTree = "<group>"; };
+		EE00000000000000000060AB /* StockSummarizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizerTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000061AB /* StockSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummaryTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
@@ -317,6 +325,8 @@
 				DD0000000000000000004CAB /* LocalAIOverlay.swift */,
 				DD00000000000000000051AB /* CircleIconButton.swift */,
 				DD0000000000000000004EAB /* TranslationCache.swift */,
+				DD0000000000000000005EAB /* StockSummarizer.swift */,
+				DD0000000000000000005FAB /* StockSummary.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -410,6 +420,8 @@
 				EE00000000000000000045AB /* ArticleContentFetcherTests.swift */,
 				EE00000000000000000049AB /* TranslatedPageModelTests.swift */,
 				EE0000000000000000004DAB /* TranslationCacheTests.swift */,
+				EE00000000000000000060AB /* StockSummarizerTests.swift */,
+				EE00000000000000000061AB /* StockSummaryTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -618,6 +630,8 @@
 				FF0000000000000000005BAB /* StockDetailView.swift in Sources */,
 				FF0000000000000000005CAB /* AddStockView.swift in Sources */,
 				FF0000000000000000005DAB /* EditStockView.swift in Sources */,
+				FF0000000000000000005EAB /* StockSummarizer.swift in Sources */,
+				FF0000000000000000005FAB /* StockSummary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -647,6 +661,8 @@
 				FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */,
 				FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */,
 				FF00000000000000000058AB /* StockStoreTests.swift in Sources */,
+				FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */,
+				FF00000000000000000061AB /* StockSummaryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
