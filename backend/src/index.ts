@@ -6,6 +6,8 @@ import feedsRouter from './routes/feeds.js'
 import articlesRouter from './routes/articles.js'
 import settingsRouter from './routes/settings.js'
 import adminRouter from './routes/admin.js'
+import stocksRouter from './routes/stocks.js'
+import stockCategoriesRouter from './routes/stock-categories.js'
 import { getDb } from './db/schema.js'
 import { ArticlesService } from './services/articles.js'
 import { SettingsService } from './services/settings.js'
@@ -50,7 +52,7 @@ app.onError(errorHandler)
 
 app.use('*', cors({
   origin: (origin) => origin ?? '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type'],
 }))
 
@@ -59,6 +61,8 @@ app.route('/api/feeds', feedsRouter)
 app.route('/api/articles', articlesRouter)
 app.route('/api/settings', settingsRouter)
 app.route('/api/admin', adminRouter)
+app.route('/api/stocks', stocksRouter)
+app.route('/api/stock-categories', stockCategoriesRouter)
 
 app.get('/health', (c) => c.json({ status: 'ok' }))
 
