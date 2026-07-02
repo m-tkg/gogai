@@ -26,6 +26,16 @@ final class AppCache: @unchecked Sendable {
         load([Article].self, from: "allArticles.json") ?? []
     }
 
+    // MARK: - FeedCounts
+
+    func saveFeedCounts(_ counts: [FeedCount]) {
+        save(counts, to: "feedCounts.json")
+    }
+
+    func loadFeedCounts() -> [FeedCount] {
+        load([FeedCount].self, from: "feedCounts.json") ?? []
+    }
+
     // MARK: - Feeds
 
     func saveFeeds(_ feeds: [Feed]) {

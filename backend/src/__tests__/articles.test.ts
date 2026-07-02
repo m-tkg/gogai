@@ -352,6 +352,49 @@ describe('ArticlesService', () => {
     })
   })
 
+  describe('countsByFeed', () => {
+    it('フィードごとの total / unread / favorite を集計する', () => {
+      const feed2 = feedsService.create({ url: 'https://example2.com/feed.xml', title: 'Example2' })
+      articlesService.upsertMany(feedId, [
+        { guid: 'c1', title: 'A1', link: 'https://example.com/c1', summary: '' },
+        { guid: 'c2', title: 'A2', link: 'https://example.com/c2', summary: '' },
+        { guid: 'c3', title: 'A3', link: 'https://example.com/c3', summary: '' },
+      ])
+      articlesService.upsertMany(feed2.id, [
+        { guid: 'c4', title: 'B1', link: 'https://example2.com/c4', summary: '' },
+      ])
+      const feed1Articles = articlesService.findByFeed(feedId)
+      articlesService.markAsRead(feed1Articles[0].id)
+      articlesService.markAsFavorite(feed1Articles[0].id)
+      articlesService.markAsFavorite(feed1Articles[1].id)
+
+      const counts = articlesService.countsByFeed()
+      const feed1Count = counts.find(c => c.feed_id === feedId)
+      const feed2Count = counts.find(c => c.feed_id === feed2.id)
+      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2, favorite: 2 })
+      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1, favorite: 0 })
+    })
+
+    it('シークレットグループのフィードも集計に含む', () => {
+      const groupsService = new GroupsService(db)
+      const secretGroup = groupsService.create('SecretGroup', 1)
+      const secretFeed = feedsService.create({ url: 'https://secret.com/feed.xml', title: 'Secret Feed', groupId: secretGroup.id })
+      articlesService.upsertMany(secretFeed.id, [
+        { guid: 's1', title: 'Secret Article', link: 'https://secret.com/1', summary: '' },
+      ])
+
+      const counts = articlesService.countsByFeed()
+      const secretCount = counts.find(c => c.feed_id === secretFeed.id)
+      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1, favorite: 0 })
+    })
+
+    it('記事が 0 件のフィードは結果に含まれない', () => {
+      const emptyFeed = feedsService.create({ url: 'https://empty.com/feed.xml', title: 'Empty' })
+      const counts = articlesService.countsByFeed()
+      expect(counts.find(c => c.feed_id === emptyFeed.id)).toBeUndefined()
+    })
+  })
+
   describe('重複URLの自動既読', () => {
     let feed2Id: number
 

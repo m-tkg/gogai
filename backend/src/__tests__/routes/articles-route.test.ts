@@ -59,6 +59,30 @@ describe('articles ルート（HTTP 契約）', () => {
     })
   })
 
+  describe('GET /counts', () => {
+    it('フィードごとの {feed_id, total, unread, favorite} 配列を返す', async () => {
+      new ArticlesService(db).markAsRead(articleId)
+      new ArticlesService(db).markAsFavorite(articleId)
+
+      const res = await articlesRouter.request('/counts')
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body).toHaveLength(1)
+      expect(body[0]).toEqual({
+        feed_id: expect.any(Number),
+        total: 2,
+        unread: 1,
+        favorite: 1,
+      })
+    })
+
+    it('counts 追加後も GET /:id（数値 id）が壊れていない', async () => {
+      const res = await articlesRouter.request(`/${articleId}`)
+      expect(res.status).toBe(200)
+      expect((await res.json()).id).toBe(articleId)
+    })
+  })
+
   describe('GET /:id', () => {
     it('記事を返す', async () => {
       const res = await articlesRouter.request(`/${articleId}`)

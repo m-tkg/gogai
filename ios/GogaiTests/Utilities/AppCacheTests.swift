@@ -92,6 +92,23 @@ final class AppCacheTests: XCTestCase {
         XCTAssertEqual(loaded[1].id, 2)
     }
 
+    // MARK: - FeedCounts
+
+    func test_loadFeedCounts_returnsEmpty_whenNoCache() {
+        XCTAssertTrue(cache.loadFeedCounts().isEmpty)
+    }
+
+    func test_saveAndLoad_feedCounts() {
+        let counts = [
+            FeedCount(feed_id: 1, total: 3, unread: 2, favorite: 1),
+            FeedCount(feed_id: 2, total: 5, unread: 0, favorite: 0),
+        ]
+        cache.saveFeedCounts(counts)
+
+        let loaded = cache.loadFeedCounts()
+        XCTAssertEqual(loaded, counts)
+    }
+
     // MARK: - clearAll
 
     func test_clearAll_removesAllCachedData() {

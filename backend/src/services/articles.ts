@@ -33,6 +33,13 @@ const ORDER_BY_SQL: Record<SortBy, string> = {
   read_at: 'COALESCE(a.read_at, a.published_at) DESC',
 }
 
+export interface FeedCount {
+  feed_id: number
+  total: number
+  unread: number
+  favorite: number
+}
+
 export interface FindAllOptions {
   limit: number
   offset: number
@@ -132,6 +139,19 @@ export class ArticlesService {
       ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `).all(...values) as Article[]
+  }
+
+  // シークレットグループも含む全フィードの集計を返す。
+  // サイドバーのシークレット除外はクライアント側の責務（badgeCount(excludingFeedIds:)）。
+  countsByFeed(): FeedCount[] {
+    return this.db.prepare(`
+      SELECT feed_id,
+             COUNT(*) AS total,
+             SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread,
+             SUM(CASE WHEN is_favorite = 1 THEN 1 ELSE 0 END) AS favorite
+      FROM articles
+      GROUP BY feed_id
+    `).all() as FeedCount[]
   }
 
   findByFeed(feedId: number): Article[] {
