@@ -1015,6 +1015,74 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertNil(store.error, "counts はベストエフォートなので error を立てない")
     }
 
+    /// refreshCounts 経由で feedCounts を投入するヘルパー
+    @MainActor
+    private func seedCounts(_ counts: [FeedCount]) async {
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
+        await store.refreshCounts()
+        MockURLProtocol.requestHandler = nil
+    }
+
+    @MainActor
+    func test_badgeCount_usesFeedCounts_perFilter() async {
+        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, favorite: 2)])
+
+        // allCollection は空でも counts があればバッジが出る（起動直後の 0 件表示の修正点）
+        XCTAssertEqual(store.badgeCount(for: 1), 10, "「全て」= total")
+
+        store.unreadOnly = true
+        XCTAssertEqual(store.badgeCount(for: 1), 4, "「未読のみ」= unread")
+
+        store.unreadOnly = false
+        store.favoriteOnly = true
+        XCTAssertEqual(store.badgeCount(for: 1), 2, "「お気に入り」= favorite")
+    }
+
+    @MainActor
+    func test_badgeCount_aggregates_acrossFeeds() async {
+        await seedCounts([makeCount(feedId: 1, total: 3, unread: 1, favorite: 0),
+                          makeCount(feedId: 2, total: 5, unread: 2, favorite: 1),
+                          makeCount(feedId: 3, total: 7, unread: 4, favorite: 0)])
+        store.unreadOnly = true
+
+        XCTAssertEqual(store.badgeCount(for: nil), 7, "全フィード合計")
+        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [1, 2]), 3, "グループ = 所属フィードの合計")
+        XCTAssertEqual(store.badgeCount(excludingFeedIds: [3]), 3, "除外指定フィード以外の合計")
+        XCTAssertEqual(store.badgeCount(for: 99), 0, "counts に無いフィードは 0")
+    }
+
+    @MainActor
+    func test_hasVisibleArticle_usesFeedCounts() async {
+        await seedCounts([makeCount(feedId: 1, total: 3, unread: 0, favorite: 1),
+                          makeCount(feedId: 2, total: 2, unread: 2, favorite: 0)])
+        store.unreadOnly = true
+
+        XCTAssertFalse(store.hasVisibleArticle(for: 1), "未読 0 のフィードは非表示")
+        XCTAssertTrue(store.hasVisibleArticle(for: 2))
+
+        store.unreadOnly = false
+        store.favoriteOnly = true
+        XCTAssertTrue(store.hasVisibleArticle(for: 1))
+        XCTAssertFalse(store.hasVisibleArticle(for: 2), "お気に入り 0 のフィードは非表示")
+    }
+
+    @MainActor
+    func test_badgeCount_fallsBackToCollection_whenBothFiltersActive() async {
+        // UI からは到達不能だが、counts の 3 値では AND 条件を表現できないため
+        // 両フィルタ有効時は従来のコレクション計算にフォールバックする
+        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, favorite: 2)])
+        MockURLProtocol.requestHandler = { _ in
+            (200, try JSONEncoder().encode([self.makeArticle(id: 1, feedId: 1, isRead: 0, isFavorite: 1),
+                                            self.makeArticle(id: 2, feedId: 1, isRead: 0, isFavorite: 0)]))
+        }
+        await store.fetchArticles()
+
+        store.unreadOnly = true
+        store.favoriteOnly = true
+
+        XCTAssertEqual(store.badgeCount(for: 1), 1, "未読かつお気に入りはコレクションから数える")
+    }
+
     @MainActor
     func test_refreshCounts_savesToCache_andInitRestores() async {
         let (testCache, tmpDir) = makeTmpCache()
