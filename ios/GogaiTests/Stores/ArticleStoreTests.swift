@@ -1083,6 +1083,111 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.badgeCount(for: 1), 1, "未読かつお気に入りはコレクションから数える")
     }
 
+    // MARK: - feedCounts と楽観更新の同期
+
+    @MainActor
+    func test_markAsRead_decrementsUnreadCount() async {
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 1)
+        XCTAssertEqual(store.feedCounts[1]?.total, 5, "total は変わらない")
+    }
+
+    @MainActor
+    func test_markAsRead_restoresUnreadCount_onRollback() async {
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 2, "ロールバックで counts も元に戻る")
+    }
+
+    @MainActor
+    func test_markAsRead_keepsDecrement_onURLError() async {
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 1, "URLError（pending 積み）でも減算は維持")
+    }
+
+    @MainActor
+    func test_markAsUnread_incrementsUnreadCount() async {
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.markAsUnread(id: 1)
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 3)
+    }
+
+    @MainActor
+    func test_favoriteAndUnfavorite_adjustFavoriteCount() async {
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 1)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isFavorite: 0), makeArticle(id: 2, feedId: 1, isFavorite: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.favorite(id: 1)
+        XCTAssertEqual(store.feedCounts[1]?.favorite, 2)
+
+        await store.unfavorite(id: 2)
+        XCTAssertEqual(store.feedCounts[1]?.favorite, 1)
+        XCTAssertEqual(store.feedCounts[1]?.unread, 2, "unread は変わらない")
+    }
+
+    @MainActor
+    func test_markAllAsRead_decrementsUnreadPerFeed() async {
+        await seedCounts([makeCount(feedId: 1, total: 3, unread: 2, favorite: 0),
+                          makeCount(feedId: 2, total: 3, unread: 3, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0),
+                          makeArticle(id: 2, feedId: 1, isRead: 0),
+                          makeArticle(id: 3, feedId: 2, isRead: 0),
+                          makeArticle(id: 4, feedId: 2, isRead: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.markAllAsRead()
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 0)
+        XCTAssertEqual(store.feedCounts[2]?.unread, 2, "既読だった記事は減算しない")
+    }
+
+    @MainActor
+    func test_unreadCount_clampsAtZero() async {
+        // サーバー集計とローカル記事の状態がずれていても 0 未満にならない
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 0, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.markAsRead(id: 1)
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 0)
+    }
+
+    @MainActor
+    func test_refreshCounts_subtractsPendingReads() async {
+        // URLError で pending 中の既読はサーバー集計に未反映のため、フェッチ後に減算する
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
+        MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
+        await store.markAsRead(id: 1)
+
+        // サーバーはまだ未読 2 と答えるが、pending 分を引いて 1 になる
+        let counts = [makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
+        await store.refreshCounts()
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 1)
+    }
+
     @MainActor
     func test_refreshCounts_savesToCache_andInitRestores() async {
         let (testCache, tmpDir) = makeTmpCache()
