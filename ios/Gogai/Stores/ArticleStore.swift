@@ -123,6 +123,10 @@ final class ArticleStore: ObservableObject {
         let genBefore = fetchGeneration
         await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
 
+        // バッジ用のサーバー集計は表示中フィードに関わらずグローバルに更新する
+        // （特定フィード表示中でも他フィードの新着がバッジに反映されるように）
+        await refreshCounts()
+
         // 自分の fetchArticles 以外にも呼び出しがあった場合はその結果を尊重し保持ロジックをスキップ
         // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
         guard fetchGeneration == genBefore + 1 else { return }
@@ -224,6 +228,9 @@ final class ArticleStore: ObservableObject {
                 mutateBoth(id: original.id) { _ in original }
             }
         }
+
+        // サーバー集計と突き合わせてバッジを確定させる（失敗時はローカル差分を維持）
+        await refreshCounts()
     }
 
     @MainActor

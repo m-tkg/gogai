@@ -199,9 +199,10 @@ struct SidebarView: View {
             }
         }
         .onChange(of: groupStore.showSecretGroups) { _, newVal in
-            // シークレットモードON時に即座にバッジ用キャッシュを更新する
+            // シークレットモードON時にバッジ用のサーバー集計を最新化する
+            // （counts は常にシークレット込みなので取得し直すだけでよい）
             if newVal {
-                Task { await articleStore.refreshAllArticlesCache() }
+                Task { await articleStore.refreshCounts() }
             }
         }
         .sheet(isPresented: $showAddFeed) {
