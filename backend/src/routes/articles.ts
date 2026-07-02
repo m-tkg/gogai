@@ -30,6 +30,11 @@ app.get('/', (c) => {
   return c.json(articles)
 })
 
+// 注意: /:id より前に定義しないと :id にマッチして 404 になる
+app.get('/counts', (c) => {
+  return c.json(new ArticlesService(getDb()).countsByFeed())
+})
+
 app.get('/:id', (c) => {
   const article = new ArticlesService(getDb()).findById(Number(c.req.param('id')))
   if (!article) throw new AppError('Not found', 404)
