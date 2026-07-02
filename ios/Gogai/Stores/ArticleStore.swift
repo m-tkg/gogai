@@ -207,15 +207,11 @@ final class ArticleStore: ObservableObject {
         let unread = articles.filter { !$0.isRead }
         guard !unread.isEmpty, let client else { return }
 
-        // Optimistic update（articles とコレクションを同一変換で同期）
+        // Optimistic update（mutateBoth 経由で articles / コレクション / feedCounts を同期）
         let nowISO = ISO8601DateFormatter().string(from: Date())
-        let unreadIds = Set(unread.map { $0.id })
-        let markRead: (Article) -> Article = { a in
-            guard unreadIds.contains(a.id) else { return a }
-            return a.updating(isRead: 1, readAt: .set(nowISO))
+        for article in unread {
+            mutateBoth(id: article.id) { $0.updating(isRead: 1, readAt: .set(nowISO)) }
         }
-        articles = articles.map(markRead)
-        allCollection.updateAll(markRead)
 
         // API calls: URLError → pending queue, others → rollback
         for original in unread {
@@ -338,6 +334,18 @@ final class ArticleStore: ObservableObject {
         guard let client else { return }
         guard let fetched = try? await ArticleRepository(client: client).fetchCounts() else { return }
         feedCounts = Self.indexed(fetched)
+        // pending（サーバーに届いていない既読）はサーバー集計に未反映のため減算して補正する
+        for id in pendingReadIds {
+            guard let article = allCollection.articles.first(where: { $0.id == id })
+                    ?? articles.first(where: { $0.id == id }) else { continue }
+            guard let count = feedCounts[article.feed_id] else { continue }
+            feedCounts[article.feed_id] = FeedCount(
+                feed_id: count.feed_id,
+                total: count.total,
+                unread: max(0, count.unread - 1),
+                favorite: count.favorite
+            )
+        }
         cache.saveFeedCounts(fetched)
     }
 
@@ -418,6 +426,7 @@ final class ArticleStore: ObservableObject {
     }
 
     /// articles とコレクションの該当記事を同一の変換で更新する（同期漏れを構造的に防ぐ）。
+    /// feedCounts にも既読/お気に入りの差分を反映する（ロールバックは逆変換で自動的に打ち消される）。
     /// - Returns: 変換前の記事（articles に存在しない場合は nil で何もしない）
     @MainActor
     @discardableResult
@@ -427,7 +436,24 @@ final class ArticleStore: ObservableObject {
         let updated = transform(original)
         articles[idx] = updated
         allCollection.upsert(updated)
+        applyCountsDelta(from: original, to: updated)
         return original
+    }
+
+    /// 記事の変換前後の状態差分を feedCounts に反映する。
+    /// counts に無い feed_id は無視する（サーバー集計との整合のため勝手に行を作らない）。
+    @MainActor
+    private func applyCountsDelta(from original: Article, to updated: Article) {
+        guard let count = feedCounts[original.feed_id] else { return }
+        let unreadDelta = (updated.isRead ? 0 : 1) - (original.isRead ? 0 : 1)
+        let favoriteDelta = (updated.isFavorite ? 1 : 0) - (original.isFavorite ? 1 : 0)
+        guard unreadDelta != 0 || favoriteDelta != 0 else { return }
+        feedCounts[original.feed_id] = FeedCount(
+            feed_id: count.feed_id,
+            total: count.total,
+            unread: max(0, count.unread + unreadDelta),
+            favorite: max(0, count.favorite + favoriteDelta)
+        )
     }
 
     /// pendingReadIds に含まれる記事をローカルで既読に上書きする（fetchArticles 後に呼ぶ）
