@@ -7,6 +7,9 @@ final class ArticleStore: ObservableObject {
     /// collection は常に全体を保持して sidebar の未読カウントを正確にする。
     /// 更新は必ず mutateBoth / merge 経由で行い、articles との手動二重更新をしない。
     @Published private(set) var allCollection = ArticleCollection()
+    /// フィードごとのサーバー集計（GET /api/articles/counts）。バッジ計算の第一ソース。
+    /// 空（未取得）のときは allCollection ベースの計算にフォールバックする。
+    @Published private(set) var feedCounts: [Int: FeedCount] = [:]
     @Published private(set) var isLoading = false
     @Published var error: Error?
     @Published var unreadOnly: Bool {
@@ -50,6 +53,11 @@ final class ArticleStore: ObservableObject {
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
         // 起動時にキャッシュから全記事を読み込み、未読カウントを即座に表示する
         self.allCollection.replaceAll(cache.loadAllArticles())
+        self.feedCounts = Self.indexed(cache.loadFeedCounts())
+    }
+
+    private static func indexed(_ counts: [FeedCount]) -> [Int: FeedCount] {
+        Dictionary(counts.map { ($0.feed_id, $0) }, uniquingKeysWith: { _, new in new })
     }
 
     func configure(with client: any APIClientProtocol) {
@@ -115,18 +123,13 @@ final class ArticleStore: ObservableObject {
         let genBefore = fetchGeneration
         await fetchArticles(feedId: currentFeedId, groupId: currentGroupId, includeSecret: currentIncludeSecret)
 
+        // バッジ用のサーバー集計は表示中フィードに関わらずグローバルに更新する
+        // （特定フィード表示中でも他フィードの新着がバッジに反映されるように）
+        await refreshCounts()
+
         // 自分の fetchArticles 以外にも呼び出しがあった場合はその結果を尊重し保持ロジックをスキップ
         // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
         guard fetchGeneration == genBefore + 1 else { return }
-
-        // シークレットなしのフル更新の場合、バッジ用にシークレット記事も取得してコレクションを更新する
-        // （fetchArticles が includeSecret=false だとコレクションからシークレット記事が抜けるため）
-        // 注: 保持ロジックの前に実行することで、以降の既読状態補正がシークレット記事にも適用される
-        if currentFeedId == nil && currentGroupId == nil && !currentIncludeSecret {
-            await refreshAllArticlesCache()
-            // refreshAllArticlesCache の await 中に外部 fetchArticles が呼ばれた場合は保持ロジックをスキップ
-            guard fetchGeneration == genBefore + 1 else { return }
-        }
 
         guard !previouslyReadArticles.isEmpty else { return }
 
@@ -199,15 +202,11 @@ final class ArticleStore: ObservableObject {
         let unread = articles.filter { !$0.isRead }
         guard !unread.isEmpty, let client else { return }
 
-        // Optimistic update（articles とコレクションを同一変換で同期）
+        // Optimistic update（mutateBoth 経由で articles / コレクション / feedCounts を同期）
         let nowISO = ISO8601DateFormatter().string(from: Date())
-        let unreadIds = Set(unread.map { $0.id })
-        let markRead: (Article) -> Article = { a in
-            guard unreadIds.contains(a.id) else { return a }
-            return a.updating(isRead: 1, readAt: .set(nowISO))
+        for article in unread {
+            mutateBoth(id: article.id) { $0.updating(isRead: 1, readAt: .set(nowISO)) }
         }
-        articles = articles.map(markRead)
-        allCollection.updateAll(markRead)
 
         // API calls: URLError → pending queue, others → rollback
         for original in unread {
@@ -220,6 +219,9 @@ final class ArticleStore: ObservableObject {
                 mutateBoth(id: original.id) { _ in original }
             }
         }
+
+        // サーバー集計と突き合わせてバッジを確定させる（失敗時はローカル差分を維持）
+        await refreshCounts()
     }
 
     @MainActor
@@ -270,60 +272,79 @@ final class ArticleStore: ObservableObject {
         return true
     }
 
+    /// サーバー集計をバッジ計算に使えるか。
+    /// 未取得（空）のときはコレクション計算にフォールバックする。
+    /// unreadOnly && favoriteOnly の AND 条件は 3 値の集計では表現できないため対象外
+    /// （UI からは到達不能な組み合わせだが防御的にフォールバックする）。
+    private var canUseFeedCounts: Bool {
+        !feedCounts.isEmpty && !(unreadOnly && favoriteOnly)
+    }
+
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「お気に入り」= favorite
+    private func filteredCount(_ count: FeedCount) -> Int {
+        if unreadOnly { return count.unread }
+        if favoriteOnly { return count.favorite }
+        return count.total
+    }
+
     /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
     /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
     /// フィルタが何も有効でない場合は常に true。
     func hasVisibleArticle(for feedId: Int) -> Bool {
         if !unreadOnly && !favoriteOnly { return true }
+        if canUseFeedCounts {
+            return feedCounts[feedId].map { filteredCount($0) > 0 } ?? false
+        }
         return badgeSource.contains { $0.feed_id == feedId && matchesCurrentFilter($0) }
     }
 
     /// フィードのバッジ件数。「全て」=全記事数、「未読のみ」=未読数、「お気に入り」=お気に入り数
     func badgeCount(for feedId: Int?) -> Int {
+        if canUseFeedCounts {
+            guard let feedId else { return feedCounts.values.reduce(0) { $0 + filteredCount($1) } }
+            return feedCounts[feedId].map(filteredCount) ?? 0
+        }
         let filtered = feedId.map { fid in badgeSource.filter { $0.feed_id == fid } } ?? badgeSource
         return filtered.filter(matchesCurrentFilter).count
     }
 
     /// グループ（所属フィード群）のバッジ件数
     func badgeCount(forGroupFeedIds feedIds: [Int]) -> Int {
+        if canUseFeedCounts {
+            return feedIds.reduce(0) { $0 + (feedCounts[$1].map(filteredCount) ?? 0) }
+        }
         let feedIdSet = Set(feedIds)
         return badgeSource.filter { feedIdSet.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
     /// 「すべての記事」のバッジ件数（シークレットフィード除外用）
     func badgeCount(excludingFeedIds feedIds: Set<Int>) -> Int {
-        badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
+        if canUseFeedCounts {
+            return feedCounts.values.reduce(0) { $0 + (feedIds.contains($1.feed_id) ? 0 : filteredCount($1)) }
+        }
+        return badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
-    /// コレクションのキャッシュをシークレット記事を含む全件で更新する
-    /// articles（表示中の記事リスト）は変更しない
-    /// SidebarView の未読バッジ計算とフィルタ表示判定に使用する
+    /// サーバー集計（フィードごとの total/unread/favorite）を取得してバッジ計算を最新化する。
+    /// ベストエフォート: 失敗時は前回値（起動時はディスクキャッシュ復元値）を維持し error を立てない。
     @MainActor
-    func refreshAllArticlesCache() async {
+    func refreshCounts() async {
         guard let client else { return }
-        do {
-            // Why: unreadOnly を引き継ぐと既読のお気に入り記事がキャッシュから欠落し、
-            // 「お気に入りのみ」表示でフィード/グループがサイドバーから消える。
-            // コレクションの契約は「フィルタなしの全記事」なので常に全件を取得する。
-            let repository = ArticleRepository(client: client)
-            let fetched = try await repository.fetchAll(
-                sortOrder: sortOrder,
-                includeSecret: true
+        guard let fetched = try? await ArticleRepository(client: client).fetchCounts() else { return }
+        feedCounts = Self.indexed(fetched)
+        // pending（サーバーに届いていない既読）はサーバー集計に未反映のため減算して補正する
+        for id in pendingReadIds {
+            guard let article = allCollection.articles.first(where: { $0.id == id })
+                    ?? articles.first(where: { $0.id == id }) else { continue }
+            guard let count = feedCounts[article.feed_id] else { continue }
+            feedCounts[article.feed_id] = FeedCount(
+                feed_id: count.feed_id,
+                total: count.total,
+                unread: max(0, count.unread - 1),
+                favorite: count.favorite
             )
-            // Why: 全件フェッチは最新 limit 件のみで、バックエンドはお気に入りを
-            // 保持期間後も永久に残すため、大量配信フィードでは古いお気に入りが
-            // 窓から外れる。お気に入りを別途取得して結合し、
-            // 「お気に入りのみ」表示のフィード/グループ判定が常に成立するようにする。
-            let favorites = try await repository.fetchAll(
-                favoriteOnly: true,
-                sortOrder: sortOrder,
-                includeSecret: true
-            )
-            allCollection.replaceAll(fetched, appending: favorites)
-            cache.saveAllArticles(allCollection.articles)
-        } catch {
-            // ベストエフォート: キャッシュ更新失敗は無視する
         }
+        cache.saveFeedCounts(fetched)
     }
 
     // MARK: - Private
@@ -372,6 +393,7 @@ final class ArticleStore: ObservableObject {
     }
 
     /// articles とコレクションの該当記事を同一の変換で更新する（同期漏れを構造的に防ぐ）。
+    /// feedCounts にも既読/お気に入りの差分を反映する（ロールバックは逆変換で自動的に打ち消される）。
     /// - Returns: 変換前の記事（articles に存在しない場合は nil で何もしない）
     @MainActor
     @discardableResult
@@ -381,7 +403,24 @@ final class ArticleStore: ObservableObject {
         let updated = transform(original)
         articles[idx] = updated
         allCollection.upsert(updated)
+        applyCountsDelta(from: original, to: updated)
         return original
+    }
+
+    /// 記事の変換前後の状態差分を feedCounts に反映する。
+    /// counts に無い feed_id は無視する（サーバー集計との整合のため勝手に行を作らない）。
+    @MainActor
+    private func applyCountsDelta(from original: Article, to updated: Article) {
+        guard let count = feedCounts[original.feed_id] else { return }
+        let unreadDelta = (updated.isRead ? 0 : 1) - (original.isRead ? 0 : 1)
+        let favoriteDelta = (updated.isFavorite ? 1 : 0) - (original.isFavorite ? 1 : 0)
+        guard unreadDelta != 0 || favoriteDelta != 0 else { return }
+        feedCounts[original.feed_id] = FeedCount(
+            feed_id: count.feed_id,
+            total: count.total,
+            unread: max(0, count.unread + unreadDelta),
+            favorite: max(0, count.favorite + favoriteDelta)
+        )
     }
 
     /// pendingReadIds に含まれる記事をローカルで既読に上書きする（fetchArticles 後に呼ぶ）
