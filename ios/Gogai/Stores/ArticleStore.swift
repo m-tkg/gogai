@@ -278,29 +278,57 @@ final class ArticleStore: ObservableObject {
         return true
     }
 
+    /// サーバー集計をバッジ計算に使えるか。
+    /// 未取得（空）のときはコレクション計算にフォールバックする。
+    /// unreadOnly && favoriteOnly の AND 条件は 3 値の集計では表現できないため対象外
+    /// （UI からは到達不能な組み合わせだが防御的にフォールバックする）。
+    private var canUseFeedCounts: Bool {
+        !feedCounts.isEmpty && !(unreadOnly && favoriteOnly)
+    }
+
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「お気に入り」= favorite
+    private func filteredCount(_ count: FeedCount) -> Int {
+        if unreadOnly { return count.unread }
+        if favoriteOnly { return count.favorite }
+        return count.total
+    }
+
     /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
     /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
     /// フィルタが何も有効でない場合は常に true。
     func hasVisibleArticle(for feedId: Int) -> Bool {
         if !unreadOnly && !favoriteOnly { return true }
+        if canUseFeedCounts {
+            return feedCounts[feedId].map { filteredCount($0) > 0 } ?? false
+        }
         return badgeSource.contains { $0.feed_id == feedId && matchesCurrentFilter($0) }
     }
 
     /// フィードのバッジ件数。「全て」=全記事数、「未読のみ」=未読数、「お気に入り」=お気に入り数
     func badgeCount(for feedId: Int?) -> Int {
+        if canUseFeedCounts {
+            guard let feedId else { return feedCounts.values.reduce(0) { $0 + filteredCount($1) } }
+            return feedCounts[feedId].map(filteredCount) ?? 0
+        }
         let filtered = feedId.map { fid in badgeSource.filter { $0.feed_id == fid } } ?? badgeSource
         return filtered.filter(matchesCurrentFilter).count
     }
 
     /// グループ（所属フィード群）のバッジ件数
     func badgeCount(forGroupFeedIds feedIds: [Int]) -> Int {
+        if canUseFeedCounts {
+            return feedIds.reduce(0) { $0 + (feedCounts[$1].map(filteredCount) ?? 0) }
+        }
         let feedIdSet = Set(feedIds)
         return badgeSource.filter { feedIdSet.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
     /// 「すべての記事」のバッジ件数（シークレットフィード除外用）
     func badgeCount(excludingFeedIds feedIds: Set<Int>) -> Int {
-        badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
+        if canUseFeedCounts {
+            return feedCounts.values.reduce(0) { $0 + (feedIds.contains($1.feed_id) ? 0 : filteredCount($1)) }
+        }
+        return badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
     /// サーバー集計（フィードごとの total/unread/favorite）を取得してバッジ計算を最新化する。
