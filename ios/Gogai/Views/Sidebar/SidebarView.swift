@@ -10,6 +10,7 @@ struct SidebarView: View {
     @Binding var selectedFeedId: Int?
     @Binding var selectedGroupId: Int?
     var onNavigate: ((ArticleDestination) -> Void)?
+    var onStockTap: (() -> Void)?
 
     @State private var showAddFeed = false
     @State private var showAddGroup = false
@@ -122,7 +123,7 @@ struct SidebarView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly, onStockTap: onStockTap)
         }
         .navigationTitle("Feed list")
         .environment(\.editMode, .constant(isEditing ? .active : .inactive))

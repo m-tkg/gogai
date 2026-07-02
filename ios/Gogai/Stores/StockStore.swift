@@ -44,19 +44,14 @@ final class StockStore: ObservableObject {
     }
 
     /// URL が既にストック済みの場合はサーバー側で no-op になる(既存を返す)。
-    /// 戻り値のストックをローカルへ反映する。
+    /// 戻り値のストックをローカルへ反映する。失敗時は throw する(呼び出し元がエラー表示 or 黙殺を選ぶ)。
     @MainActor
     @discardableResult
-    func createStock(url: String, title: String? = nil, source: String? = nil, category: String? = nil) async -> Stock? {
-        guard let client else { return nil }
-        do {
-            let stock = try await StockRepository(client: client).create(url: url, title: title, source: source, category: category)
-            upsertLocally(stock)
-            return stock
-        } catch {
-            self.error = error
-            return nil
-        }
+    func createStock(url: String, title: String? = nil, source: String? = nil, category: String? = nil) async throws -> Stock {
+        guard let client else { throw APIError.invalidURL }
+        let stock = try await StockRepository(client: client).create(url: url, title: title, source: source, category: category)
+        upsertLocally(stock)
+        return stock
     }
 
     @MainActor
