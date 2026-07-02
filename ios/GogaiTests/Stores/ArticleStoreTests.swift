@@ -979,4 +979,57 @@ final class ArticleStoreTests: XCTestCase {
         let cached = testCache.loadAllArticles()
         XCTAssertEqual(cached.count, 2, "refreshAllArticlesCache 後にキャッシュが保存されること")
     }
+
+    // MARK: - feedCounts（サーバー集計）
+
+    private func makeCount(feedId: Int, total: Int, unread: Int, favorite: Int) -> FeedCount {
+        FeedCount(feed_id: feedId, total: total, unread: unread, favorite: favorite)
+    }
+
+    @MainActor
+    func test_refreshCounts_updatesFeedCounts() async {
+        let counts = [makeCount(feedId: 1, total: 3, unread: 2, favorite: 1),
+                      makeCount(feedId: 2, total: 5, unread: 0, favorite: 0)]
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertTrue(request.url?.path.hasSuffix("/api/articles/counts") == true)
+            return (200, try JSONEncoder().encode(counts))
+        }
+
+        await store.refreshCounts()
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 2)
+        XCTAssertEqual(store.feedCounts[2]?.total, 5)
+        XCTAssertNil(store.error)
+    }
+
+    @MainActor
+    func test_refreshCounts_keepsPreviousCounts_onFailure() async {
+        let counts = [makeCount(feedId: 1, total: 3, unread: 2, favorite: 1)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
+        await store.refreshCounts()
+
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+        await store.refreshCounts()
+
+        XCTAssertEqual(store.feedCounts[1]?.unread, 2, "失敗時は前回値を維持する")
+        XCTAssertNil(store.error, "counts はベストエフォートなので error を立てない")
+    }
+
+    @MainActor
+    func test_refreshCounts_savesToCache_andInitRestores() async {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let storeWithCache = ArticleStore(cache: testCache)
+        storeWithCache.configure(with: client)
+        let counts = [makeCount(feedId: 7, total: 4, unread: 3, favorite: 0)]
+        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
+
+        await storeWithCache.refreshCounts()
+
+        XCTAssertEqual(testCache.loadFeedCounts(), counts, "refreshCounts 後にキャッシュへ保存される")
+
+        let restored = ArticleStore(cache: testCache)
+        XCTAssertEqual(restored.feedCounts[7]?.unread, 3, "起動時にキャッシュから feedCounts を復元する")
+    }
 }
