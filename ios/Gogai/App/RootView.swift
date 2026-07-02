@@ -26,11 +26,16 @@ struct RootView: View {
                         selectedArticle: $selectedArticle
                     )
                 } detail: {
-                    if let article = selectedArticle {
-                        ArticleDetailView(article: article)
-                            .id(article.id)
-                    } else {
-                        ContentUnavailableView("記事を選択", systemImage: "newspaper")
+                    // Why: navigationDestination(isPresented:) による記事ページ（BrowserView）への
+                    // push は NavigationStack が必須。detail カラムに直接置くと push 先がなく、
+                    // 概要ページの左スワイプが何も起こさない
+                    NavigationStack {
+                        if let article = selectedArticle {
+                            ArticleDetailView(article: article)
+                                .id(article.id)
+                        } else {
+                            ContentUnavailableView("記事を選択", systemImage: "newspaper")
+                        }
                     }
                 }
                 .onChange(of: selectedFeedId) { selectedArticle = nil }
