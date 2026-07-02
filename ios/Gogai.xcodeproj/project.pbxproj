@@ -82,6 +82,11 @@
 		FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000BAB /* ServerURLManagerTests.swift */; };
 		FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004AAB /* HorizontalSwipeTests.swift */; };
 		FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004FAB /* BackgroundExecutionTests.swift */; };
+		FF00000000000000000054AB /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000054AB /* Stock.swift */; };
+		FF00000000000000000055AB /* StockRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000055AB /* StockRepository.swift */; };
+		FF00000000000000000056AB /* StockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000056AB /* StockStore.swift */; };
+		FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000057AB /* StockRepositoryTests.swift */; };
+		FF00000000000000000058AB /* StockStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000058AB /* StockStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,6 +178,11 @@
 		EE0000000000000000000BAB /* ServerURLManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManagerTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000004AAB /* HorizontalSwipeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalSwipeTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000004FAB /* BackgroundExecutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundExecutionTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000054AB /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
+		DD00000000000000000055AB /* StockRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepository.swift; sourceTree = "<group>"; };
+		DD00000000000000000056AB /* StockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStore.swift; sourceTree = "<group>"; };
+		EE00000000000000000057AB /* StockRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepositoryTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000058AB /* StockStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -230,6 +240,7 @@
 				DD00000000000000000006AB /* Settings.swift */,
 				DD00000000000000000007AB /* UpdateCheck.swift */,
 				DD00000000000000000008AB /* RefreshResult.swift */,
+				DD00000000000000000054AB /* Stock.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -251,6 +262,7 @@
 				DD0000000000000000000DAB /* FeedRepository.swift */,
 				DD0000000000000000000EAB /* ArticleRepository.swift */,
 				DD0000000000000000000FAB /* SettingsRepository.swift */,
+				DD00000000000000000055AB /* StockRepository.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -263,6 +275,7 @@
 				DD00000000000000000012AB /* ArticleStore.swift */,
 				DD0000000000000000003FAB /* ArticleCollection.swift */,
 				DD00000000000000000013AB /* SettingsStore.swift */,
+				DD00000000000000000056AB /* StockStore.swift */,
 			);
 			path = Stores;
 			sourceTree = "<group>";
@@ -393,6 +406,7 @@
 				EE00000000000000000003AB /* FeedRepositoryTests.swift */,
 				EE00000000000000000004AB /* ArticleRepositoryTests.swift */,
 				EE00000000000000000052AB /* FeedCountTests.swift */,
+				EE00000000000000000057AB /* StockRepositoryTests.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -404,6 +418,7 @@
 				EE00000000000000000006AB /* FeedStoreTests.swift */,
 				EE00000000000000000007AB /* ArticleStoreTests.swift */,
 				EE0000000000000000003EAB /* ArticleCollectionTests.swift */,
+				EE00000000000000000058AB /* StockStoreTests.swift */,
 			);
 			path = Stores;
 			sourceTree = "<group>";
@@ -572,6 +587,9 @@
 				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,
 				FF00000000000000000034AB /* ShareSheet.swift in Sources */,
 				FF00000000000000000035AB /* AppCache.swift in Sources */,
+				FF00000000000000000054AB /* Stock.swift in Sources */,
+				FF00000000000000000055AB /* StockRepository.swift in Sources */,
+				FF00000000000000000056AB /* StockStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -599,6 +617,8 @@
 				FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */,
 				FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */,
 				FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */,
+				FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */,
+				FF00000000000000000058AB /* StockStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -27,6 +27,9 @@ final class ArticleStore: ObservableObject {
 
     private let cache: AppCache
     private var client: (any APIClientProtocol)?
+    /// お気に入り成功時に呼ばれるコールバック(ストック連携用)。
+    /// ArticleStore は StockStore を知らず、GogaiApp が configure 時に注入する。
+    private var onFavoriteSucceeded: ((Article) -> Void)?
     private var currentFeedId: Int?
     private var currentGroupId: Int?
     private var currentIncludeSecret: Bool = false
@@ -60,8 +63,9 @@ final class ArticleStore: ObservableObject {
         Dictionary(counts.map { ($0.feed_id, $0) }, uniquingKeysWith: { _, new in new })
     }
 
-    func configure(with client: any APIClientProtocol) {
+    func configure(with client: any APIClientProtocol, onFavoriteSucceeded: ((Article) -> Void)? = nil) {
         self.client = client
+        self.onFavoriteSucceeded = onFavoriteSucceeded
     }
 
     @MainActor
@@ -244,6 +248,10 @@ final class ArticleStore: ObservableObject {
             apiCall: { try await ArticleRepository(client: client).markAsFavorite(id: id) },
             onURLError: .rollback
         )
+        // ロールバックされていなければ(=お気に入り成功)ストック連携コールバックを発火する
+        if let article = articles.first(where: { $0.id == id }), article.isFavorite {
+            onFavoriteSucceeded?(article)
+        }
     }
 
     @MainActor
