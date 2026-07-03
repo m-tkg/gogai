@@ -7,7 +7,7 @@ import type { Article } from '../api/client'
 
 const article: Article = {
   id: 1, feed_id: 1, guid: 'g', title: 'T', link: null, summary: null,
-  content: null, published_at: null, is_read: 0, is_favorite: 0,
+  content: null, published_at: null, is_read: 0,
   created_at: '', read_at: null,
 }
 

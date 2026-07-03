@@ -6,5 +6,4 @@ struct FeedCount: Codable, Equatable, Sendable {
     let feed_id: Int
     let total: Int
     let unread: Int
-    let favorite: Int
 }

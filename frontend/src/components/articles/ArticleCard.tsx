@@ -1,6 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { articlesApi, type Article } from '../../api/client'
-import { queryKeys, invalidateArticles } from '../../api/queryKeys'
+import type { Article } from '../../api/client'
 
 interface ArticleCardProps {
   article: Article
@@ -10,21 +8,6 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: ArticleCardProps) {
-  const qc = useQueryClient()
-
-  const toggleFavorite = useMutation({
-    mutationFn: () => article.is_favorite
-      ? articlesApi.markAsUnfavorite(article.id)
-      : articlesApi.markAsFavorite(article.id),
-    onMutate: async () => {
-      await qc.cancelQueries({ queryKey: queryKeys.articles })
-      qc.setQueriesData<Article[]>({ queryKey: queryKeys.articles }, old =>
-        old?.map(a => a.id === article.id ? { ...a, is_favorite: article.is_favorite ? 0 : 1 } : a)
-      )
-    },
-    onSettled: () => invalidateArticles(qc),
-  })
-
   const date = article.published_at ? formatDate(new Date(article.published_at)) : ''
 
   return (
@@ -51,9 +34,6 @@ export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: Arti
                 {article.title ?? '(タイトルなし)'}
               </h3>
               <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
-                {article.is_favorite === 1 && (
-                  <span className="text-[10px] text-yellow-500 dark:text-yellow-400 leading-4">★</span>
-                )}
                 {date && <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>}
               </div>
             </div>
@@ -83,13 +63,6 @@ export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: Arti
             onClick={e => { e.stopPropagation(); onClick() }}
           />
         )}
-        <ActionButton
-          label={article.is_favorite ? 'お気に入り解除' : 'お気に入り'}
-          icon="★"
-          color="yellow"
-          loading={toggleFavorite.isPending}
-          onClick={e => { e.stopPropagation(); toggleFavorite.mutate() }}
-        />
       </div>
     </div>
   )
@@ -98,14 +71,13 @@ export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: Arti
 function ActionButton({ label, icon, color, loading, onClick }: {
   label: string
   icon: string
-  color: 'blue' | 'gray' | 'yellow'
+  color: 'blue' | 'gray'
   loading: boolean
   onClick: (e: React.MouseEvent) => void
 }) {
   const colors = {
     blue: 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/60',
     gray: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600',
-    yellow: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/60',
   }
   return (
     <button

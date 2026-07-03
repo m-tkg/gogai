@@ -249,111 +249,8 @@ describe('ArticlesService', () => {
     })
   })
 
-  describe('お気に入り機能', () => {
-    let articleId: number
-
-    beforeEach(() => {
-      articlesService.upsertMany(feedId, [
-        { guid: 'fav-1', title: 'Article 1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() },
-        { guid: 'fav-2', title: 'Article 2', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
-      ])
-      articleId = articlesService.findByFeed(feedId)[0].id
-    })
-
-    it('記事をお気に入りに追加できる', () => {
-      articlesService.markAsFavorite(articleId)
-      const article = articlesService.findById(articleId)
-      expect(article?.is_favorite).toBe(1)
-    })
-
-    it('記事のお気に入りを解除できる', () => {
-      articlesService.markAsFavorite(articleId)
-      articlesService.markAsUnfavorite(articleId)
-      const article = articlesService.findById(articleId)
-      expect(article?.is_favorite).toBe(0)
-    })
-
-    it('デフォルトは is_favorite=0 である', () => {
-      const article = articlesService.findById(articleId)
-      expect(article?.is_favorite).toBe(0)
-    })
-
-    it('favoriteOnly=true でお気に入り記事のみ返す', () => {
-      const articles = articlesService.findByFeed(feedId)
-      articlesService.markAsFavorite(articles[0].id)
-
-      const result = articlesService.findAll({ limit: 10, offset: 0, favoriteOnly: true })
-      expect(result).toHaveLength(1)
-      expect(result[0].id).toBe(articles[0].id)
-    })
-
-    it('favoriteOnly=false で全記事を返す', () => {
-      const articles = articlesService.findByFeed(feedId)
-      articlesService.markAsFavorite(articles[0].id)
-
-      const result = articlesService.findAll({ limit: 10, offset: 0, favoriteOnly: false })
-      expect(result).toHaveLength(2)
-    })
-
-    it('unreadOnly と favoriteOnly を同時に使える', () => {
-      const articles = articlesService.findByFeed(feedId)
-      articlesService.markAsFavorite(articles[0].id)
-      articlesService.markAsRead(articles[0].id)
-      // articles[1] はお気に入りではない・未読
-
-      const result = articlesService.findAll({ limit: 10, offset: 0, favoriteOnly: true, unreadOnly: true })
-      // お気に入りかつ未読は 0 件
-      expect(result).toHaveLength(0)
-    })
-
-    it('お気に入り記事は保持期間を超えても削除しない', () => {
-      const now = new Date()
-      const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000) // 200日前
-
-      articlesService.upsertMany(feedId, [
-        { guid: 'old-fav', title: 'Old Favorite Article', link: 'https://example.com/old-fav', summary: '', publishedAt: old.toISOString() },
-        { guid: 'old-normal', title: 'Old Normal Article', link: 'https://example.com/old-normal', summary: '', publishedAt: old.toISOString() },
-      ])
-
-      const allArticles = articlesService.findByFeed(feedId)
-      const favoriteArticle = allArticles.find(a => a.title === 'Old Favorite Article')!
-      articlesService.markAsFavorite(favoriteArticle.id)
-
-      const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000) // 半年前(180日)
-      const deleted = articlesService.deleteOlderThan(threshold)
-
-      expect(deleted).toBe(1) // お気に入りでない方のみ削除
-      const remaining = articlesService.findByFeed(feedId)
-      // beforeEach で追加した 2 件 + お気に入り 1 件 = 3 件中お気に入りのみ残る
-      const oldFavArticle = remaining.find(a => a.title === 'Old Favorite Article')
-      expect(oldFavArticle).toBeDefined()
-      expect(oldFavArticle?.is_favorite).toBe(1)
-    })
-
-    it('published_at が null のお気に入り記事は保持期間を超えても削除しない', () => {
-      // published_at なし（COALESCE で created_at を使う）のお気に入り記事
-      articlesService.upsertMany(feedId, [
-        { guid: 'no-date-fav', title: 'No Date Favorite', link: 'https://example.com/no-date-fav', summary: '' },
-      ])
-
-      const allArticles = articlesService.findByFeed(feedId)
-      const noDateArticle = allArticles.find(a => a.title === 'No Date Favorite')!
-      articlesService.markAsFavorite(noDateArticle.id)
-
-      // 未来の threshold（created_at より後）でも、お気に入りは削除されない
-      const futureThreshold = new Date(Date.now() + 1000)
-      articlesService.deleteOlderThan(futureThreshold)
-
-      // お気に入り記事が残っていることを確認
-      const remaining = articlesService.findByFeed(feedId)
-      const stillExists = remaining.find(a => a.title === 'No Date Favorite')
-      expect(stillExists).toBeDefined()
-      expect(stillExists?.is_favorite).toBe(1)
-    })
-  })
-
   describe('countsByFeed', () => {
-    it('フィードごとの total / unread / favorite を集計する', () => {
+    it('フィードごとの total / unread を集計する', () => {
       const feed2 = feedsService.create({ url: 'https://example2.com/feed.xml', title: 'Example2' })
       articlesService.upsertMany(feedId, [
         { guid: 'c1', title: 'A1', link: 'https://example.com/c1', summary: '' },
@@ -365,14 +262,12 @@ describe('ArticlesService', () => {
       ])
       const feed1Articles = articlesService.findByFeed(feedId)
       articlesService.markAsRead(feed1Articles[0].id)
-      articlesService.markAsFavorite(feed1Articles[0].id)
-      articlesService.markAsFavorite(feed1Articles[1].id)
 
       const counts = articlesService.countsByFeed()
       const feed1Count = counts.find(c => c.feed_id === feedId)
       const feed2Count = counts.find(c => c.feed_id === feed2.id)
-      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2, favorite: 2 })
-      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1, favorite: 0 })
+      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2 })
+      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1 })
     })
 
     it('シークレットグループのフィードも集計に含む', () => {
@@ -385,7 +280,7 @@ describe('ArticlesService', () => {
 
       const counts = articlesService.countsByFeed()
       const secretCount = counts.find(c => c.feed_id === secretFeed.id)
-      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1, favorite: 0 })
+      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1 })
     })
 
     it('記事が 0 件のフィードは結果に含まれない', () => {
