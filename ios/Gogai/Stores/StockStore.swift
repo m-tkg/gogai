@@ -1,5 +1,19 @@
 import Foundation
 
+enum StockSummaryGenerationError: Error, LocalizedError, Equatable {
+    case aiUnavailable
+    case invalidURL
+
+    var errorDescription: String? {
+        switch self {
+        case .aiUnavailable:
+            return "この端末ではローカル AI を利用できません(iOS 27 以上と Apple Intelligence の有効化が必要です)"
+        case .invalidURL:
+            return "URL が不正です"
+        }
+    }
+}
+
 final class StockStore: ObservableObject {
     @Published var categories: [StockCategory] = []
     @Published var stocks: [Stock] = []
@@ -8,14 +22,11 @@ final class StockStore: ObservableObject {
     @Published var sortAscending: Bool {
         didSet { UserDefaults.standard.set(sortAscending, forKey: DefaultsKeys.stockSortAscending) }
     }
-    @Published private(set) var isGeneratingSummaries = false
 
     /// テスト用の差し替えポイント。デフォルトはオンデバイス Foundation Models(利用不可なら nil)。
     var makeSummaryGenerator: () -> (any TextGenerating)? = { LocalAI.makeGenerator() }
 
     private var client: (any APIClientProtocol)?
-    /// 要約生成に失敗したストック ID(セッション内のみ。次回フォアグラウンドで再試行する)
-    private var failedSummaryStockIds: Set<Int> = []
 
     init() {
         self.sortAscending = UserDefaults.standard.bool(forKey: DefaultsKeys.stockSortAscending)
@@ -101,31 +112,19 @@ final class StockStore: ObservableObject {
         }
     }
 
-    /// summary が未生成のストックを stocked_at の古い順に逐次生成する。
-    /// オンデバイス AI が利用できない端末や、既に実行中の場合は何もしない。
+    /// 指定したストック 1 件の要約を生成して保存する。ユーザーの明示的なボタン操作からのみ呼ばれる
+    /// (起動時・フォアグラウンド復帰時の自動生成は行わない)。失敗時は throw し、呼び出し元(View)が表示する。
     @MainActor
-    func generatePendingSummaries(session: URLSession = .shared) async {
-        guard !isGeneratingSummaries, let generator = makeSummaryGenerator() else { return }
-        let pending = stocks
-            .filter { $0.summary == nil && !failedSummaryStockIds.contains($0.id) }
-            .sorted { $0.stocked_at < $1.stocked_at }
-        guard !pending.isEmpty else { return }
-
-        isGeneratingSummaries = true
-        defer { isGeneratingSummaries = false }
+    func generateSummary(for stockId: Int, session: URLSession = .shared) async throws {
+        guard let stock = stocks.first(where: { $0.id == stockId }) else { return }
+        guard let generator = makeSummaryGenerator() else { throw StockSummaryGenerationError.aiUnavailable }
+        guard let url = URL(string: stock.url) else { throw StockSummaryGenerationError.invalidURL }
 
         let summarizer = StockSummarizer(generator: generator)
-        for stock in pending {
-            guard let url = URL(string: stock.url) else { continue }
-            do {
-                let summary = try await BackgroundExecution.run(name: "Stock.summarize") {
-                    try await summarizer.summarize(url: url, title: stock.title, session: session)
-                }
-                try await saveSummary(id: stock.id, summary: summary)
-            } catch {
-                failedSummaryStockIds.insert(stock.id)
-            }
+        let summary = try await BackgroundExecution.run(name: "Stock.summarize") {
+            try await summarizer.summarize(url: url, title: stock.title, session: session)
         }
+        try await saveSummary(id: stockId, summary: summary)
     }
 
     @MainActor

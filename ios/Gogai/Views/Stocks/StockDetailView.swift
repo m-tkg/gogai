@@ -33,7 +33,35 @@ private struct StockSummarySections: View {
     }
 }
 
+/// フッターに並べるアイコン+キャプションのボタン(記事詳細ページの下部バーと同じスタイル)
+private struct StockDetailFooterButton: View {
+    let icon: String
+    let label: String
+    var isDestructive: Bool = false
+    var isLoading: Bool = false
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                }
+                Text(label)
+                    .font(.caption2)
+            }
+        }
+        .foregroundStyle(isDestructive ? .red : .primary)
+        .disabled(isDisabled)
+    }
+}
+
 /// ストックの詳細(タイトル・ストック元・日付・サマリー)。
+/// 操作ボタン(元記事・翻訳・要約生成・編集・削除)はフッターにまとめて表示する。
 struct StockDetailView: View {
     let stock: Stock
 
@@ -45,6 +73,8 @@ struct StockDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: Error?
+    @State private var isGeneratingSummary = false
+    @State private var summaryError: Error?
 
     /// 翻訳を実行できる(または結果を再確認できる)条件:
     /// この端末で AI が使えるか、既に翻訳済みで結果が保存されているか
@@ -60,61 +90,37 @@ struct StockDetailView: View {
         Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })
     }
 
+    private var summaryErrorBinding: Binding<Bool> {
+        Binding(get: { summaryError != nil }, set: { if !$0 { summaryError = nil } })
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(currentStock.title ?? currentStock.url)
-                    .font(.title2)
-                    .fontWeight(.bold)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(currentStock.title ?? currentStock.url)
+                        .font(.title2)
+                        .fontWeight(.bold)
 
-                HStack(spacing: 12) {
-                    Label(currentStock.source, systemImage: "folder")
-                    Label(currentStock.stocked_at.displayDate, systemImage: "clock")
+                    HStack(spacing: 12) {
+                        Label(currentStock.source, systemImage: "folder")
+                        Label(currentStock.stocked_at.displayDate, systemImage: "clock")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    summaryContent
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-                Divider()
-
-                if let summary = currentStock.summary {
-                    StockSummarySections(summary: summary)
-                } else {
-                    Label("要約を生成中です…", systemImage: "hourglass")
-                        .foregroundStyle(.secondary)
-                }
+                .padding()
             }
-            .padding()
+
+            Divider()
+            bottomBar
         }
         .navigationTitle("ストック")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if URL(string: currentStock.url) != nil {
-                    Button {
-                        showBrowser = true
-                    } label: {
-                        Image(systemName: "safari")
-                    }
-                    if canShowTranslation {
-                        Button {
-                            showTranslation = true
-                        } label: {
-                            Image(systemName: "character.bubble")
-                        }
-                    }
-                }
-                Button {
-                    showEdit = true
-                } label: {
-                    Image(systemName: "pencil")
-                }
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-            }
-        }
         .navigationDestination(isPresented: $showBrowser) {
             if let url = URL(string: currentStock.url) {
                 BrowserView(url: url)
@@ -143,6 +149,64 @@ struct StockDetailView: View {
             Button("OK") { deleteError = nil }
         } message: {
             Text(deleteError?.localizedDescription ?? "")
+        }
+        .alert("要約の生成に失敗しました", isPresented: summaryErrorBinding) {
+            Button("OK") { summaryError = nil }
+        } message: {
+            Text(summaryError?.localizedDescription ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var summaryContent: some View {
+        if let summary = currentStock.summary {
+            StockSummarySections(summary: summary)
+        } else if isGeneratingSummary {
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("要約を生成しています…")
+            }
+            .foregroundStyle(.secondary)
+        } else {
+            Label("要約はまだありません", systemImage: "text.badge.plus")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 24) {
+            Spacer()
+            if URL(string: currentStock.url) != nil {
+                StockDetailFooterButton(icon: "safari", label: "元記事") { showBrowser = true }
+            }
+            if canShowTranslation {
+                StockDetailFooterButton(icon: "character.bubble", label: "翻訳") { showTranslation = true }
+            }
+            if currentStock.summary == nil {
+                StockDetailFooterButton(
+                    icon: "sparkles",
+                    label: "要約を生成",
+                    isLoading: isGeneratingSummary,
+                    isDisabled: isGeneratingSummary || !LocalAI.isAvailable
+                ) {
+                    Task { await generateSummary() }
+                }
+            }
+            StockDetailFooterButton(icon: "pencil", label: "編集") { showEdit = true }
+            StockDetailFooterButton(icon: "trash", label: "削除", isDestructive: true) { showDeleteConfirm = true }
+            Spacer()
+        }
+        .padding(.vertical, 10)
+        .background(.bar)
+    }
+
+    private func generateSummary() async {
+        isGeneratingSummary = true
+        defer { isGeneratingSummary = false }
+        do {
+            try await stockStore.generateSummary(for: currentStock.id)
+        } catch {
+            summaryError = error
         }
     }
 }
