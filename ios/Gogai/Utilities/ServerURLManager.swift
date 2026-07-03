@@ -23,7 +23,8 @@ final class ServerURLManager: ObservableObject {
     init(session: URLSession = .shared, failureDebounceInterval: TimeInterval = 30) {
         self.session = session
         self.failureDebounceInterval = failureDebounceInterval
-        if let urlString = UserDefaults.standard.string(forKey: userDefaultsKey),
+        Self.migrateFromStandardDefaultsIfNeeded()
+        if let urlString = AppGroup.defaults.string(forKey: userDefaultsKey),
            let url = URL(string: urlString) {
             serverURL = url
             // Why: 起動時に Gist API 解決を待たず前回のトンネル URL で即座に
@@ -35,16 +36,28 @@ final class ServerURLManager: ObservableObject {
         }
     }
 
+    /// 旧 UserDefaults.standard に保存された値を App Group の suite へ 1 回だけ移す。
+    /// シェア拡張追加前のインストールからのアップグレードでも resolvedServerURL が引き継がれるようにする。
+    private static func migrateFromStandardDefaultsIfNeeded() {
+        let suite = AppGroup.defaults
+        guard suite.string(forKey: DefaultsKeys.serverURL) == nil else { return }
+        guard let legacyServerURL = UserDefaults.standard.string(forKey: DefaultsKeys.serverURL) else { return }
+        suite.set(legacyServerURL, forKey: DefaultsKeys.serverURL)
+        if let legacyResolvedURL = UserDefaults.standard.string(forKey: DefaultsKeys.resolvedServerURL) {
+            suite.set(legacyResolvedURL, forKey: DefaultsKeys.resolvedServerURL)
+        }
+    }
+
     func setServerURL(_ url: URL) {
-        UserDefaults.standard.set(url.absoluteString, forKey: userDefaultsKey)
-        UserDefaults.standard.removeObject(forKey: resolvedURLKey)
+        AppGroup.defaults.set(url.absoluteString, forKey: userDefaultsKey)
+        AppGroup.defaults.removeObject(forKey: resolvedURLKey)
         serverURL = url
         resolvedURL = nil
     }
 
     func clearServerURL() {
-        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
-        UserDefaults.standard.removeObject(forKey: resolvedURLKey)
+        AppGroup.defaults.removeObject(forKey: userDefaultsKey)
+        AppGroup.defaults.removeObject(forKey: resolvedURLKey)
         serverURL = nil
         resolvedURL = nil
     }
@@ -102,11 +115,11 @@ final class ServerURLManager: ObservableObject {
     // MARK: - Resolved URL cache
 
     private func loadCachedResolvedURL() -> URL? {
-        guard let cached = UserDefaults.standard.string(forKey: resolvedURLKey) else { return nil }
+        guard let cached = AppGroup.defaults.string(forKey: resolvedURLKey) else { return nil }
         return URL(string: cached)
     }
 
     private func cacheResolvedURL(_ url: URL) {
-        UserDefaults.standard.set(url.absoluteString, forKey: resolvedURLKey)
+        AppGroup.defaults.set(url.absoluteString, forKey: resolvedURLKey)
     }
 }
