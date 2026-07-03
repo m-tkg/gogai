@@ -15,13 +15,29 @@ final class ShareViewController: UIViewController {
             close()
             return
         }
-        let title = await extractJavaScriptPreprocessingTitle(from: item) ?? Self.extractSharedTitle(from: item)
+        let title = await resolveTitle(from: item, url: url)
         let hosting = UIHostingController(rootView: ShareStockView(url: url, title: title, onFinish: { [weak self] in self?.close() }))
         addChild(hosting)
         hosting.view.frame = view.bounds
         hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(hosting.view)
         hosting.didMove(toParent: self)
+    }
+
+    /// ページタイトルを複数の経路で順に試す。
+    /// 共有元アプリ(Safari/Chrome/他)によってどの経路が使えるかが異なるため、
+    /// メタデータベースの手段を優先し、どれも失敗した場合のみネットワーク取得にフォールバックする。
+    private func resolveTitle(from item: NSExtensionItem, url: URL) async -> String? {
+        if let title = await extractJavaScriptPreprocessingTitle(from: item) {
+            return title
+        }
+        if let title = Self.extractAttributedTitle(from: item) {
+            return title
+        }
+        if let title = await extractPlainTextAttachmentTitle(from: item) {
+            return title
+        }
+        return await Self.fetchPageTitle(from: url)
     }
 
     private func extractSharedURL(from item: NSExtensionItem) async -> URL? {
@@ -46,7 +62,8 @@ final class ShareViewController: UIViewController {
     /// Safari が `NSExtensionJavaScriptPreprocessingFile`(ShareExtensionPreprocessor.js)経由で
     /// 渡すページ情報(document.title 等)を取得する。WebKit を拡張プロセス内で動かさずに済む
     /// Apple 標準の仕組み(iOS 8 以降のアクション拡張向け JS プリプロセッシング)。
-    /// Safari 以外から共有された場合はこの添付が無いため nil を返す。
+    /// この仕組みは Safari 自身が実行するものであり、Chrome 等の他ブラウザから共有された
+    /// 場合はこの添付が無いため nil を返す。
     private func extractJavaScriptPreprocessingTitle(from item: NSExtensionItem) async -> String? {
         guard let provider = item.attachments?.first(where: {
             $0.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier)
@@ -63,11 +80,70 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    /// 共有元が付与するページタイトルを取得する(JS プリプロセッシングが使えない場合のフォールバック)。
-    /// 拡張プロセスはメモリ制限が厳しいため、WebKit やネットワーク取得は行わず、
-    /// 共有シートが既に渡している attributedContentText のみを使う。
-    private static func extractSharedTitle(from item: NSExtensionItem) -> String? {
-        normalizeTitle(item.attributedContentText?.string)
+    /// 共有元アプリが NSExtensionItem 自体に付与するタイトルを取得する(Chrome 等の一部アプリが利用)。
+    private static func extractAttributedTitle(from item: NSExtensionItem) -> String? {
+        normalizeTitle(item.attributedTitle?.string) ?? normalizeTitle(item.attributedContentText?.string)
+    }
+
+    /// URL 添付とは別にプレーンテキストの添付(タイトルなど)がある場合にそれを使う。
+    private func extractPlainTextAttachmentTitle(from item: NSExtensionItem) async -> String? {
+        guard let provider = item.attachments?.first(where: { provider in
+            provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+                && !provider.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+        }) else {
+            return nil
+        }
+        return await withCheckedContinuation { continuation in
+            provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+                let title = Self.normalizeTitle(item as? String)
+                continuation.resume(returning: title)
+            }
+        }
+    }
+
+    /// URL から HTML を軽量に取得し `<title>` タグを抽出する(共有元のメタデータが一切取れない場合の最終手段)。
+    /// 拡張プロセスのメモリ制限を考慮し、先頭 64KB のみを読んで打ち切る(WebKit は使わない)。
+    private static func fetchPageTitle(from url: URL) async -> String? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        guard let (byteStream, response) = try? await URLSession.shared.bytes(for: request),
+              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            return nil
+        }
+        var data = Data()
+        data.reserveCapacity(65536)
+        do {
+            for try await byte in byteStream {
+                data.append(byte)
+                if data.count >= 65536 { break }
+            }
+        } catch {
+            // 途中まで読めていればそのデータで抽出を試みる
+        }
+        guard let html = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+            return nil
+        }
+        return extractTitleTag(from: html)
+    }
+
+    private static func extractTitleTag(from html: String) -> String? {
+        guard let range = html.range(of: "<title[^>]*>([\\s\\S]*?)</title>", options: [.regularExpression, .caseInsensitive]) else {
+            return nil
+        }
+        let inner = String(html[range])
+            .replacingOccurrences(of: "<title[^>]*>", with: "", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "</title>", with: "", options: [.caseInsensitive])
+        return normalizeTitle(decodeHTMLEntities(inner))
+    }
+
+    private static func decodeHTMLEntities(_ text: String) -> String {
+        let entities: [(String, String)] = [
+            ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
+            ("&quot;", "\""), ("&#39;", "'"), ("&apos;", "'"), ("&nbsp;", " "),
+        ]
+        return entities.reduce(text) { result, entity in
+            result.replacingOccurrences(of: entity.0, with: entity.1)
+        }
     }
 
     private static nonisolated func normalizeTitle(_ title: String?) -> String? {
