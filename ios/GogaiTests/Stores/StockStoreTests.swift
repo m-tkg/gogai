@@ -156,7 +156,7 @@ final class StockStoreTests: XCTestCase {
         XCTAssertEqual(store.stocks(in: 1).map { $0.id }, [1])
     }
 
-    // MARK: - generatePendingSummaries
+    // MARK: - generateSummary(for:)（ボタン起点の単体生成）
 
     private final class MockTextGenerator: TextGenerating, @unchecked Sendable {
         var result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
@@ -171,7 +171,7 @@ final class StockStoreTests: XCTestCase {
     }
 
     @MainActor
-    func test_generatePendingSummaries_未生成のストックにサマリーを保存する() async {
+    func test_generateSummary_指定したストックにサマリーを保存する() async throws {
         store.stocks = [makeStock(id: 1)]
         let generator = MockTextGenerator()
         store.makeSummaryGenerator = { generator }
@@ -180,48 +180,54 @@ final class StockStoreTests: XCTestCase {
             return (200, Data("<html><body><p>本文</p></body></html>".utf8))
         }
 
-        await store.generatePendingSummaries(session: .mock())
+        try await store.generateSummary(for: 1, session: .mock())
 
         XCTAssertEqual(generator.callCount, 1)
         XCTAssertNotNil(store.stocks[0].summary)
     }
 
     @MainActor
-    func test_generatePendingSummaries_要約済みのストックはスキップする() async {
-        var stock = makeStock(id: 1)
-        stock = stock.updating(summary: "既に要約済み")
-        store.stocks = [stock]
-        let generator = MockTextGenerator()
-        store.makeSummaryGenerator = { generator }
-
-        await store.generatePendingSummaries(session: .mock())
-
-        XCTAssertEqual(generator.callCount, 0)
-    }
-
-    @MainActor
-    func test_generatePendingSummaries_AI利用不可なら何もしない() async {
+    func test_generateSummary_AI利用不可ならthrowする() async {
         store.stocks = [makeStock(id: 1)]
         store.makeSummaryGenerator = { nil }
 
-        await store.generatePendingSummaries(session: .mock())
-
+        do {
+            try await store.generateSummary(for: 1, session: .mock())
+            XCTFail("aiUnavailable が throw されるはず")
+        } catch let error as StockSummaryGenerationError {
+            XCTAssertEqual(error, .aiUnavailable)
+        } catch {
+            XCTFail("想定外のエラー: \(error)")
+        }
         XCTAssertNil(store.stocks[0].summary)
     }
 
     @MainActor
-    func test_generatePendingSummaries_失敗したストックはセッション内で再試行しない() async {
+    func test_generateSummary_生成失敗はthrowし保存しない() async {
         store.stocks = [makeStock(id: 1)]
         let generator = MockTextGenerator()
         generator.error = URLError(.badServerResponse)
         store.makeSummaryGenerator = { generator }
         MockURLProtocol.requestHandler = { _ in (200, Data("<html><body><p>本文</p></body></html>".utf8)) }
 
-        await store.generatePendingSummaries(session: .mock())
-        let firstCallCount = generator.callCount
-        await store.generatePendingSummaries(session: .mock())
+        do {
+            try await store.generateSummary(for: 1, session: .mock())
+            XCTFail("エラーが throw されるはず")
+        } catch {
+            // 期待通り
+        }
+        XCTAssertNil(store.stocks[0].summary)
+    }
 
-        XCTAssertEqual(generator.callCount, firstCallCount, "失敗した ID は再試行されない")
+    @MainActor
+    func test_generateSummary_存在しないストックIDは何もしない() async throws {
+        store.stocks = []
+        let generator = MockTextGenerator()
+        store.makeSummaryGenerator = { generator }
+
+        try await store.generateSummary(for: 999, session: .mock())
+
+        XCTAssertEqual(generator.callCount, 0)
     }
 
     // MARK: - sortAscending の永続化
