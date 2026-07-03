@@ -714,6 +714,32 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_favorite_success_callsOnFavoriteSucceeded() async {
+        let article = makeArticle(id: 1, isFavorite: 0)
+        store.articles = [article]
+        var succeeded: Article?
+        store.configure(with: client, onFavoriteSucceeded: { succeeded = $0 })
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.favorite(id: 1)
+
+        XCTAssertEqual(succeeded?.id, 1)
+    }
+
+    @MainActor
+    func test_favorite_failure_doesNotCallOnFavoriteSucceeded() async {
+        let article = makeArticle(id: 1, isFavorite: 0)
+        store.articles = [article]
+        var succeeded: Article?
+        store.configure(with: client, onFavoriteSucceeded: { succeeded = $0 })
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        await store.favorite(id: 1)
+
+        XCTAssertNil(succeeded)
+    }
+
+    @MainActor
     func test_unfavorite_optimisticallyUpdates() async {
         store.articles = [makeArticle(id: 1, isFavorite: 1)]
         MockURLProtocol.requestHandler = { _ in (200, Data()) }

@@ -9,6 +9,7 @@ struct GogaiApp: App {
     @StateObject private var feedStore = FeedStore()
     @StateObject private var articleStore = ArticleStore()
     @StateObject private var settingsStore = SettingsStore()
+    @StateObject private var stockStore = StockStore()
 
     var body: some Scene {
         WindowGroup {
@@ -24,6 +25,7 @@ struct GogaiApp: App {
             .environmentObject(feedStore)
             .environmentObject(articleStore)
             .environmentObject(settingsStore)
+            .environmentObject(stockStore)
             // serverURL が変わったら再解決（Gist URL → 実 URL）
             .onChange(of: serverURLManager.serverURL) { _, _ in
                 Task { await serverURLManager.resolve() }
@@ -40,6 +42,7 @@ struct GogaiApp: App {
             .onChange(of: scenePhase) { _, newPhase in
                 guard newPhase == .active, serverURLManager.resolvedURL != nil else { return }
                 Task { await articleStore.refresh() }
+                Task { await stockStore.generatePendingSummaries() }
             }
             // 起動時に解決（Gist URL の場合は Gist から最新 URL を取得）
             .task {
@@ -67,8 +70,14 @@ struct GogaiApp: App {
         feedStore.configure(with: client, onRefreshComplete: {
             Task { await articleStore.refresh() }
         })
-        articleStore.configure(with: client)
+        articleStore.configure(with: client, onFavoriteSucceeded: { [weak feedStore, weak groupStore, weak stockStore] article in
+            guard let stockStore, let link = article.link else { return }
+            let groupName = feedStore?.feeds.first(where: { $0.id == article.feed_id })?.group_id
+                .flatMap { groupId in groupStore?.groups.first(where: { $0.id == groupId })?.name }
+            Task { try? await stockStore.createStock(url: link, title: article.title, source: groupName ?? "未分類") }
+        })
         settingsStore.configure(with: client)
+        stockStore.configure(with: client)
         // Why: 3 本は独立した API のため並列化で起動時の総待ち時間を短縮する。
         // async let や withTaskGroup は Store が non-Sendable のため使えない
         // （Store は @MainActor 宣言なしでクラスレベル sendable でない）。
@@ -79,6 +88,10 @@ struct GogaiApp: App {
             await articleStore.fetchArticles()
             // バッジ用のサーバー集計（シークレット込み・1 リクエスト）を最新化する
             await articleStore.refreshCounts()
+        }
+        Task { @MainActor in
+            await stockStore.fetchAll()
+            await stockStore.generatePendingSummaries()
         }
     }
 }

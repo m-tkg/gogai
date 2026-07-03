@@ -7,15 +7,40 @@ final class ServerURLManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        AppGroup.defaults.removeObject(forKey: "serverURL")
+        AppGroup.defaults.removeObject(forKey: "resolvedServerURL")
         UserDefaults.standard.removeObject(forKey: "serverURL")
         UserDefaults.standard.removeObject(forKey: "resolvedServerURL")
     }
 
     override func tearDown() {
+        AppGroup.defaults.removeObject(forKey: "serverURL")
+        AppGroup.defaults.removeObject(forKey: "resolvedServerURL")
         UserDefaults.standard.removeObject(forKey: "serverURL")
         UserDefaults.standard.removeObject(forKey: "resolvedServerURL")
         MockURLProtocol.requestHandler = nil
         super.tearDown()
+    }
+
+    // Why: シェア拡張追加前のインストールでは serverURL が UserDefaults.standard に
+    // 保存されている。App Group 移行後も再設定不要で引き継げることを保証する。
+    func test_init_standardDefaultsからAppGroupへ1回だけ移行する() {
+        UserDefaults.standard.set("http://localhost:3040", forKey: "serverURL")
+        UserDefaults.standard.set("https://legacy.trycloudflare.com", forKey: "resolvedServerURL")
+
+        _ = ServerURLManager(session: .mock())
+
+        XCTAssertEqual(AppGroup.defaults.string(forKey: "serverURL"), "http://localhost:3040")
+        XCTAssertEqual(AppGroup.defaults.string(forKey: "resolvedServerURL"), "https://legacy.trycloudflare.com")
+    }
+
+    func test_init_AppGroupに既に値があれば移行しない() {
+        AppGroup.defaults.set("http://new.example.com", forKey: "serverURL")
+        UserDefaults.standard.set("http://old.example.com", forKey: "serverURL")
+
+        _ = ServerURLManager(session: .mock())
+
+        XCTAssertEqual(AppGroup.defaults.string(forKey: "serverURL"), "http://new.example.com")
     }
 
     func test_resolve_gistAPISuccess_setsResolvedURL() async {
@@ -72,8 +97,8 @@ final class ServerURLManagerTests: XCTestCase {
     // これにより configureStores() が起動直後に走り、初期表示が高速化する。
     func test_init_restoresCachedResolvedURL_whenGistURLSaved() {
         let tunnel = "https://cached.trycloudflare.com"
-        UserDefaults.standard.set(gistURL.absoluteString, forKey: "serverURL")
-        UserDefaults.standard.set(tunnel, forKey: "resolvedServerURL")
+        AppGroup.defaults.set(gistURL.absoluteString, forKey: "serverURL")
+        AppGroup.defaults.set(tunnel, forKey: "resolvedServerURL")
 
         let manager = ServerURLManager(session: .mock())
 
@@ -92,36 +117,36 @@ final class ServerURLManagerTests: XCTestCase {
         await manager.resolve()
 
         XCTAssertEqual(
-            UserDefaults.standard.string(forKey: "resolvedServerURL"),
+            AppGroup.defaults.string(forKey: "resolvedServerURL"),
             tunnel
         )
     }
 
     func test_setServerURL_clearsCachedResolvedURL() {
-        UserDefaults.standard.set("https://old.trycloudflare.com", forKey: "resolvedServerURL")
+        AppGroup.defaults.set("https://old.trycloudflare.com", forKey: "resolvedServerURL")
         let manager = ServerURLManager(session: .mock())
 
         manager.setServerURL(gistURL)
 
-        XCTAssertNil(UserDefaults.standard.string(forKey: "resolvedServerURL"))
+        XCTAssertNil(AppGroup.defaults.string(forKey: "resolvedServerURL"))
     }
 
     func test_clearServerURL_clearsCachedResolvedURL() {
-        UserDefaults.standard.set(gistURL.absoluteString, forKey: "serverURL")
-        UserDefaults.standard.set("https://old.trycloudflare.com", forKey: "resolvedServerURL")
+        AppGroup.defaults.set(gistURL.absoluteString, forKey: "serverURL")
+        AppGroup.defaults.set("https://old.trycloudflare.com", forKey: "resolvedServerURL")
         let manager = ServerURLManager(session: .mock())
 
         manager.clearServerURL()
 
-        XCTAssertNil(UserDefaults.standard.string(forKey: "resolvedServerURL"))
+        XCTAssertNil(AppGroup.defaults.string(forKey: "resolvedServerURL"))
     }
 
     // Why: 非 Gist URL は resolve() が即座にそのままセットするため、キャッシュを使う必要がない。
     // 古いキャッシュが残っていても init 時点の resolvedURL は nil のままであるべき。
     func test_init_ignoresCachedResolvedURL_forNonGistServerURL() {
         let direct = "http://localhost:3040"
-        UserDefaults.standard.set(direct, forKey: "serverURL")
-        UserDefaults.standard.set("https://stale.trycloudflare.com", forKey: "resolvedServerURL")
+        AppGroup.defaults.set(direct, forKey: "serverURL")
+        AppGroup.defaults.set("https://stale.trycloudflare.com", forKey: "resolvedServerURL")
 
         let manager = ServerURLManager(session: .mock())
 

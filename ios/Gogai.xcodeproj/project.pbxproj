@@ -82,6 +82,34 @@
 		FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000BAB /* ServerURLManagerTests.swift */; };
 		FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004AAB /* HorizontalSwipeTests.swift */; };
 		FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004FAB /* BackgroundExecutionTests.swift */; };
+		FF00000000000000000054AB /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000054AB /* Stock.swift */; };
+		FF00000000000000000055AB /* StockRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000055AB /* StockRepository.swift */; };
+		FF00000000000000000056AB /* StockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000056AB /* StockStore.swift */; };
+		FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000057AB /* StockRepositoryTests.swift */; };
+		FF00000000000000000058AB /* StockStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000058AB /* StockStoreTests.swift */; };
+		FF00000000000000000059AB /* StockCategoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000059AB /* StockCategoryListView.swift */; };
+		FF0000000000000000005AAB /* StockListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005AAB /* StockListView.swift */; };
+		FF0000000000000000005BAB /* StockDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005BAB /* StockDetailView.swift */; };
+		FF0000000000000000005CAB /* AddStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005CAB /* AddStockView.swift */; };
+		FF0000000000000000005DAB /* EditStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005DAB /* EditStockView.swift */; };
+		FF0000000000000000005EAB /* StockSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005EAB /* StockSummarizer.swift */; };
+		FF0000000000000000005FAB /* StockSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005FAB /* StockSummary.swift */; };
+		FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000060AB /* StockSummarizerTests.swift */; };
+		FF00000000000000000061AB /* StockSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000061AB /* StockSummaryTests.swift */; };
+		FF00000000000000000062AB /* FMPageTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000062AB /* FMPageTranslator.swift */; };
+		FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000063AB /* FMTranslatedPageView.swift */; };
+		FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000064AB /* FMPageTranslatorTests.swift */; };
+		FF00000000000000000065AB /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000065AB /* AppGroup.swift */; };
+		FF00000000000000000066AB /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000066AB /* ShareViewController.swift */; };
+		FF00000000000000000067AB /* ShareStockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000067AB /* ShareStockView.swift */; };
+		FF00000000000000000068AB /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000BAB /* Endpoint.swift */; };
+		FF00000000000000000069AB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000009AB /* APIClient.swift */; };
+		FF0000000000000000006AAB /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000AAB /* APIError.swift */; };
+		FF0000000000000000006BAB /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000054AB /* Stock.swift */; };
+		FF0000000000000000006CAB /* StockRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000055AB /* StockRepository.swift */; };
+		FF0000000000000000006DAB /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000065AB /* AppGroup.swift */; };
+		FF0000000000000000006EAB /* DefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003BAB /* DefaultsKeys.swift */; };
+		FF0000000000000000006FAB /* GogaiShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD0000000000000000006AAB /* GogaiShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,7 +120,28 @@
 			remoteGlobalIDString = BB00000000000000000001AB;
 			remoteInfo = Gogai;
 		};
+		GG00000000000000000003AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA00000000000000000001AB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB0000000000000000000CAB;
+			remoteInfo = GogaiShareExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BB00000000000000000012AB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FF0000000000000000006FAB /* GogaiShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		DD00000000000000000001AB /* GogaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GogaiApp.swift; sourceTree = "<group>"; };
@@ -173,6 +222,30 @@
 		EE0000000000000000000BAB /* ServerURLManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerURLManagerTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000004AAB /* HorizontalSwipeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalSwipeTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000004FAB /* BackgroundExecutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundExecutionTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000054AB /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
+		DD00000000000000000055AB /* StockRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepository.swift; sourceTree = "<group>"; };
+		DD00000000000000000056AB /* StockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStore.swift; sourceTree = "<group>"; };
+		EE00000000000000000057AB /* StockRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepositoryTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000058AB /* StockStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStoreTests.swift; sourceTree = "<group>"; };
+		DD0000000000000000005EAB /* StockSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizer.swift; sourceTree = "<group>"; };
+		DD0000000000000000005FAB /* StockSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummary.swift; sourceTree = "<group>"; };
+		EE00000000000000000060AB /* StockSummarizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizerTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000061AB /* StockSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummaryTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000062AB /* FMPageTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMPageTranslator.swift; sourceTree = "<group>"; };
+		DD00000000000000000063AB /* FMTranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTranslatedPageView.swift; sourceTree = "<group>"; };
+		EE00000000000000000064AB /* FMPageTranslatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMPageTranslatorTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000065AB /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
+		DD00000000000000000066AB /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		DD00000000000000000067AB /* ShareStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareStockView.swift; sourceTree = "<group>"; };
+		DD00000000000000000068AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DD00000000000000000069AB /* GogaiShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GogaiShareExtension.entitlements; sourceTree = "<group>"; };
+		DD0000000000000000006AAB /* GogaiShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GogaiShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD0000000000000000006BAB /* Gogai.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Gogai.entitlements; sourceTree = "<group>"; };
+		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005CAB /* AddStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockView.swift; sourceTree = "<group>"; };
+		DD0000000000000000005DAB /* EditStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditStockView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -181,6 +254,7 @@
 			children = (
 				CC00000000000000000001AB /* Gogai */,
 				CC0000000000000000000FAB /* GogaiTests */,
+				CC00000000000000000018AB /* GogaiShareExtension */,
 				AA00000000000000000003AB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -190,6 +264,7 @@
 			children = (
 				DD00000000000000000026AB /* Gogai.app */,
 				DD00000000000000000027AB /* GogaiTests.xctest */,
+				DD0000000000000000006AAB /* GogaiShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -207,6 +282,7 @@
 				CC00000000000000000009AB /* Utilities */,
 				DD00000000000000000024AB /* Assets.xcassets */,
 				DD00000000000000000025AB /* Info.plist */,
+				DD0000000000000000006BAB /* Gogai.entitlements */,
 			);
 			path = Gogai;
 			sourceTree = "<group>";
@@ -230,6 +306,7 @@
 				DD00000000000000000006AB /* Settings.swift */,
 				DD00000000000000000007AB /* UpdateCheck.swift */,
 				DD00000000000000000008AB /* RefreshResult.swift */,
+				DD00000000000000000054AB /* Stock.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -251,6 +328,7 @@
 				DD0000000000000000000DAB /* FeedRepository.swift */,
 				DD0000000000000000000EAB /* ArticleRepository.swift */,
 				DD0000000000000000000FAB /* SettingsRepository.swift */,
+				DD00000000000000000055AB /* StockRepository.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -263,6 +341,7 @@
 				DD00000000000000000012AB /* ArticleStore.swift */,
 				DD0000000000000000003FAB /* ArticleCollection.swift */,
 				DD00000000000000000013AB /* SettingsStore.swift */,
+				DD00000000000000000056AB /* StockStore.swift */,
 			);
 			path = Stores;
 			sourceTree = "<group>";
@@ -277,6 +356,7 @@
 				CC0000000000000000000BAB /* Sidebar */,
 				CC0000000000000000000CAB /* Articles */,
 				CC0000000000000000000EAB /* Settings */,
+				CC00000000000000000017AB /* Stocks */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -293,6 +373,10 @@
 				DD0000000000000000004CAB /* LocalAIOverlay.swift */,
 				DD00000000000000000051AB /* CircleIconButton.swift */,
 				DD0000000000000000004EAB /* TranslationCache.swift */,
+				DD0000000000000000005EAB /* StockSummarizer.swift */,
+				DD0000000000000000005FAB /* StockSummary.swift */,
+				DD00000000000000000062AB /* FMPageTranslator.swift */,
+				DD00000000000000000063AB /* FMTranslatedPageView.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -307,6 +391,7 @@
 				DD00000000000000000023AB /* DateFormatter+.swift */,
 				DD00000000000000000034AB /* ShareSheet.swift */,
 				DD00000000000000000035AB /* AppCache.swift */,
+				DD00000000000000000065AB /* AppGroup.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -353,6 +438,18 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		CC00000000000000000017AB /* Stocks */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000059AB /* StockCategoryListView.swift */,
+				DD0000000000000000005AAB /* StockListView.swift */,
+				DD0000000000000000005BAB /* StockDetailView.swift */,
+				DD0000000000000000005CAB /* AddStockView.swift */,
+				DD0000000000000000005DAB /* EditStockView.swift */,
+			);
+			path = Stocks;
+			sourceTree = "<group>";
+		};
 		CC0000000000000000000FAB /* GogaiTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -374,6 +471,9 @@
 				EE00000000000000000045AB /* ArticleContentFetcherTests.swift */,
 				EE00000000000000000049AB /* TranslatedPageModelTests.swift */,
 				EE0000000000000000004DAB /* TranslationCacheTests.swift */,
+				EE00000000000000000060AB /* StockSummarizerTests.swift */,
+				EE00000000000000000061AB /* StockSummaryTests.swift */,
+				EE00000000000000000064AB /* FMPageTranslatorTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -393,6 +493,7 @@
 				EE00000000000000000003AB /* FeedRepositoryTests.swift */,
 				EE00000000000000000004AB /* ArticleRepositoryTests.swift */,
 				EE00000000000000000052AB /* FeedCountTests.swift */,
+				EE00000000000000000057AB /* StockRepositoryTests.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -404,6 +505,7 @@
 				EE00000000000000000006AB /* FeedStoreTests.swift */,
 				EE00000000000000000007AB /* ArticleStoreTests.swift */,
 				EE0000000000000000003EAB /* ArticleCollectionTests.swift */,
+				EE00000000000000000058AB /* StockStoreTests.swift */,
 			);
 			path = Stores;
 			sourceTree = "<group>";
@@ -428,6 +530,17 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		CC00000000000000000018AB /* GogaiShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000066AB /* ShareViewController.swift */,
+				DD00000000000000000067AB /* ShareStockView.swift */,
+				DD00000000000000000068AB /* Info.plist */,
+				DD00000000000000000069AB /* GogaiShareExtension.entitlements */,
+			);
+			path = GogaiShareExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -437,15 +550,33 @@
 			buildPhases = (
 				BB00000000000000000002AB /* Sources */,
 				BB00000000000000000003AB /* Resources */,
+				BB00000000000000000012AB /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				GG00000000000000000004AB /* PBXTargetDependency */,
 			);
 			name = Gogai;
 			productName = Gogai;
 			productReference = DD00000000000000000026AB /* Gogai.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BB0000000000000000000CAB /* GogaiShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB00000000000000000011AB /* Build configuration list for PBXNativeTarget "GogaiShareExtension" */;
+			buildPhases = (
+				BB0000000000000000000DAB /* Sources */,
+				BB0000000000000000000EAB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GogaiShareExtension;
+			productName = GogaiShareExtension;
+			productReference = DD0000000000000000006AAB /* GogaiShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		BB00000000000000000007AB /* GogaiTests */ = {
 			isa = PBXNativeTarget;
@@ -480,6 +611,9 @@
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = BB00000000000000000001AB;
 					};
+					BB0000000000000000000CAB = {
+						CreatedOnToolsVersion = 16.0;
+					};
 				};
 			};
 			buildConfigurationList = AA00000000000000000006AB /* Build configuration list for PBXProject "Gogai" */;
@@ -498,6 +632,7 @@
 			targets = (
 				BB00000000000000000001AB /* Gogai */,
 				BB00000000000000000007AB /* GogaiTests */,
+				BB0000000000000000000CAB /* GogaiShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -508,6 +643,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				FF00000000000000000024AB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB0000000000000000000EAB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -572,6 +714,19 @@
 				FF00000000000000000023AB /* DateFormatter+.swift in Sources */,
 				FF00000000000000000034AB /* ShareSheet.swift in Sources */,
 				FF00000000000000000035AB /* AppCache.swift in Sources */,
+				FF00000000000000000054AB /* Stock.swift in Sources */,
+				FF00000000000000000055AB /* StockRepository.swift in Sources */,
+				FF00000000000000000056AB /* StockStore.swift in Sources */,
+				FF00000000000000000059AB /* StockCategoryListView.swift in Sources */,
+				FF0000000000000000005AAB /* StockListView.swift in Sources */,
+				FF0000000000000000005BAB /* StockDetailView.swift in Sources */,
+				FF0000000000000000005CAB /* AddStockView.swift in Sources */,
+				FF0000000000000000005DAB /* EditStockView.swift in Sources */,
+				FF0000000000000000005EAB /* StockSummarizer.swift in Sources */,
+				FF0000000000000000005FAB /* StockSummary.swift in Sources */,
+				FF00000000000000000062AB /* FMPageTranslator.swift in Sources */,
+				FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */,
+				FF00000000000000000065AB /* AppGroup.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -599,6 +754,27 @@
 				FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */,
 				FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */,
 				FF0000000000000000004FAB /* BackgroundExecutionTests.swift in Sources */,
+				FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */,
+				FF00000000000000000058AB /* StockStoreTests.swift in Sources */,
+				FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */,
+				FF00000000000000000061AB /* StockSummaryTests.swift in Sources */,
+				FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB0000000000000000000DAB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF00000000000000000066AB /* ShareViewController.swift in Sources */,
+				FF00000000000000000067AB /* ShareStockView.swift in Sources */,
+				FF00000000000000000068AB /* Endpoint.swift in Sources */,
+				FF00000000000000000069AB /* APIClient.swift in Sources */,
+				FF0000000000000000006AAB /* APIError.swift in Sources */,
+				FF0000000000000000006BAB /* Stock.swift in Sources */,
+				FF0000000000000000006CAB /* StockRepository.swift in Sources */,
+				FF0000000000000000006DAB /* AppGroup.swift in Sources */,
+				FF0000000000000000006EAB /* DefaultsKeys.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -609,6 +785,11 @@
 			isa = PBXTargetDependency;
 			target = BB00000000000000000001AB /* Gogai */;
 			targetProxy = GG00000000000000000001AB /* PBXContainerItemProxy */;
+		};
+		GG00000000000000000004AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BB0000000000000000000CAB /* GogaiShareExtension */;
+			targetProxy = GG00000000000000000003AB /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -742,6 +923,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Gogai/Gogai.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = G72M73C546;
@@ -768,6 +950,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Gogai/Gogai.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = G72M73C546;
@@ -824,6 +1007,56 @@
 			};
 			name = Release;
 		};
+		BB0000000000000000000FAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GogaiShareExtension/GogaiShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = G72M73C546;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GogaiShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mtkg.gogai.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BB00000000000000000010AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GogaiShareExtension/GogaiShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = G72M73C546;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GogaiShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mtkg.gogai.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -850,6 +1083,15 @@
 			buildConfigurations = (
 				BB00000000000000000009AB /* Debug */,
 				BB0000000000000000000AAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB00000000000000000011AB /* Build configuration list for PBXNativeTarget "GogaiShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000FAB /* Debug */,
+				BB00000000000000000010AB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

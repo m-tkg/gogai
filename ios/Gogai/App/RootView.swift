@@ -10,6 +10,7 @@ struct RootView: View {
     @State private var selectedGroupId: Int?
     @State private var selectedArticle: Article?
     @State private var navigationPath = NavigationPath()
+    @State private var showStocks = false
 
     var body: some View {
         SwiftUI.Group {
@@ -17,7 +18,8 @@ struct RootView: View {
                 NavigationSplitView {
                     SidebarView(
                         selectedFeedId: $selectedFeedId,
-                        selectedGroupId: $selectedGroupId
+                        selectedGroupId: $selectedGroupId,
+                        onStockTap: { showStocks = true }
                     )
                 } content: {
                     ArticleListView(
@@ -40,23 +42,45 @@ struct RootView: View {
                 }
                 .onChange(of: selectedFeedId) { selectedArticle = nil }
                 .onChange(of: selectedGroupId) { selectedArticle = nil }
+                .fullScreenCover(isPresented: $showStocks) {
+                    NavigationStack {
+                        StockCategoryListView(isModal: true)
+                            .navigationDestination(for: StockCategory.self) { category in
+                                StockListView(category: category)
+                                    .navigationDestination(for: Stock.self) { stock in
+                                        StockDetailView(stock: stock)
+                                    }
+                            }
+                    }
+                }
             } else {
                 NavigationStack(path: $navigationPath) {
                     SidebarView(
                         selectedFeedId: $selectedFeedId,
                         selectedGroupId: $selectedGroupId,
-                        onNavigate: { dest in navigationPath.append(dest) }
+                        onNavigate: { dest in navigationPath.append(dest) },
+                        onStockTap: { navigationPath.append(StockDestination()) }
                     )
                     .navigationDestination(for: ArticleDestination.self) { dest in
                         ArticleListView(
                             feedId: dest.feedId,
                             groupId: dest.groupId,
                             selectedArticle: $selectedArticle,
-                            onArticleSelected: { article in navigationPath.append(article) }
+                            onArticleSelected: { article in navigationPath.append(article) },
+                            onStockTap: { navigationPath.append(StockDestination()) }
                         )
                         .navigationDestination(for: Article.self) { article in
                             ArticleDetailView(article: article)
                         }
+                    }
+                    .navigationDestination(for: StockDestination.self) { _ in
+                        StockCategoryListView()
+                            .navigationDestination(for: StockCategory.self) { category in
+                                StockListView(category: category)
+                                    .navigationDestination(for: Stock.self) { stock in
+                                        StockDetailView(stock: stock)
+                                    }
+                            }
                     }
                 }
             }
@@ -81,3 +105,6 @@ struct ArticleDestination: Hashable {
     let feedId: Int?
     let groupId: Int?
 }
+
+/// ストック一覧への遷移マーカー(パラメータなし)
+struct StockDestination: Hashable {}
