@@ -187,6 +187,13 @@ const MIGRATIONS: Migration[] = [
       `)
     },
   },
+  {
+    name: 'articles-drop-is-favorite',
+    up: (db) => {
+      // お気に入り機能をストック機能に統合したため削除する
+      dropColumn(db, 'articles', 'is_favorite')
+    },
+  },
 ]
 
 export function initSchema(db: Database.Database): void {

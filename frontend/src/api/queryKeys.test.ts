@@ -12,7 +12,7 @@ describe('queryKeys', () => {
   })
 
   it('articleList はフィルター付きのキーを返し、articles を接頭辞に持つ', () => {
-    const filter = { feedId: 1, groupId: null, unreadOnly: true, favoriteOnly: false, sortBy: 'published_at' as const, showSecretGroups: false }
+    const filter = { feedId: 1, groupId: null, unreadOnly: true, sortBy: 'published_at' as const, showSecretGroups: false }
     const key = queryKeys.articleList(filter)
     expect(key[0]).toBe(queryKeys.articles[0])
     expect(key[1]).toEqual(filter)

@@ -28,9 +28,14 @@ describe('initSchema', () => {
       expect.arrayContaining(['id', 'url', 'title', 'favicon_url', 'group_id', 'last_fetched_at', 'display_order'])
     )
     expect(columnNames('articles')).toEqual(
-      expect.arrayContaining(['id', 'feed_id', 'guid', 'title', 'link', 'is_read', 'is_favorite', 'read_at'])
+      expect.arrayContaining(['id', 'feed_id', 'guid', 'title', 'link', 'is_read', 'read_at'])
     )
     expect(columnNames('settings')).toEqual(expect.arrayContaining(['key', 'value']))
+  })
+
+  it('is_favorite カラムを作成しない（ストック機能に統合済み）', () => {
+    initSchema(db)
+    expect(columnNames('articles')).not.toContain('is_favorite')
   })
 
   it('AI 関連カラム（ai_summary / ai_translation / ai_audio_url）を作成しない', () => {
@@ -92,9 +97,51 @@ describe('initSchema', () => {
     expect(cols).not.toContain('ai_summary')
     expect(cols).not.toContain('ai_translation')
     expect(cols).not.toContain('ai_audio_url')
+    expect(cols).not.toContain('is_favorite')
     expect(cols).toContain('read_at')
-    expect(cols).toContain('is_favorite')
     // 既存データは保持される
+    expect(db.prepare('SELECT title FROM articles WHERE guid = ?').get('g1')).toEqual({ title: 'Hello' })
+  })
+
+  it('is_favorite カラムが残っている旧 DB から除去する（データは保持）', () => {
+    db.exec(`
+      CREATE TABLE groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE feeds (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT NOT NULL UNIQUE,
+        title TEXT,
+        favicon_url TEXT,
+        group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL,
+        last_fetched_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE articles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        feed_id INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+        guid TEXT NOT NULL,
+        title TEXT,
+        link TEXT,
+        summary TEXT,
+        content TEXT,
+        published_at TEXT,
+        is_read INTEGER NOT NULL DEFAULT 0,
+        is_favorite INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(feed_id, guid)
+      );
+      CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      INSERT INTO feeds (url) VALUES ('https://example.com/feed.xml');
+      INSERT INTO articles (feed_id, guid, title, is_favorite) VALUES (1, 'g1', 'Hello', 1);
+    `)
+
+    initSchema(db)
+
+    const cols = columnNames('articles')
+    expect(cols).not.toContain('is_favorite')
     expect(db.prepare('SELECT title FROM articles WHERE guid = ?').get('g1')).toEqual({ title: 'Hello' })
   })
 

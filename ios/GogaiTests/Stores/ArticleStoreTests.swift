@@ -9,7 +9,6 @@ final class ArticleStoreTests: XCTestCase {
         super.setUp()
         // テスト間の UserDefaults 状態汚染を防ぐためリセット
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.unreadOnly)
-        UserDefaults.standard.removeObject(forKey: DefaultsKeys.favoriteOnly)
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.sortOrder)
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let cache = AppCache(directory: tempDir)
@@ -23,10 +22,10 @@ final class ArticleStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, isFavorite: Int = 0) -> Article {
+    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0) -> Article {
         Article(id: id, feed_id: feedId, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
-                is_read: isRead, is_favorite: isFavorite, created_at: "2024-01-01T00:00:00Z",
+                is_read: isRead, created_at: "2024-01-01T00:00:00Z",
                 read_at: nil)
     }
 
@@ -432,13 +431,13 @@ final class ArticleStoreTests: XCTestCase {
         let newerReadArticle = Article(
             id: 1, feed_id: 1, guid: "guid-1", title: "Newer (read)",
             link: nil, summary: nil, content: nil,
-            published_at: "2024-02-01T00:00:00Z", is_read: 1, is_favorite: 0,
+            published_at: "2024-02-01T00:00:00Z", is_read: 1,
             created_at: "2024-01-01T00:00:00Z", read_at: nil
         )
         let olderUnreadArticle = Article(
             id: 2, feed_id: 1, guid: "guid-2", title: "Older (unread)",
             link: nil, summary: nil, content: nil,
-            published_at: "2024-01-01T00:00:00Z", is_read: 0, is_favorite: 0,
+            published_at: "2024-01-01T00:00:00Z", is_read: 0,
             created_at: "2024-01-01T00:00:00Z", read_at: nil
         )
 
@@ -461,38 +460,6 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.articles[1].id, 2, "古い未読記事が後に来るべき")
     }
 
-    // MARK: - favoriteOnly と allArticles の独立性
-
-    @MainActor
-    func test_fetchArticles_favoriteOnly_doesNotUpdateAllArticles() async {
-        // 事前に全記事を allArticles に設定
-        let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
-        await store.fetchArticles(feedId: 1)
-        let beforeCount = store.allArticles.count
-        XCTAssertEqual(beforeCount, 2)
-
-        // favoriteOnly=true でフェッチしても allArticles を上書きしない
-        let favoritesOnly = [makeArticle(id: 1, feedId: 1, isFavorite: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(favoritesOnly)) }
-        store.favoriteOnly = true
-        await store.fetchArticles(feedId: 1)
-
-        XCTAssertEqual(store.articles.count, 1)
-        XCTAssertEqual(store.allArticles.count, beforeCount, "favoriteOnly=true 時は allArticles を更新しない")
-    }
-
-    @MainActor
-    func test_fetchArticles_afterFavoriteOnlyDisabled_updatesAllArticles() async {
-        // favoriteOnly=false に戻したら allArticles を再度更新する
-        let allArticlesData = [makeArticle(id: 1, feedId: 1), makeArticle(id: 2, feedId: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(allArticlesData)) }
-        store.favoriteOnly = false
-        await store.fetchArticles(feedId: 1)
-
-        XCTAssertEqual(store.allArticles.count, 2, "favoriteOnly=false の場合は allArticles を更新する")
-    }
-
     @MainActor
     func test_fetchArticles_unreadOnly_doesNotUpdateAllArticles() async {
         // 全件（フィルタなし）フェッチで allArticles に既読・未読を両方入れる
@@ -502,7 +469,7 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.allArticles.count, 2)
 
         // unreadOnly=true でフェッチすると未読のみが返るが、allArticles を未読だけに汚染してはいけない
-        // （汚染すると「お気に入りのみ」表示時に既読のお気に入りを持つフィードが消える）
+        // （汚染すると既読記事を持つフィードがサイドバーから消える）
         let unreadResult = [makeArticle(id: 2, feedId: 1, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(unreadResult)) }
         await store.fetchArticles(unreadOnly: true)
@@ -511,35 +478,11 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.allArticles.count, 2, "unreadOnly=true 時は allArticles を未読だけで上書きしない")
     }
 
-    @MainActor
-    func test_hasVisibleArticle_favoriteOnly_findsReadFavorite_afterUnreadFetch() async {
-        // 全件フェッチ: feed 10 は既読のお気に入り、feed 20 は未読の通常記事
-        let full = [
-            makeArticle(id: 1, feedId: 10, isRead: 1, isFavorite: 1),
-            makeArticle(id: 2, feedId: 20, isRead: 0, isFavorite: 0),
-        ]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(full)) }
-        await store.fetchArticles()
-
-        // 未読のみでフェッチ（feed 20 のみ返る）→ allArticles を汚染しないこと
-        let unreadResult = [makeArticle(id: 2, feedId: 20, isRead: 0, isFavorite: 0)]
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(unreadResult)) }
-        await store.fetchArticles(unreadOnly: true)
-
-        // お気に入りのみに切り替え
-        store.unreadOnly = false
-        store.favoriteOnly = true
-
-        XCTAssertTrue(store.hasVisibleArticle(for: 10),
-                      "既読のお気に入り記事を持つフィードはお気に入り表示で見える")
-    }
-
     // MARK: - hasVisibleArticle(for:)
 
     func test_hasVisibleArticle_noFilters_returnsTrue() {
         store.articles = []
         store.unreadOnly = false
-        store.favoriteOnly = false
         XCTAssertTrue(store.hasVisibleArticle(for: 1), "フィルタ未指定時は常に表示する")
     }
 
@@ -555,61 +498,35 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertFalse(store.hasVisibleArticle(for: 10))
     }
 
-    func test_hasVisibleArticle_favoriteOnly_feedHasFavorite_returnsTrue() {
-        store.articles = [makeArticle(id: 1, feedId: 10, isFavorite: 1)]
-        store.favoriteOnly = true
-        XCTAssertTrue(store.hasVisibleArticle(for: 10))
-    }
-
-    func test_hasVisibleArticle_favoriteOnly_feedNoFavorite_returnsFalse() {
-        store.articles = [makeArticle(id: 1, feedId: 10, isFavorite: 0)]
-        store.favoriteOnly = true
-        XCTAssertFalse(store.hasVisibleArticle(for: 10))
-    }
-
-    func test_hasVisibleArticle_combinedFilters_appliesAndLogic() {
-        // 未読 + お気に入り が必要
-        store.articles = [
-            makeArticle(id: 1, feedId: 10, isRead: 0, isFavorite: 0),    // 未読だがお気に入りでない
-            makeArticle(id: 2, feedId: 10, isRead: 1, isFavorite: 1),    // お気に入りだが既読
-            makeArticle(id: 3, feedId: 20, isRead: 0, isFavorite: 1),    // 未読 + お気に入り
-        ]
-        store.unreadOnly = true
-        store.favoriteOnly = true
-        XCTAssertFalse(store.hasVisibleArticle(for: 10), "片方しか満たさない記事しかないフィードは非表示")
-        XCTAssertTrue(store.hasVisibleArticle(for: 20), "両方満たす記事があるフィードは表示")
-    }
-
     @MainActor
     func test_hasVisibleArticle_usesAllArticles_whenPopulated() async {
-        // allArticles にお気に入り記事を入れた状態を作る
-        let articles = [makeArticle(id: 1, feedId: 10, isFavorite: 1)]
+        // allArticles に未読記事を入れた状態を作る
+        let articles = [makeArticle(id: 1, feedId: 10, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
         await store.fetchArticles()
 
         // articles を別フィードで上書きしても allArticles 経由で feedId=10 を判定できる
         store.articles = [makeArticle(id: 99, feedId: 99)]
-        store.favoriteOnly = true
+        store.unreadOnly = true
         XCTAssertTrue(store.hasVisibleArticle(for: 10))
     }
 
     // MARK: - badgeCount（フィルタ連動のバッジ件数）
 
     private func seedBadgeArticles() {
-        // feed 10: 未読1 / 既読お気に入り1 / 既読1 = 計3
+        // feed 10: 未読1 / 既読2 = 計3
         // feed 20: 未読1 = 計1
         store.articles = [
-            makeArticle(id: 1, feedId: 10, isRead: 0, isFavorite: 0),
-            makeArticle(id: 2, feedId: 10, isRead: 1, isFavorite: 1),
-            makeArticle(id: 3, feedId: 10, isRead: 1, isFavorite: 0),
-            makeArticle(id: 4, feedId: 20, isRead: 0, isFavorite: 0),
+            makeArticle(id: 1, feedId: 10, isRead: 0),
+            makeArticle(id: 2, feedId: 10, isRead: 1),
+            makeArticle(id: 3, feedId: 10, isRead: 1),
+            makeArticle(id: 4, feedId: 20, isRead: 0),
         ]
     }
 
     func test_badgeCount_全て選択時は全記事数を返す() {
         seedBadgeArticles()
         store.unreadOnly = false
-        store.favoriteOnly = false
         XCTAssertEqual(store.badgeCount(for: 10), 3)
         XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 4)
         XCTAssertEqual(store.badgeCount(excludingFeedIds: [20]), 3)
@@ -618,33 +535,22 @@ final class ArticleStoreTests: XCTestCase {
     func test_badgeCount_未読のみ選択時は未読数を返す() {
         seedBadgeArticles()
         store.unreadOnly = true
-        store.favoriteOnly = false
         XCTAssertEqual(store.badgeCount(for: 10), 1)
         XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 2)
         XCTAssertEqual(store.badgeCount(excludingFeedIds: [20]), 1)
     }
 
-    func test_badgeCount_お気に入り選択時はお気に入り数を返す() {
-        seedBadgeArticles()
-        store.unreadOnly = false
-        store.favoriteOnly = true
-        XCTAssertEqual(store.badgeCount(for: 10), 1)
-        XCTAssertEqual(store.badgeCount(for: 20), 0)
-        XCTAssertEqual(store.badgeCount(forGroupFeedIds: [10, 20]), 1)
-        XCTAssertEqual(store.badgeCount(excludingFeedIds: []), 1)
-    }
-
     @MainActor
     func test_badgeCount_allArticlesがあればそちらを使う() async {
         let all = [
-            makeArticle(id: 1, feedId: 10, isRead: 1, isFavorite: 1),
-            makeArticle(id: 2, feedId: 10, isRead: 0, isFavorite: 0),
+            makeArticle(id: 1, feedId: 10, isRead: 1),
+            makeArticle(id: 2, feedId: 10, isRead: 0),
         ]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(all)) }
         await store.fetchArticles()
 
         store.articles = []  // 表示中リストが空でもキャッシュから数えられる
-        store.favoriteOnly = true
+        store.unreadOnly = true
         XCTAssertEqual(store.badgeCount(for: 10), 1)
     }
 
@@ -690,79 +596,6 @@ final class ArticleStoreTests: XCTestCase {
         XCTAssertEqual(store.badgeCount(excludingFeedIds: [10]), 0)
     }
 
-    // MARK: - お気に入り機能
-
-    @MainActor
-    func test_favorite_optimisticallyUpdates() async {
-        store.articles = [makeArticle(id: 1, isFavorite: 0)]
-        MockURLProtocol.requestHandler = { _ in (200, Data()) }
-
-        await store.favorite(id: 1)
-
-        XCTAssertTrue(store.articles[0].isFavorite)
-    }
-
-    @MainActor
-    func test_favorite_rollsBackOnFailure() async {
-        store.articles = [makeArticle(id: 1, isFavorite: 0)]
-        MockURLProtocol.requestHandler = { _ in (500, Data()) }
-
-        await store.favorite(id: 1)
-
-        XCTAssertFalse(store.articles[0].isFavorite)
-        XCTAssertNotNil(store.error)
-    }
-
-    @MainActor
-    func test_favorite_success_callsOnFavoriteSucceeded() async {
-        let article = makeArticle(id: 1, isFavorite: 0)
-        store.articles = [article]
-        var succeeded: Article?
-        store.configure(with: client, onFavoriteSucceeded: { succeeded = $0 })
-        MockURLProtocol.requestHandler = { _ in (200, Data()) }
-
-        await store.favorite(id: 1)
-
-        XCTAssertEqual(succeeded?.id, 1)
-    }
-
-    @MainActor
-    func test_favorite_failure_doesNotCallOnFavoriteSucceeded() async {
-        let article = makeArticle(id: 1, isFavorite: 0)
-        store.articles = [article]
-        var succeeded: Article?
-        store.configure(with: client, onFavoriteSucceeded: { succeeded = $0 })
-        MockURLProtocol.requestHandler = { _ in (500, Data()) }
-
-        await store.favorite(id: 1)
-
-        XCTAssertNil(succeeded)
-    }
-
-    @MainActor
-    func test_unfavorite_optimisticallyUpdates() async {
-        store.articles = [makeArticle(id: 1, isFavorite: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, Data()) }
-
-        await store.unfavorite(id: 1)
-
-        XCTAssertFalse(store.articles[0].isFavorite)
-    }
-
-    @MainActor
-    func test_favorite_updatesAllArticles() async {
-        let favoriteArticle = makeArticle(id: 1, isFavorite: 0)
-        MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode([favoriteArticle])) }
-        await store.fetchArticles(feedId: 1)
-
-        MockURLProtocol.requestHandler = { _ in (200, Data()) }
-        await store.favorite(id: 1)
-
-        // allArticles も更新されていること
-        XCTAssertTrue(store.allArticles.first(where: { $0.id == 1 })?.isFavorite ?? false,
-                      "favorite 後は allArticles にも反映される")
-    }
-
     // MARK: - キャッシュ
 
     private func makeTmpCache() -> (AppCache, URL) {
@@ -803,14 +636,14 @@ final class ArticleStoreTests: XCTestCase {
 
     // MARK: - feedCounts（サーバー集計）
 
-    private func makeCount(feedId: Int, total: Int, unread: Int, favorite: Int) -> FeedCount {
-        FeedCount(feed_id: feedId, total: total, unread: unread, favorite: favorite)
+    private func makeCount(feedId: Int, total: Int, unread: Int) -> FeedCount {
+        FeedCount(feed_id: feedId, total: total, unread: unread)
     }
 
     @MainActor
     func test_refreshCounts_updatesFeedCounts() async {
-        let counts = [makeCount(feedId: 1, total: 3, unread: 2, favorite: 1),
-                      makeCount(feedId: 2, total: 5, unread: 0, favorite: 0)]
+        let counts = [makeCount(feedId: 1, total: 3, unread: 2),
+                      makeCount(feedId: 2, total: 5, unread: 0)]
         MockURLProtocol.requestHandler = { request in
             XCTAssertTrue(request.url?.path.hasSuffix("/api/articles/counts") == true)
             return (200, try JSONEncoder().encode(counts))
@@ -825,7 +658,7 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_refreshCounts_keepsPreviousCounts_onFailure() async {
-        let counts = [makeCount(feedId: 1, total: 3, unread: 2, favorite: 1)]
+        let counts = [makeCount(feedId: 1, total: 3, unread: 2)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
         await store.refreshCounts()
 
@@ -846,24 +679,20 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_badgeCount_usesFeedCounts_perFilter() async {
-        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, favorite: 2)])
+        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4)])
 
         // allCollection は空でも counts があればバッジが出る（起動直後の 0 件表示の修正点）
         XCTAssertEqual(store.badgeCount(for: 1), 10, "「全て」= total")
 
         store.unreadOnly = true
         XCTAssertEqual(store.badgeCount(for: 1), 4, "「未読のみ」= unread")
-
-        store.unreadOnly = false
-        store.favoriteOnly = true
-        XCTAssertEqual(store.badgeCount(for: 1), 2, "「お気に入り」= favorite")
     }
 
     @MainActor
     func test_badgeCount_aggregates_acrossFeeds() async {
-        await seedCounts([makeCount(feedId: 1, total: 3, unread: 1, favorite: 0),
-                          makeCount(feedId: 2, total: 5, unread: 2, favorite: 1),
-                          makeCount(feedId: 3, total: 7, unread: 4, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 3, unread: 1),
+                          makeCount(feedId: 2, total: 5, unread: 2),
+                          makeCount(feedId: 3, total: 7, unread: 4)])
         store.unreadOnly = true
 
         XCTAssertEqual(store.badgeCount(for: nil), 7, "全フィード合計")
@@ -874,41 +703,19 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_hasVisibleArticle_usesFeedCounts() async {
-        await seedCounts([makeCount(feedId: 1, total: 3, unread: 0, favorite: 1),
-                          makeCount(feedId: 2, total: 2, unread: 2, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 3, unread: 0),
+                          makeCount(feedId: 2, total: 2, unread: 2)])
         store.unreadOnly = true
 
         XCTAssertFalse(store.hasVisibleArticle(for: 1), "未読 0 のフィードは非表示")
         XCTAssertTrue(store.hasVisibleArticle(for: 2))
-
-        store.unreadOnly = false
-        store.favoriteOnly = true
-        XCTAssertTrue(store.hasVisibleArticle(for: 1))
-        XCTAssertFalse(store.hasVisibleArticle(for: 2), "お気に入り 0 のフィードは非表示")
-    }
-
-    @MainActor
-    func test_badgeCount_fallsBackToCollection_whenBothFiltersActive() async {
-        // UI からは到達不能だが、counts の 3 値では AND 条件を表現できないため
-        // 両フィルタ有効時は従来のコレクション計算にフォールバックする
-        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, favorite: 2)])
-        MockURLProtocol.requestHandler = { _ in
-            (200, try JSONEncoder().encode([self.makeArticle(id: 1, feedId: 1, isRead: 0, isFavorite: 1),
-                                            self.makeArticle(id: 2, feedId: 1, isRead: 0, isFavorite: 0)]))
-        }
-        await store.fetchArticles()
-
-        store.unreadOnly = true
-        store.favoriteOnly = true
-
-        XCTAssertEqual(store.badgeCount(for: 1), 1, "未読かつお気に入りはコレクションから数える")
     }
 
     // MARK: - feedCounts と楽観更新の同期
 
     @MainActor
     func test_markAsRead_decrementsUnreadCount() async {
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in (200, Data()) }
 
@@ -920,7 +727,7 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_markAsRead_restoresUnreadCount_onRollback() async {
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in (500, Data()) }
 
@@ -931,7 +738,7 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_markAsRead_keepsDecrement_onURLError() async {
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
 
@@ -942,7 +749,7 @@ final class ArticleStoreTests: XCTestCase {
 
     @MainActor
     func test_markAsUnread_incrementsUnreadCount() async {
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 1)]
         MockURLProtocol.requestHandler = { _ in (200, Data()) }
 
@@ -952,23 +759,9 @@ final class ArticleStoreTests: XCTestCase {
     }
 
     @MainActor
-    func test_favoriteAndUnfavorite_adjustFavoriteCount() async {
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 1)])
-        store.articles = [makeArticle(id: 1, feedId: 1, isFavorite: 0), makeArticle(id: 2, feedId: 1, isFavorite: 1)]
-        MockURLProtocol.requestHandler = { _ in (200, Data()) }
-
-        await store.favorite(id: 1)
-        XCTAssertEqual(store.feedCounts[1]?.favorite, 2)
-
-        await store.unfavorite(id: 2)
-        XCTAssertEqual(store.feedCounts[1]?.favorite, 1)
-        XCTAssertEqual(store.feedCounts[1]?.unread, 2, "unread は変わらない")
-    }
-
-    @MainActor
     func test_markAllAsRead_decrementsUnreadPerFeed() async {
-        await seedCounts([makeCount(feedId: 1, total: 3, unread: 2, favorite: 0),
-                          makeCount(feedId: 2, total: 3, unread: 3, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 3, unread: 2),
+                          makeCount(feedId: 2, total: 3, unread: 3)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0),
                           makeArticle(id: 2, feedId: 1, isRead: 0),
                           makeArticle(id: 3, feedId: 2, isRead: 0),
@@ -984,7 +777,7 @@ final class ArticleStoreTests: XCTestCase {
     @MainActor
     func test_unreadCount_clampsAtZero() async {
         // サーバー集計とローカル記事の状態がずれていても 0 未満にならない
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 0, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 0)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in (200, Data()) }
 
@@ -996,13 +789,13 @@ final class ArticleStoreTests: XCTestCase {
     @MainActor
     func test_refreshCounts_subtractsPendingReads() async {
         // URLError で pending 中の既読はサーバー集計に未反映のため、フェッチ後に減算する
-        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)])
+        await seedCounts([makeCount(feedId: 1, total: 5, unread: 2)])
         store.articles = [makeArticle(id: 1, feedId: 1, isRead: 0)]
         MockURLProtocol.requestHandler = { _ in throw URLError(.cannotConnectToHost) }
         await store.markAsRead(id: 1)
 
         // サーバーはまだ未読 2 と答えるが、pending 分を引いて 1 になる
-        let counts = [makeCount(feedId: 1, total: 5, unread: 2, favorite: 0)]
+        let counts = [makeCount(feedId: 1, total: 5, unread: 2)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
         await store.refreshCounts()
 
@@ -1015,7 +808,7 @@ final class ArticleStoreTests: XCTestCase {
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
         await store.fetchArticles()
 
-        let counts = [makeCount(feedId: 1, total: 9, unread: 6, favorite: 0)]
+        let counts = [makeCount(feedId: 1, total: 9, unread: 6)]
         MockURLProtocol.requestHandler = { req in
             if req.url?.path.hasSuffix("/api/articles/counts") == true {
                 return (200, try JSONEncoder().encode(counts))
@@ -1036,7 +829,7 @@ final class ArticleStoreTests: XCTestCase {
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(articles)) }
         await store.fetchArticles(feedId: 5)
 
-        let counts = [makeCount(feedId: 7, total: 3, unread: 3, favorite: 0)]
+        let counts = [makeCount(feedId: 7, total: 3, unread: 3)]
         MockURLProtocol.requestHandler = { req in
             if req.url?.path.hasSuffix("/api/articles/counts") == true {
                 return (200, try JSONEncoder().encode(counts))
@@ -1056,7 +849,7 @@ final class ArticleStoreTests: XCTestCase {
 
         let storeWithCache = ArticleStore(cache: testCache)
         storeWithCache.configure(with: client)
-        let counts = [makeCount(feedId: 7, total: 4, unread: 3, favorite: 0)]
+        let counts = [makeCount(feedId: 7, total: 4, unread: 3)]
         MockURLProtocol.requestHandler = { _ in (200, try JSONEncoder().encode(counts)) }
 
         await storeWithCache.refreshCounts()
