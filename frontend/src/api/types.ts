@@ -1,5 +1,5 @@
 // バックエンド API のワイヤ型。
-// is_read / is_favorite / is_secret は SQLite の実態に合わせて number(0|1) のまま扱う。
+// is_read / is_secret は SQLite の実態に合わせて number(0|1) のまま扱う。
 
 export interface Group {
   id: number
@@ -32,7 +32,6 @@ export interface Article {
   content: string | null
   published_at: string | null
   is_read: number
-  is_favorite: number
   created_at: string
   read_at: string | null
 }

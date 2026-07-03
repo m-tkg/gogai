@@ -69,12 +69,7 @@ struct GogaiApp: App {
         feedStore.configure(with: client, onRefreshComplete: {
             Task { await articleStore.refresh() }
         })
-        articleStore.configure(with: client, onFavoriteSucceeded: { [weak feedStore, weak groupStore, weak stockStore] article in
-            guard let stockStore, let link = article.link else { return }
-            let groupName = feedStore?.feeds.first(where: { $0.id == article.feed_id })?.group_id
-                .flatMap { groupId in groupStore?.groups.first(where: { $0.id == groupId })?.name }
-            Task { try? await stockStore.createStock(url: link, title: article.title, source: groupName ?? "未分類") }
-        })
+        articleStore.configure(with: client)
         settingsStore.configure(with: client)
         stockStore.configure(with: client)
         // Why: 3 本は独立した API のため並列化で起動時の総待ち時間を短縮する。

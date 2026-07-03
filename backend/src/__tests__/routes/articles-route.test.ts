@@ -60,9 +60,8 @@ describe('articles ルート（HTTP 契約）', () => {
   })
 
   describe('GET /counts', () => {
-    it('フィードごとの {feed_id, total, unread, favorite} 配列を返す', async () => {
+    it('フィードごとの {feed_id, total, unread} 配列を返す', async () => {
       new ArticlesService(db).markAsRead(articleId)
-      new ArticlesService(db).markAsFavorite(articleId)
 
       const res = await articlesRouter.request('/counts')
       expect(res.status).toBe(200)
@@ -72,7 +71,6 @@ describe('articles ルート（HTTP 契約）', () => {
         feed_id: expect.any(Number),
         total: 2,
         unread: 1,
-        favorite: 1,
       })
     })
 
@@ -97,7 +95,7 @@ describe('articles ルート（HTTP 契約）', () => {
     })
   })
 
-  describe('既読・お気に入り', () => {
+  describe('既読', () => {
     it('POST /:id/read は 204 を返し is_read=1 になる', async () => {
       const res = await articlesRouter.request(`/${articleId}/read`, { method: 'POST' })
       expect(res.status).toBe(204)
@@ -114,16 +112,14 @@ describe('articles ルート（HTTP 契約）', () => {
       expect(article?.is_read).toBe(0)
       expect(article?.read_at).toBeNull()
     })
-
-    it('POST /:id/favorite と /:id/unfavorite は 204 を返す', async () => {
-      expect((await articlesRouter.request(`/${articleId}/favorite`, { method: 'POST' })).status).toBe(204)
-      expect(new ArticlesService(db).findById(articleId)?.is_favorite).toBe(1)
-      expect((await articlesRouter.request(`/${articleId}/unfavorite`, { method: 'POST' })).status).toBe(204)
-      expect(new ArticlesService(db).findById(articleId)?.is_favorite).toBe(0)
-    })
   })
 
   describe('削除済み機能のエンドポイントが存在しない', () => {
+    it('POST /:id/favorite と /:id/unfavorite は 404 を返す（お気に入り機能はストックに統合済み）', async () => {
+      expect((await articlesRouter.request(`/${articleId}/favorite`, { method: 'POST' })).status).toBe(404)
+      expect((await articlesRouter.request(`/${articleId}/unfavorite`, { method: 'POST' })).status).toBe(404)
+    })
+
     it('POST /:id/claude は 404 を返す（AI 機能は削除済み）', async () => {
       const res = await articlesRouter.request(`/${articleId}/claude`, {
         method: 'POST',

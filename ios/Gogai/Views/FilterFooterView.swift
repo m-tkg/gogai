@@ -2,7 +2,6 @@ import SwiftUI
 
 struct FilterFooterView: View {
     @Binding var unreadOnly: Bool
-    @Binding var favoriteOnly: Bool
     /// 指定するとストックボタンを左端に表示する(ストック一覧への遷移用。フィルターではない)
     var onStockTap: (() -> Void)?
 
@@ -21,26 +20,15 @@ struct FilterFooterView: View {
 
                 Button("全て") {
                     unreadOnly = false
-                    favoriteOnly = false
                 }
                 .buttonStyle(.bordered)
-                .tint(!unreadOnly && !favoriteOnly ? .accentColor : nil)
+                .tint(!unreadOnly ? .accentColor : nil)
 
                 Button("未読のみ") {
                     unreadOnly = true
-                    favoriteOnly = false
                 }
                 .buttonStyle(.bordered)
                 .tint(unreadOnly ? .accentColor : nil)
-
-                Button {
-                    favoriteOnly = true
-                    unreadOnly = false
-                } label: {
-                    Label("お気に入り", systemImage: "star.fill")
-                }
-                .buttonStyle(.bordered)
-                .tint(favoriteOnly ? .yellow : nil)
             }
             .padding(.horizontal, 12)
         }

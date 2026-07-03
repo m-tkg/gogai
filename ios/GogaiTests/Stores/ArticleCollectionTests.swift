@@ -5,7 +5,7 @@ final class ArticleCollectionTests: XCTestCase {
     private func makeArticle(id: Int, feedId: Int = 1, isRead: Int = 0) -> Article {
         Article(id: id, feed_id: feedId, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
-                is_read: isRead, is_favorite: 0, created_at: "2024-01-01T00:00:00Z",
+                is_read: isRead, created_at: "2024-01-01T00:00:00Z",
                 read_at: nil)
     }
 

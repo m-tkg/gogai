@@ -123,7 +123,7 @@ struct SidebarView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly, onStockTap: onStockTap)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, onStockTap: onStockTap)
         }
         .navigationTitle("Feed list")
         .environment(\.editMode, .constant(isEditing ? .active : .inactive))
