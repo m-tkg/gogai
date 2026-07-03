@@ -180,14 +180,10 @@ mac-export: mac-archive
 		-allowProvisioningUpdates
 	@echo "==> Export done: $(MAC_EXPORT_PATH)"
 
-# Step 3: .dmg を作成
+# Step 3: .dmg を作成(Applications へのショートカット同梱)
 mac-dmg: mac-export
 	@echo "==> Creating DMG..."
-	rm -f $(MAC_DMG_PATH)
-	hdiutil create -volname "Gogai" \
-		-srcfolder "$(MAC_EXPORT_PATH)/Gogai.app" \
-		-ov -format UDZO \
-		"$(MAC_DMG_PATH)"
+	bash ios/Scripts/make-dmg.sh "$(MAC_EXPORT_PATH)/Gogai.app" "Gogai" "$(MAC_DMG_PATH)"
 	@echo "==> DMG created: $(MAC_DMG_PATH)"
 
 # Step 4: Notarize + Staple
