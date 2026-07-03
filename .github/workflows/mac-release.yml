@@ -21,6 +21,7 @@ jobs:
       DERIVED_DATA_PATH: ${{ github.workspace }}/.build/mac/DerivedData
       APP_PATH: ${{ github.workspace }}/.build/mac/DerivedData/Build/Products/Release-maccatalyst/Gogai.app
       DMG_PATH: ${{ github.workspace }}/.build/mac/Gogai.dmg
+      ZIP_PATH: ${{ github.workspace }}/.build/mac/Gogai.zip
     steps:
       - uses: actions/checkout@v5
 
@@ -38,6 +39,7 @@ jobs:
           cp appiconset/Contents.json Gogai/Assets.xcassets/AppIcon.appiconset/
 
       # ビルド設定からバージョンを解決する(実ビルド前。ビルドを走らせずに済む)
+      # MARKETING_VERSION は xx.xx.xx 形式(セマンティックバージョニング)で管理する。
       - name: Resolve version
         id: ver
         run: |
@@ -45,11 +47,10 @@ jobs:
             -project Gogai.xcodeproj -scheme Gogai -configuration Release \
             -destination "platform=macOS,variant=Mac Catalyst" 2>/dev/null)
           V=$(echo "$SETTINGS" | awk -F'= ' '/ MARKETING_VERSION /{print $2; exit}')
-          B=$(echo "$SETTINGS" | awk -F'= ' '/ CURRENT_PROJECT_VERSION /{print $2; exit}')
-          TAG="mac-v${V}-${B}"
+          TAG="v${V}"
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Resolved version: $V ($B), tag: $TAG"
+          echo "Resolved version: $V, tag: $TAG"
 
       - name: Check existing release
         id: check
@@ -107,24 +108,37 @@ jobs:
             "$APP_PATH"
           codesign --verify --deep --strict "$APP_PATH"
 
-      - name: Create DMG
-        if: steps.check.outputs.exists == 'false'
-        run: bash Scripts/make-dmg.sh "$APP_PATH" "Gogai" "$DMG_PATH"
-
-      - name: Notarize and staple
+      # notarize は .app 自体に対して1回だけ行い、チケットを .app に staple する。
+      # その後 stapled な .app から dmg / zip の両方を作るため、dmg 個別の notarize は不要
+      # (Apple のチケットはバイナリの CDHash 単位で発行され、コンテナ形式に依存しない)。
+      - name: Notarize and staple app
         if: steps.check.outputs.exists == 'false'
         env:
           NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
           NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
           NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
         run: |
-          xcrun notarytool submit "$DMG_PATH" \
+          NOTARIZE_ZIP="$RUNNER_TEMP/Gogai-notarize.zip"
+          ditto -c -k --keepParent "$APP_PATH" "$NOTARIZE_ZIP"
+          xcrun notarytool submit "$NOTARIZE_ZIP" \
             --apple-id "$NOTARY_APPLE_ID" \
             --password "$NOTARY_PASSWORD" \
             --team-id "$NOTARY_TEAM_ID" \
             --wait
+          xcrun stapler staple "$APP_PATH"
+          xcrun stapler validate "$APP_PATH"
+
+      - name: Create DMG
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          bash Scripts/make-dmg.sh "$APP_PATH" "Gogai" "$DMG_PATH"
           xcrun stapler staple "$DMG_PATH"
-          xcrun stapler validate "$DMG_PATH"
+
+      # アプリ内自動更新機能(UpdateChecker)が展開する配布用 zip。
+      # stapled 済みの .app をそのまま zip 化するため、展開後もオフラインで Gatekeeper を通過できる。
+      - name: Create update zip
+        if: steps.check.outputs.exists == 'false'
+        run: ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
 
       - name: Create tag and release
         if: steps.check.outputs.exists == 'false'
@@ -136,7 +150,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Gogai ${{ steps.ver.outputs.version }} (macOS)" \
             --generate-notes \
-            "$DMG_PATH"
+            "$DMG_PATH" "$ZIP_PATH"
 
       - name: Clean up keychain
         if: always()
