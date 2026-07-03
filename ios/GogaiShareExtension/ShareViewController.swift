@@ -15,7 +15,7 @@ final class ShareViewController: UIViewController {
             close()
             return
         }
-        let title = Self.extractSharedTitle(from: item)
+        let title = await extractJavaScriptPreprocessingTitle(from: item) ?? Self.extractSharedTitle(from: item)
         let hosting = UIHostingController(rootView: ShareStockView(url: url, title: title, onFinish: { [weak self] in self?.close() }))
         addChild(hosting)
         hosting.view.frame = view.bounds
@@ -43,12 +43,36 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    /// 共有元(Safari 等)が付与するページタイトルを取得する。
+    /// Safari が `NSExtensionJavaScriptPreprocessingFile`(ShareExtensionPreprocessor.js)経由で
+    /// 渡すページ情報(document.title 等)を取得する。WebKit を拡張プロセス内で動かさずに済む
+    /// Apple 標準の仕組み(iOS 8 以降のアクション拡張向け JS プリプロセッシング)。
+    /// Safari 以外から共有された場合はこの添付が無いため nil を返す。
+    private func extractJavaScriptPreprocessingTitle(from item: NSExtensionItem) async -> String? {
+        guard let provider = item.attachments?.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier)
+        }) else {
+            return nil
+        }
+        return await withCheckedContinuation { continuation in
+            provider.loadItem(forTypeIdentifier: UTType.propertyList.identifier, options: nil) { item, _ in
+                let dict = item as? [String: Any]
+                let results = dict?[NSExtensionJavaScriptPreprocessingResultsKey] as? [String: Any]
+                let title = Self.normalizeTitle(results?["title"] as? String)
+                continuation.resume(returning: title)
+            }
+        }
+    }
+
+    /// 共有元が付与するページタイトルを取得する(JS プリプロセッシングが使えない場合のフォールバック)。
     /// 拡張プロセスはメモリ制限が厳しいため、WebKit やネットワーク取得は行わず、
     /// 共有シートが既に渡している attributedContentText のみを使う。
     private static func extractSharedTitle(from item: NSExtensionItem) -> String? {
-        let title = item.attributedContentText?.string.trimmingCharacters(in: .whitespacesAndNewlines)
-        return (title?.isEmpty ?? true) ? nil : title
+        normalizeTitle(item.attributedContentText?.string)
+    }
+
+    private static nonisolated func normalizeTitle(_ title: String?) -> String? {
+        let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (trimmed?.isEmpty ?? true) ? nil : trimmed
     }
 
     private func close() {
