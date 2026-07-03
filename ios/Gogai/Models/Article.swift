@@ -10,12 +10,10 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
     let content: String?
     let published_at: String?
     let is_read: Int
-    let is_favorite: Int
     let created_at: String
     let read_at: String?
 
     var isRead: Bool { is_read == 1 }
-    var isFavorite: Bool { is_favorite == 1 }
 
     /// read_at の更新方法（nil 設定と「変更しない」を区別するため）
     enum ReadAtUpdate {
@@ -33,12 +31,11 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
     }
 
     /// 指定フィールドだけ差し替えた新しい Article を返す（全フィールド手動コピーの集約先）
-    func updating(isRead: Int? = nil, isFavorite: Int? = nil, readAt: ReadAtUpdate = .keep) -> Article {
+    func updating(isRead: Int? = nil, readAt: ReadAtUpdate = .keep) -> Article {
         Article(id: id, feed_id: feed_id, guid: guid,
                 title: title, link: link, summary: summary,
                 content: content, published_at: published_at,
                 is_read: isRead ?? is_read,
-                is_favorite: isFavorite ?? is_favorite,
                 created_at: created_at,
                 read_at: readAt.apply(to: read_at))
     }

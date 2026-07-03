@@ -15,9 +15,6 @@ final class ArticleStore: ObservableObject {
     @Published var unreadOnly: Bool {
         didSet { UserDefaults.standard.set(unreadOnly, forKey: DefaultsKeys.unreadOnly) }
     }
-    @Published var favoriteOnly: Bool {
-        didSet { UserDefaults.standard.set(favoriteOnly, forKey: DefaultsKeys.favoriteOnly) }
-    }
     @Published var sortOrder: ArticleSortOrder {
         didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: DefaultsKeys.sortOrder) }
     }
@@ -27,9 +24,6 @@ final class ArticleStore: ObservableObject {
 
     private let cache: AppCache
     private var client: (any APIClientProtocol)?
-    /// お気に入り成功時に呼ばれるコールバック(ストック連携用)。
-    /// ArticleStore は StockStore を知らず、GogaiApp が configure 時に注入する。
-    private var onFavoriteSucceeded: ((Article) -> Void)?
     private var currentFeedId: Int?
     private var currentGroupId: Int?
     private var currentIncludeSecret: Bool = false
@@ -51,7 +45,6 @@ final class ArticleStore: ObservableObject {
     init(cache: AppCache = .shared) {
         self.cache = cache
         self.unreadOnly = UserDefaults.standard.bool(forKey: DefaultsKeys.unreadOnly)
-        self.favoriteOnly = UserDefaults.standard.bool(forKey: DefaultsKeys.favoriteOnly)
         let savedSort = UserDefaults.standard.string(forKey: DefaultsKeys.sortOrder) ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
         // 起動時にキャッシュから全記事を読み込み、未読カウントを即座に表示する
@@ -63,9 +56,8 @@ final class ArticleStore: ObservableObject {
         Dictionary(counts.map { ($0.feed_id, $0) }, uniquingKeysWith: { _, new in new })
     }
 
-    func configure(with client: any APIClientProtocol, onFavoriteSucceeded: ((Article) -> Void)? = nil) {
+    func configure(with client: any APIClientProtocol) {
         self.client = client
-        self.onFavoriteSucceeded = onFavoriteSucceeded
     }
 
     @MainActor
@@ -88,7 +80,6 @@ final class ArticleStore: ObservableObject {
                 feedId: feedId,
                 groupId: groupId,
                 unreadOnly: self.unreadOnly,
-                favoriteOnly: self.favoriteOnly,
                 sortOrder: self.sortOrder,
                 includeSecret: includeSecret
             )
@@ -97,11 +88,9 @@ final class ArticleStore: ObservableObject {
             articles = fetched
             loadedWithUnreadOnly = self.unreadOnly
             // コレクション（未読バッジ・サイドバー表示判定用）は全記事が必要。
-            // unreadOnly / favoriteOnly のフィルターが有効なフェッチ結果は一部の記事しか
-            // 含まないため、これで上書きするとキャッシュが汚染される
-            // （例: unreadOnly のフェッチで既読のお気に入り記事が失われ、お気に入り表示時に
-            //  該当フィードがサイドバーから消える）。フィルターなしの全件フェッチ時のみ更新する。
-            if !self.unreadOnly && !self.favoriteOnly {
+            // unreadOnly のフィルターが有効なフェッチ結果は一部の記事しか含まないため、
+            // これで上書きするとキャッシュが汚染される。フィルターなしの全件フェッチ時のみ更新する。
+            if !self.unreadOnly {
                 allCollection.merge(fetched, isFullFetch: feedId == nil && groupId == nil)
                 cache.saveAllArticles(allCollection.articles)
             }
@@ -179,16 +168,6 @@ final class ArticleStore: ObservableObject {
         }
     }
 
-    /// お気に入り⇄解除を記事の現在状態に応じて切り替える
-    @MainActor
-    func toggleFavorite(_ article: Article) async {
-        if article.isFavorite {
-            await unfavorite(id: article.id)
-        } else {
-            await favorite(id: article.id)
-        }
-    }
-
     @MainActor
     func markAsRead(id: Int) async {
         guard let client else { return }
@@ -239,32 +218,6 @@ final class ArticleStore: ObservableObject {
         )
     }
 
-    @MainActor
-    func favorite(id: Int) async {
-        guard let client else { return }
-        await optimisticUpdate(
-            id: id,
-            transform: { $0.updating(isFavorite: 1) },
-            apiCall: { try await ArticleRepository(client: client).markAsFavorite(id: id) },
-            onURLError: .rollback
-        )
-        // ロールバックされていなければ(=お気に入り成功)ストック連携コールバックを発火する
-        if let article = articles.first(where: { $0.id == id }), article.isFavorite {
-            onFavoriteSucceeded?(article)
-        }
-    }
-
-    @MainActor
-    func unfavorite(id: Int) async {
-        guard let client else { return }
-        await optimisticUpdate(
-            id: id,
-            transform: { $0.updating(isFavorite: 0) },
-            apiCall: { try await ArticleRepository(client: client).markAsUnfavorite(id: id) },
-            onURLError: .rollback
-        )
-    }
-
     // MARK: - バッジ件数・表示判定（現在のフィルタに連動）
 
     /// バッジ計算・表示判定に使う記事ソース。
@@ -273,33 +226,28 @@ final class ArticleStore: ObservableObject {
         allCollection.isEmpty ? articles : allCollection.articles
     }
 
-    /// 現在のフィルタ（全て / 未読のみ / お気に入り）に記事が合致するか
+    /// 現在のフィルタ（全て / 未読のみ）に記事が合致するか
     private func matchesCurrentFilter(_ article: Article) -> Bool {
         if unreadOnly && article.isRead { return false }
-        if favoriteOnly && !article.isFavorite { return false }
         return true
     }
 
-    /// サーバー集計をバッジ計算に使えるか。
-    /// 未取得（空）のときはコレクション計算にフォールバックする。
-    /// unreadOnly && favoriteOnly の AND 条件は 3 値の集計では表現できないため対象外
-    /// （UI からは到達不能な組み合わせだが防御的にフォールバックする）。
+    /// サーバー集計をバッジ計算に使えるか。未取得（空）のときはコレクション計算にフォールバックする。
     private var canUseFeedCounts: Bool {
-        !feedCounts.isEmpty && !(unreadOnly && favoriteOnly)
+        !feedCounts.isEmpty
     }
 
-    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「お気に入り」= favorite
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread
     private func filteredCount(_ count: FeedCount) -> Int {
         if unreadOnly { return count.unread }
-        if favoriteOnly { return count.favorite }
         return count.total
     }
 
-    /// 現在有効なフィルタ（unreadOnly / favoriteOnly）を AND で適用したとき、
+    /// 現在有効なフィルタ（unreadOnly）を適用したとき、
     /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
     /// フィルタが何も有効でない場合は常に true。
     func hasVisibleArticle(for feedId: Int) -> Bool {
-        if !unreadOnly && !favoriteOnly { return true }
+        if !unreadOnly { return true }
         if canUseFeedCounts {
             return feedCounts[feedId].map { filteredCount($0) > 0 } ?? false
         }
@@ -333,7 +281,7 @@ final class ArticleStore: ObservableObject {
         return badgeSource.filter { !feedIds.contains($0.feed_id) && matchesCurrentFilter($0) }.count
     }
 
-    /// サーバー集計（フィードごとの total/unread/favorite）を取得してバッジ計算を最新化する。
+    /// サーバー集計（フィードごとの total/unread）を取得してバッジ計算を最新化する。
     /// ベストエフォート: 失敗時は前回値（起動時はディスクキャッシュ復元値）を維持し error を立てない。
     @MainActor
     func refreshCounts() async {
@@ -348,8 +296,7 @@ final class ArticleStore: ObservableObject {
             feedCounts[article.feed_id] = FeedCount(
                 feed_id: count.feed_id,
                 total: count.total,
-                unread: max(0, count.unread - 1),
-                favorite: count.favorite
+                unread: max(0, count.unread - 1)
             )
         }
         cache.saveFeedCounts(fetched)
@@ -363,8 +310,6 @@ final class ArticleStore: ObservableObject {
         case enqueuePendingRead
         /// 楽観更新を維持し、既読リトライキューから取り除く（markAsUnread）
         case cancelPendingRead
-        /// 通常エラーと同様にロールバックする（favorite / unfavorite）
-        case rollback
     }
 
     /// 楽観的更新の唯一の経路。
@@ -380,19 +325,13 @@ final class ArticleStore: ObservableObject {
 
         do {
             try await apiCall()
-            // 既読系の成功時のみ pending を解消する（favorite 系は既読リトライに関与しない）
-            if onURLError != .rollback {
-                pendingReadIds.remove(id)
-            }
-        } catch let error as URLError {
+            pendingReadIds.remove(id)
+        } catch is URLError {
             switch onURLError {
             case .enqueuePendingRead:
                 pendingReadIds.insert(id)
             case .cancelPendingRead:
                 pendingReadIds.remove(id)
-            case .rollback:
-                mutateBoth(id: id) { _ in original }
-                self.error = error
             }
         } catch {
             mutateBoth(id: id) { _ in original }
@@ -401,7 +340,7 @@ final class ArticleStore: ObservableObject {
     }
 
     /// articles とコレクションの該当記事を同一の変換で更新する（同期漏れを構造的に防ぐ）。
-    /// feedCounts にも既読/お気に入りの差分を反映する（ロールバックは逆変換で自動的に打ち消される）。
+    /// feedCounts にも既読状態の差分を反映する（ロールバックは逆変換で自動的に打ち消される）。
     /// - Returns: 変換前の記事（articles に存在しない場合は nil で何もしない）
     @MainActor
     @discardableResult
@@ -421,13 +360,11 @@ final class ArticleStore: ObservableObject {
     private func applyCountsDelta(from original: Article, to updated: Article) {
         guard let count = feedCounts[original.feed_id] else { return }
         let unreadDelta = (updated.isRead ? 0 : 1) - (original.isRead ? 0 : 1)
-        let favoriteDelta = (updated.isFavorite ? 1 : 0) - (original.isFavorite ? 1 : 0)
-        guard unreadDelta != 0 || favoriteDelta != 0 else { return }
+        guard unreadDelta != 0 else { return }
         feedCounts[original.feed_id] = FeedCount(
             feed_id: count.feed_id,
             total: count.total,
-            unread: max(0, count.unread + unreadDelta),
-            favorite: max(0, count.favorite + favoriteDelta)
+            unread: max(0, count.unread + unreadDelta)
         )
     }
 

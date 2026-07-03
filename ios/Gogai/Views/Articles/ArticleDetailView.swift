@@ -3,41 +3,26 @@ import SwiftUI
 import WebKit
 #endif
 
-/// 既読/お気に入りトグルと前後記事ナビゲーションのバー
+/// 既読トグルと前後記事ナビゲーションのバー
 private struct ArticleDetailBottomBar: View {
     let isRead: Bool
-    let isFavorite: Bool
     let previousArticle: Article?
     let nextArticle: Article?
     let onToggleRead: () async -> Void
-    let onToggleFavorite: () async -> Void
     let onNavigate: (Article) -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             Spacer()
 
-            HStack(spacing: 24) {
-                Button {
-                    Task { await onToggleRead() }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: isRead ? "envelope.badge" : "envelope.open")
-                            .font(.title3)
-                        Text(isRead ? "未読にする" : "既読にする")
-                            .font(.caption2)
-                    }
-                }
-
-                Button {
-                    Task { await onToggleFavorite() }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: isFavorite ? "star.slash" : "star")
-                            .font(.title3)
-                        Text(isFavorite ? "お気に入り解除" : "お気に入り")
-                            .font(.caption2)
-                    }
+            Button {
+                Task { await onToggleRead() }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: isRead ? "envelope.badge" : "envelope.open")
+                        .font(.title3)
+                    Text(isRead ? "未読にする" : "既読にする")
+                        .font(.caption2)
                 }
             }
 
@@ -90,10 +75,6 @@ struct ArticleDetailView: View {
         articleStore.articles.first(where: { $0.id == currentArticle.id })?.isRead ?? currentArticle.isRead
     }
 
-    private var isFavorite: Bool {
-        articleStore.articles.first(where: { $0.id == currentArticle.id })?.isFavorite ?? currentArticle.isFavorite
-    }
-
     private var navigableArticles: [Article] {
         articleStore.articles
     }
@@ -117,7 +98,6 @@ struct ArticleDetailView: View {
     private var bottomBar: some View {
         ArticleDetailBottomBar(
             isRead: isRead,
-            isFavorite: isFavorite,
             previousArticle: previousArticle,
             nextArticle: nextArticle,
             onToggleRead: {
@@ -127,13 +107,6 @@ struct ArticleDetailView: View {
                     await articleStore.markAsUnread(id: currentArticle.id)
                 } else {
                     await articleStore.markAsRead(id: currentArticle.id)
-                }
-            },
-            onToggleFavorite: {
-                if isFavorite {
-                    await articleStore.unfavorite(id: currentArticle.id)
-                } else {
-                    await articleStore.favorite(id: currentArticle.id)
                 }
             },
             onNavigate: { currentArticle = $0 }

@@ -10,7 +10,6 @@ export interface Article {
   content: string | null
   published_at: string | null
   is_read: number
-  is_favorite: number
   created_at: string
   read_at: string | null
 }
@@ -37,7 +36,6 @@ export interface FeedCount {
   feed_id: number
   total: number
   unread: number
-  favorite: number
 }
 
 export interface FindAllOptions {
@@ -46,7 +44,6 @@ export interface FindAllOptions {
   feedId?: number
   groupId?: number
   unreadOnly?: boolean
-  favoriteOnly?: boolean
   sortBy?: SortBy
   includeSecret?: boolean
 }
@@ -118,9 +115,6 @@ export class ArticlesService {
     if (options.unreadOnly) {
       conditions.push('a.is_read = 0')
     }
-    if (options.favoriteOnly) {
-      conditions.push('a.is_favorite = 1')
-    }
     // groupId 未指定かつ includeSecret でなければシークレットグループを除外
     if (options.groupId === undefined && !options.includeSecret) {
       conditions.push('(f.group_id IS NULL OR g.is_secret = 0)')
@@ -147,8 +141,7 @@ export class ArticlesService {
     return this.db.prepare(`
       SELECT feed_id,
              COUNT(*) AS total,
-             SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread,
-             SUM(CASE WHEN is_favorite = 1 THEN 1 ELSE 0 END) AS favorite
+             SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread
       FROM articles
       GROUP BY feed_id
     `).all() as FeedCount[]
@@ -170,17 +163,9 @@ export class ArticlesService {
     this.db.prepare('UPDATE articles SET is_read = 0, read_at = NULL WHERE id = ?').run(id)
   }
 
-  markAsFavorite(id: number): void {
-    this.db.prepare('UPDATE articles SET is_favorite = 1 WHERE id = ?').run(id)
-  }
-
-  markAsUnfavorite(id: number): void {
-    this.db.prepare('UPDATE articles SET is_favorite = 0 WHERE id = ?').run(id)
-  }
-
   deleteOlderThan(threshold: Date): number {
     const result = this.db.prepare(
-      "DELETE FROM articles WHERE datetime(COALESCE(published_at, created_at)) < datetime(?) AND is_favorite = 0"
+      "DELETE FROM articles WHERE datetime(COALESCE(published_at, created_at)) < datetime(?)"
     ).run(threshold.toISOString())
     return result.changes
   }

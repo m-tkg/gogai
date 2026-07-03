@@ -136,7 +136,7 @@ ios/
 │   ├── Stores/               GroupStore / FeedStore / ArticleStore / SettingsStore
 │   │                         ArticleCollection（全記事キャッシュのマージ規則を持つ値型）
 │   ├── Views/
-│   │   ├── FilterFooterView.swift   フィルター footer（全て/未読のみ/お気に入り）
+│   │   ├── FilterFooterView.swift   フィルター footer（ストック/全て/未読のみ）
 │   │   ├── FormSheet.swift          追加・編集フォームの共通シェル + GroupPickerSection
 │   │   ├── UnreadCountBadge.swift   未読数バッジ
 │   │   ├── Onboarding/      ServerSetupView（初回 URL 設定）
@@ -223,9 +223,9 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - `allCollection: ArticleCollection`: 全フィードの記事キャッシュ（**未読バッジ計算に使用**、`allArticles` は互換用の computed property）
   - マージ規則は `ArticleCollection.merge(_:isFullFetch:)` が所有: 全件取得なら全置換、特定フィード/グループなら該当フィード分のみ差し替え
 - **記事の更新は必ず `mutateBoth()` / `optimisticUpdate()` 経由**で行う（`articles` とコレクションを同一変換で同期し、手動二重更新による不整合を防ぐ）
-  - `optimisticUpdate()` は API 失敗時に自動ロールバック。URLError 時の挙動は `URLErrorPolicy`（既読系は pending キューへ、favorite 系はロールバック）
-- `toggleRead(_:)` / `toggleFavorite(_:)` — View 側で既読/お気に入りの分岐を書かない
-- `unreadOnly: Bool` / `favoriteOnly: Bool` — `UserDefaults`（`DefaultsKeys`）で永続化
+  - `optimisticUpdate()` は API 失敗時に自動ロールバック。URLError 時の挙動は `URLErrorPolicy`（既読系は pending キューへ）
+- `toggleRead(_:)` — View 側で既読の分岐を書かない
+- `unreadOnly: Bool` — `UserDefaults`（`DefaultsKeys`）で永続化
 - `markAllAsRead()` — 表示中の未読記事を sequential API 呼び出しで一括既読
 - シークレットフィード判定は `GroupStore.secretFeedIds(in:)` を使う
 
@@ -263,10 +263,10 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | フィードページ（SidebarView） | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
 | 記事一覧ページ（ArticleListView） | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
 | 記事一覧ページ（ArticleListView） | 右スワイプ 12.5% でボタン表示、25% で確定: 既読/未読トグル |
-| 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: お気に入りトグル |
+| 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: ストックに入れる（ストック元は所属グループ名） |
 | 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
 | 概要ページ（ArticleDetailView） | 左スワイプ: 記事ページ（BrowserView）を push 遷移（右から左）で開く |
-| FilterFooterView | 「全て」「未読のみ」「お気に入り」ボタン（フィードページ・記事一覧ページ共通）|
+| FilterFooterView | 「ストック」「全て」「未読のみ」ボタン（フィードページ・記事一覧ページ共通）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | 記事ページ（BrowserView） | 右スワイプ または 右下の閉じるボタンで閉じる |
 | AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|

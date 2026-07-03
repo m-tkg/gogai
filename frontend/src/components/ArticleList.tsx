@@ -16,12 +16,11 @@ interface ArticleListProps {
 export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId, onOpenSidebar, showSecretGroups = false }: ArticleListProps) {
   const qc = useQueryClient()
   const [unreadOnly, setUnreadOnly] = useState(false)
-  const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>('published_at')
 
   const { data: articles = [], isLoading } = useQuery({
-    queryKey: queryKeys.articleList({ feedId, groupId, unreadOnly, favoriteOnly, sortBy, showSecretGroups }),
-    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, favoriteOnly, sortBy, limit: 1000, offset: 0, includeSecret: showSecretGroups }),
+    queryKey: queryKeys.articleList({ feedId, groupId, unreadOnly, sortBy, showSecretGroups }),
+    queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, sortBy, limit: 1000, offset: 0, includeSecret: showSecretGroups }),
   })
 
   const refresh = useMutation({
@@ -66,19 +65,10 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
             <input
               type="checkbox"
               checked={unreadOnly}
-              onChange={e => { setUnreadOnly(e.target.checked); if (e.target.checked) setFavoriteOnly(false) }}
+              onChange={e => setUnreadOnly(e.target.checked)}
               className="rounded"
             />
             未読のみ
-          </label>
-          <label className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={favoriteOnly}
-              onChange={e => { setFavoriteOnly(e.target.checked); if (e.target.checked) setUnreadOnly(false) }}
-              className="rounded"
-            />
-            ★ お気に入り
           </label>
           <select
             value={sortBy}

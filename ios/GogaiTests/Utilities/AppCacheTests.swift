@@ -20,7 +20,7 @@ final class AppCacheTests: XCTestCase {
     private func makeArticle(id: Int = 1) -> Article {
         Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
-                is_read: 0, is_favorite: 0, created_at: "2024-01-01T00:00:00Z",
+                is_read: 0, created_at: "2024-01-01T00:00:00Z",
                 read_at: nil)
     }
 
@@ -100,8 +100,8 @@ final class AppCacheTests: XCTestCase {
 
     func test_saveAndLoad_feedCounts() {
         let counts = [
-            FeedCount(feed_id: 1, total: 3, unread: 2, favorite: 1),
-            FeedCount(feed_id: 2, total: 5, unread: 0, favorite: 0),
+            FeedCount(feed_id: 1, total: 3, unread: 2),
+            FeedCount(feed_id: 2, total: 5, unread: 0),
         ]
         cache.saveFeedCounts(counts)
 

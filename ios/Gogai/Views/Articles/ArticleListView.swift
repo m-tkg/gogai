@@ -10,6 +10,7 @@ struct ArticleListView: View {
     @EnvironmentObject private var articleStore: ArticleStore
     @EnvironmentObject private var feedStore: FeedStore
     @EnvironmentObject private var groupStore: GroupStore
+    @EnvironmentObject private var stockStore: StockStore
 
     @State private var showMarkAllConfirm = false
     /// true になると .task の再フェッチをスキップする
@@ -27,9 +28,6 @@ struct ArticleListView: View {
         var result = articleStore.articles
         if !secretFeedIds.isEmpty {
             result = result.filter { !secretFeedIds.contains($0.feed_id) }
-        }
-        if articleStore.favoriteOnly {
-            result = result.filter { $0.isFavorite }
         }
         return result
     }
@@ -60,14 +58,11 @@ struct ArticleListView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
-                            Task { await articleStore.toggleFavorite(article) }
+                            addToStock(article)
                         } label: {
-                            Label(
-                                article.isFavorite ? "お気に入り解除" : "お気に入り",
-                                systemImage: article.isFavorite ? "star.slash" : "star"
-                            )
+                            Label("ストックに入れる", systemImage: "tray.and.arrow.down")
                         }
-                        .tint(.yellow)
+                        .tint(.blue)
                     }
             }
         }
@@ -118,7 +113,7 @@ struct ArticleListView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, favoriteOnly: $articleStore.favoriteOnly, onStockTap: onStockTap)
+            FilterFooterView(unreadOnly: $articleStore.unreadOnly, onStockTap: onStockTap)
         }
         .onChange(of: articleStore.unreadOnly) { _, newVal in
             Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal, includeSecret: groupStore.showSecretGroups) }
@@ -175,5 +170,13 @@ struct ArticleListView: View {
         }
         if groupId != nil { return "記事" }
         return "すべての記事"
+    }
+
+    /// 記事をストックに追加する(ストック元は所属グループ名)
+    private func addToStock(_ article: Article) {
+        guard let link = article.link else { return }
+        let groupName = feedStore.feeds.first(where: { $0.id == article.feed_id })?.group_id
+            .flatMap { groupId in groupStore.groups.first(where: { $0.id == groupId })?.name }
+        Task { try? await stockStore.createStock(url: link, title: article.title, source: groupName ?? "未分類") }
     }
 }

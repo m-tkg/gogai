@@ -5,7 +5,6 @@ export interface ArticleListFilter {
   feedId: number | null
   groupId: number | null
   unreadOnly: boolean
-  favoriteOnly: boolean
   sortBy: SortBy
   showSecretGroups: boolean
 }
