@@ -7,15 +7,6 @@ struct FilterFooterView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if let onStockTap {
-                Button(action: onStockTap) {
-                    Label("ストック", systemImage: "tray.full")
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Spacer()
-
             Button("全て") {
                 unreadOnly = false
             }
@@ -27,6 +18,15 @@ struct FilterFooterView: View {
             }
             .buttonStyle(.bordered)
             .tint(unreadOnly ? .accentColor : nil)
+
+            Spacer()
+
+            if let onStockTap {
+                Button(action: onStockTap) {
+                    Label("ストック", systemImage: "tray.full")
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity)
