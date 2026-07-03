@@ -42,7 +42,6 @@ struct GogaiApp: App {
             .onChange(of: scenePhase) { _, newPhase in
                 guard newPhase == .active, serverURLManager.resolvedURL != nil else { return }
                 Task { await articleStore.refresh() }
-                Task { await stockStore.generatePendingSummaries() }
             }
             // 起動時に解決（Gist URL の場合は Gist から最新 URL を取得）
             .task {
@@ -89,9 +88,6 @@ struct GogaiApp: App {
             // バッジ用のサーバー集計（シークレット込み・1 リクエスト）を最新化する
             await articleStore.refreshCounts()
         }
-        Task { @MainActor in
-            await stockStore.fetchAll()
-            await stockStore.generatePendingSummaries()
-        }
+        Task { @MainActor in await stockStore.fetchAll() }
     }
 }
