@@ -88,6 +88,9 @@ struct StockCategoryListView: View {
         .task {
             await stockStore.fetchAll()
         }
+        .refreshable {
+            await stockStore.fetchAll()
+        }
         .sheet(isPresented: $showAddStock) {
             AddStockView()
         }

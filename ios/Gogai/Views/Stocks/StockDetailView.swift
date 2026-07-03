@@ -12,8 +12,7 @@ private struct StockSummarySections: View {
                 section(title: "何の目的で書かれたか", body: parsed.purpose)
                 section(title: "筆者が一番伝えたいこと", body: parsed.mainMessage)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("要約")
-                        .font(.headline)
+                    sectionTitle("要約")
                     ForEach(Array(parsed.summaryLines.enumerated()), id: \.offset) { _, line in
                         Text(line)
                     }
@@ -26,10 +25,15 @@ private struct StockSummarySections: View {
 
     private func section(title: String, body: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.headline)
+            sectionTitle(title)
             Text(body)
         }
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text("【\(title)】")
+            .font(.headline)
+            .foregroundStyle(Color.accentColor)
     }
 }
 
@@ -67,6 +71,7 @@ struct StockDetailView: View {
 
     @EnvironmentObject private var stockStore: StockStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     @State private var showBrowser = false
     @State private var showTranslation = false
@@ -131,12 +136,16 @@ struct StockDetailView: View {
             Divider()
             bottomBar
         }
+        // 左スワイプで元記事(記事ページ)を開く(RSS 記事詳細ページと同じ操作)
+        .onHorizontalSwipe(.left) {
+            if URL(string: currentStock.url) != nil {
+                showBrowser = true
+            }
+        }
         .navigationTitle("ストック")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showBrowser) {
-            if let url = URL(string: currentStock.url) {
-                BrowserView(url: url)
-            }
+            browserDestination
         }
         .navigationDestination(isPresented: $showTranslation) {
             FMTranslatedPageView(stock: currentStock)
@@ -169,6 +178,21 @@ struct StockDetailView: View {
         }
     }
 
+    /// 元記事(記事ページ)。右下に閉じるボタンを重ね、右スワイプでも閉じられる(RSS 記事ページと同じ操作)
+    @ViewBuilder
+    private var browserDestination: some View {
+        if let url = URL(string: currentStock.url) {
+            BrowserView(url: url)
+                .overlay(alignment: .bottomTrailing) {
+                    CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる") { showBrowser = false }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
+                }
+                .toolbar(.hidden, for: .navigationBar)
+                .onHorizontalSwipe(.right) { showBrowser = false }
+        }
+    }
+
     @ViewBuilder
     private var summaryContent: some View {
         if let summary = currentStock.summary {
@@ -188,24 +212,22 @@ struct StockDetailView: View {
     private var bottomBar: some View {
         HStack(spacing: 24) {
             Spacer()
+            StockDetailFooterButton(
+                icon: "sparkles",
+                label: "要約",
+                isLoading: isGeneratingSummary,
+                isDisabled: currentStock.summary != nil || isGeneratingSummary || !LocalAI.isAvailable
+            ) {
+                stockStore.requestSummary(for: currentStock.id)
+            }
             if canShowTranslation {
                 StockDetailFooterButton(icon: "character.bubble", label: "翻訳") { showTranslation = true }
             }
-            if currentStock.summary == nil {
-                StockDetailFooterButton(
-                    icon: "sparkles",
-                    label: "要約を生成",
-                    isLoading: isGeneratingSummary,
-                    isDisabled: isGeneratingSummary || !LocalAI.isAvailable
-                ) {
-                    stockStore.requestSummary(for: currentStock.id)
-                }
+            if let url = URL(string: currentStock.url) {
+                StockDetailFooterButton(icon: "safari", label: "表示") { openURL(url) }
             }
-            StockDetailFooterButton(icon: "trash", label: "削除", isDestructive: true) { showDeleteConfirm = true }
             StockDetailFooterButton(icon: "pencil", label: "編集") { showEdit = true }
-            if URL(string: currentStock.url) != nil {
-                StockDetailFooterButton(icon: "safari", label: "表示") { showBrowser = true }
-            }
+            StockDetailFooterButton(icon: "trash", label: "削除", isDestructive: true) { showDeleteConfirm = true }
             Spacer()
         }
         .padding(.vertical, 10)

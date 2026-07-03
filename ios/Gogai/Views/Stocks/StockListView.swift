@@ -39,5 +39,8 @@ struct StockListView: View {
                 ContentUnavailableView("ストックがありません", systemImage: "tray")
             }
         }
+        .refreshable {
+            await stockStore.fetchAll()
+        }
     }
 }

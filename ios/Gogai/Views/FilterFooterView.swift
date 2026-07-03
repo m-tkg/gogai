@@ -6,32 +6,29 @@ struct FilterFooterView: View {
     var onStockTap: (() -> Void)?
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                Button("全て") {
-                    unreadOnly = false
+        HStack(spacing: 8) {
+            if let onStockTap {
+                Button(action: onStockTap) {
+                    Label("ストック", systemImage: "tray.full")
                 }
                 .buttonStyle(.bordered)
-                .tint(!unreadOnly ? .accentColor : nil)
-
-                Button("未読のみ") {
-                    unreadOnly = true
-                }
-                .buttonStyle(.bordered)
-                .tint(unreadOnly ? .accentColor : nil)
-
-                if let onStockTap {
-                    Divider()
-                        .frame(height: 20)
-
-                    Button(action: onStockTap) {
-                        Label("ストック", systemImage: "tray.full")
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
-            .padding(.horizontal, 12)
+
+            Spacer()
+
+            Button("全て") {
+                unreadOnly = false
+            }
+            .buttonStyle(.bordered)
+            .tint(!unreadOnly ? .accentColor : nil)
+
+            Button("未読のみ") {
+                unreadOnly = true
+            }
+            .buttonStyle(.bordered)
+            .tint(unreadOnly ? .accentColor : nil)
         }
+        .padding(.horizontal, 12)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(.bar)
