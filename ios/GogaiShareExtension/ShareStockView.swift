@@ -16,6 +16,7 @@ enum ShareUploadError: Error, LocalizedError {
 /// (URL の保存のみ。サマリーは本体アプリが次回起動時に後追い生成する)。
 struct ShareStockView: View {
     let url: URL
+    let title: String?
     let onFinish: () -> Void
 
     @State private var source = "共有"
@@ -65,6 +66,7 @@ struct ShareStockView: View {
             let trimmedSource = source.trimmingCharacters(in: .whitespaces)
             _ = try await StockRepository(client: client).create(
                 url: url.absoluteString,
+                title: title,
                 source: trimmedSource.isEmpty ? nil : trimmedSource
             )
             onFinish()

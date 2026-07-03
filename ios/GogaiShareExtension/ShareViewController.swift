@@ -10,11 +10,13 @@ final class ShareViewController: UIViewController {
     }
 
     private func presentShareView() async {
-        guard let url = await extractSharedURL() else {
+        guard let item = extensionContext?.inputItems.first as? NSExtensionItem,
+              let url = await extractSharedURL(from: item) else {
             close()
             return
         }
-        let hosting = UIHostingController(rootView: ShareStockView(url: url, onFinish: { [weak self] in self?.close() }))
+        let title = Self.extractSharedTitle(from: item)
+        let hosting = UIHostingController(rootView: ShareStockView(url: url, title: title, onFinish: { [weak self] in self?.close() }))
         addChild(hosting)
         hosting.view.frame = view.bounds
         hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -22,11 +24,10 @@ final class ShareViewController: UIViewController {
         hosting.didMove(toParent: self)
     }
 
-    private func extractSharedURL() async -> URL? {
-        guard let item = extensionContext?.inputItems.first as? NSExtensionItem,
-              let provider = item.attachments?.first(where: {
-                  $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
-              }) else {
+    private func extractSharedURL(from item: NSExtensionItem) async -> URL? {
+        guard let provider = item.attachments?.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+        }) else {
             return nil
         }
         return await withCheckedContinuation { continuation in
@@ -40,6 +41,14 @@ final class ShareViewController: UIViewController {
                 }
             }
         }
+    }
+
+    /// 共有元(Safari 等)が付与するページタイトルを取得する。
+    /// 拡張プロセスはメモリ制限が厳しいため、WebKit やネットワーク取得は行わず、
+    /// 共有シートが既に渡している attributedContentText のみを使う。
+    private static func extractSharedTitle(from item: NSExtensionItem) -> String? {
+        let title = item.attributedContentText?.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (title?.isEmpty ?? true) ? nil : title
     }
 
     private func close() {
