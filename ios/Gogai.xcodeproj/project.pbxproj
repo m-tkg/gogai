@@ -115,6 +115,7 @@
 		FF00000000000000000072AB /* MacUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000072AB /* MacUpdater.swift */; };
 		FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000073AB /* ReleaseInfoTests.swift */; };
 		FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */; };
+		FF00000000000000000075AB /* ShareExtensionPreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000075AB /* ShareExtensionPreprocessor.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -251,6 +252,7 @@
 		DD00000000000000000072AB /* MacUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdater.swift; sourceTree = "<group>"; };
 		EE00000000000000000073AB /* ReleaseInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfoTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGeneratorTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000075AB /* ShareExtensionPreprocessor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = ShareExtensionPreprocessor.js; sourceTree = "<group>"; };
 		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
@@ -566,6 +568,7 @@
 			children = (
 				DD00000000000000000066AB /* ShareViewController.swift */,
 				DD00000000000000000067AB /* ShareStockView.swift */,
+				DD00000000000000000075AB /* ShareExtensionPreprocessor.js */,
 				DD00000000000000000068AB /* Info.plist */,
 				DD00000000000000000069AB /* GogaiShareExtension.entitlements */,
 			);
@@ -681,6 +684,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FF00000000000000000075AB /* ShareExtensionPreprocessor.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
