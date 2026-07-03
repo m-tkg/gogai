@@ -55,4 +55,16 @@ final class FoundationModelTextGeneratorTests: XCTestCase {
 
         XCTAssertNil(shrunk)
     }
+
+    // MARK: - isConcurrentRequestsError
+
+    func test_isConcurrentRequestsError_concurrentRequestsを含むエラーを検知する() {
+        let error = FakeError(description: "concurrentRequests(Context(debugDescription: \"...\"))")
+
+        XCTAssertTrue(FoundationModelTextGenerator.isConcurrentRequestsError(error))
+    }
+
+    func test_isConcurrentRequestsError_関係ないエラーはfalse() {
+        XCTAssertFalse(FoundationModelTextGenerator.isConcurrentRequestsError(URLError(.badServerResponse)))
+    }
 }

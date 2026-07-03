@@ -230,6 +230,191 @@ final class StockStoreTests: XCTestCase {
         XCTAssertEqual(generator.callCount, 0)
     }
 
+    // MARK: - requestSummary(for:)（キュー投入。戻るボタンやタスクスイッチに影響されない）
+
+    /// generate() を外部から解放するまでブロックし、呼び出し順を検証できるジェネレーター。
+    /// generate() を外部から解放するまでブロックするジェネレーター。
+    /// 呼び出しごとに専用の CheckedContinuation を使う(AsyncStream は同一ストリームに対して
+    /// 呼び出しごとに新しい makeAsyncIterator() を作ると値の受け渡しが不安定になるため使わない)。
+    private final class GatedTextGenerator: TextGenerating, @unchecked Sendable {
+        private(set) var callCount = 0
+        let calledStream: AsyncStream<Int>
+        private let calledContinuation: AsyncStream<Int>.Continuation
+        private var pendingRelease: CheckedContinuation<Void, Never>?
+
+        init() {
+            (calledStream, calledContinuation) = AsyncStream<Int>.makeStream()
+        }
+
+        func generate(instructions: String, prompt: String) async throws -> String {
+            callCount += 1
+            calledContinuation.yield(callCount)
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                pendingRelease = continuation
+            }
+            if Task.isCancelled {
+                throw CancellationError()
+            }
+            return "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
+        }
+
+        func release() {
+            pendingRelease?.resume()
+            pendingRelease = nil
+        }
+    }
+
+    private func summaryRequestHandler(_ request: URLRequest) throws -> (Int, Data) {
+        if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
+        return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+    }
+
+    @MainActor
+    private func waitUntil(timeout: TimeInterval = 2, _ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition(), Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    @MainActor
+    func test_requestSummary_2件目は1件目が完了するまで開始しない() async throws {
+        store.stocks = [makeStock(id: 1), makeStock(id: 2)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, session: .mock())
+        store.requestSummary(for: 2, session: .mock())
+
+        var iterator = generator.calledStream.makeAsyncIterator()
+        let first = await iterator.next()
+        XCTAssertEqual(first, 1)
+        XCTAssertEqual(store.currentlySummarizingStockId, 1)
+        XCTAssertEqual(store.pendingSummaryStockIds, [2], "2件目は1件目の完了を待つ")
+
+        generator.release()
+        let second = await iterator.next()
+        XCTAssertEqual(second, 2)
+        XCTAssertEqual(store.currentlySummarizingStockId, 2)
+        XCTAssertEqual(store.pendingSummaryStockIds, [])
+
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+        XCTAssertNotNil(store.stocks.first(where: { $0.id == 1 })?.summary)
+        XCTAssertNotNil(store.stocks.first(where: { $0.id == 2 })?.summary)
+    }
+
+    @MainActor
+    func test_requestSummary_既にキュー済み_実行中のIDは重複追加しない() async throws {
+        store.stocks = [makeStock(id: 1)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, session: .mock())
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        store.requestSummary(for: 1, session: .mock())
+
+        XCTAssertEqual(store.pendingSummaryStockIds, [], "実行中のIDは再投入しない")
+        XCTAssertEqual(generator.callCount, 1)
+
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+    }
+
+    @MainActor
+    func test_requestSummary_既に要約済みのストックは無視する() {
+        var stock = makeStock(id: 1)
+        stock = stock.updating(summary: "既存の要約")
+        store.stocks = [stock]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+
+        store.requestSummary(for: 1, session: .mock())
+
+        XCTAssertEqual(store.pendingSummaryStockIds, [])
+        XCTAssertNil(store.currentlySummarizingStockId)
+    }
+
+    @MainActor
+    func test_requestSummary_失敗しても次のキューは処理を続ける() async throws {
+        store.stocks = [makeStock(id: 1), makeStock(id: 2)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = { request in
+            // 本文取得は両方成功させ、generate() には必ず到達させる。
+            // 1件目だけ要約の保存(PUT .../1/summary)を失敗させる。
+            if request.url!.path.hasSuffix("/1/summary") { return (500, Data()) }
+            if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
+            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+        }
+
+        store.requestSummary(for: 1, session: .mock())
+        store.requestSummary(for: 2, session: .mock())
+
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        generator.release()
+        let second = await iterator.next()
+        XCTAssertEqual(second, 2, "1件目が失敗しても2件目は実行される")
+
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+        XCTAssertNotNil(store.summaryErrors[1])
+    }
+
+    // MARK: - pauseSummaryQueueForTranslation / resumeSummaryQueueAfterTranslation（翻訳優先）
+
+    @MainActor
+    func test_pauseSummaryQueueForTranslation_実行中の要約を中断しキュー先頭へ戻す() async throws {
+        store.stocks = [makeStock(id: 1)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, session: .mock())
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        XCTAssertEqual(store.currentlySummarizingStockId, 1)
+
+        store.pauseSummaryQueueForTranslation()
+        // 中断された generate() 呼び出しはキャンセル検知のため解放してやる必要がある(そうしないと
+        // モック内で永久に await したままになり、以降のテストに影響する)。
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+
+        XCTAssertNil(store.currentlySummarizingStockId)
+        XCTAssertEqual(store.pendingSummaryStockIds, [1], "中断された分はやり直すためキュー先頭へ戻る")
+        XCTAssertNil(store.stocks.first(where: { $0.id == 1 })?.summary, "保存はされない")
+    }
+
+    @MainActor
+    func test_resumeSummaryQueueAfterTranslation_中断した要約を再開する() async throws {
+        store.stocks = [makeStock(id: 1)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, session: .mock())
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        store.pauseSummaryQueueForTranslation()
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+
+        store.resumeSummaryQueueAfterTranslation(session: .mock())
+        let restarted = await iterator.next()
+        XCTAssertEqual(restarted, 2, "中断前の1回 + 再開後の1回で計2回呼ばれる(最初からやり直し)")
+
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+        XCTAssertNil(store.summaryErrors[1])
+        XCTAssertEqual(store.pendingSummaryStockIds, [])
+        XCTAssertNotNil(store.stocks.first(where: { $0.id == 1 })?.summary)
+    }
+
     // MARK: - sortAscending の永続化
 
     func test_sortAscending_defaultsToFalse() {

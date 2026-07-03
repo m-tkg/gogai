@@ -73,8 +73,20 @@ struct StockDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: Error?
-    @State private var isGeneratingSummary = false
-    @State private var summaryError: Error?
+
+    /// 要約の生成中/待機中はストアのキュー状態を見る(View のライフサイクルに依存しないため、
+    /// 戻るボタンで離れてもキュー処理は継続する)。
+    private var isGeneratingSummary: Bool {
+        stockStore.currentlySummarizingStockId == currentStock.id || isQueued
+    }
+
+    private var isQueued: Bool {
+        stockStore.pendingSummaryStockIds.contains(currentStock.id)
+    }
+
+    private var summaryError: String? {
+        stockStore.summaryErrors[currentStock.id]
+    }
 
     /// 翻訳を実行できる(または結果を再確認できる)条件:
     /// この端末で AI が使えるか、既に翻訳済みで結果が保存されているか
@@ -91,7 +103,7 @@ struct StockDetailView: View {
     }
 
     private var summaryErrorBinding: Binding<Bool> {
-        Binding(get: { summaryError != nil }, set: { if !$0 { summaryError = nil } })
+        Binding(get: { summaryError != nil }, set: { if !$0 { stockStore.clearSummaryError(for: currentStock.id) } })
     }
 
     var body: some View {
@@ -151,9 +163,9 @@ struct StockDetailView: View {
             Text(deleteError?.localizedDescription ?? "")
         }
         .alert("要約の生成に失敗しました", isPresented: summaryErrorBinding) {
-            Button("OK") { summaryError = nil }
+            Button("OK") { stockStore.clearSummaryError(for: currentStock.id) }
         } message: {
-            Text(summaryError?.localizedDescription ?? "")
+            Text(summaryError ?? "")
         }
     }
 
@@ -164,7 +176,7 @@ struct StockDetailView: View {
         } else if isGeneratingSummary {
             HStack(spacing: 8) {
                 ProgressView()
-                Text("要約を生成しています…")
+                Text(isQueued ? "要約の順番待ちです…" : "要約を生成しています…")
             }
             .foregroundStyle(.secondary)
         } else {
@@ -189,7 +201,7 @@ struct StockDetailView: View {
                     isLoading: isGeneratingSummary,
                     isDisabled: isGeneratingSummary || !LocalAI.isAvailable
                 ) {
-                    Task { await generateSummary() }
+                    stockStore.requestSummary(for: currentStock.id)
                 }
             }
             StockDetailFooterButton(icon: "pencil", label: "編集") { showEdit = true }
@@ -198,15 +210,5 @@ struct StockDetailView: View {
         }
         .padding(.vertical, 10)
         .background(.bar)
-    }
-
-    private func generateSummary() async {
-        isGeneratingSummary = true
-        defer { isGeneratingSummary = false }
-        do {
-            try await stockStore.generateSummary(for: currentStock.id)
-        } catch {
-            summaryError = error
-        }
     }
 }

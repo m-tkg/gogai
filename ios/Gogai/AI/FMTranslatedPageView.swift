@@ -120,6 +120,10 @@ struct FMTranslatedPageView: View {
     // MARK: - 翻訳の実行・保存
 
     private func runTranslation(forceRetranslate: Bool = false) async {
+        // オンデバイス AI は同時に1リクエストしか処理できないため、要約キューを一時停止し
+        // 翻訳を優先する(#126 参照)。中断された要約はキュー再開時に最初からやり直される。
+        stockStore.pauseSummaryQueueForTranslation()
+        defer { stockStore.resumeSummaryQueueAfterTranslation() }
         // 翻訳中にバックグラウンドへ移っても継続する(システム猶予内)
         await BackgroundExecution.run(name: "Stock.translatePage") {
             await performTranslation(forceRetranslate: forceRetranslate)
