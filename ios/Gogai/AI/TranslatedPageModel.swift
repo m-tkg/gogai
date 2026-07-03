@@ -115,6 +115,16 @@ final class TranslatedPageModel: NSObject, ObservableObject, WKNavigationDelegat
         _ = try? await webView.evaluateJavaScript(script)
     }
 
+    /// サーバーに保存済みの訳文を復元し、一括で書き戻す(FMTranslatedPageView の再表示時に使用)。
+    /// key はノード index。
+    func restoreTranslations(_ restored: [Int: String]) async {
+        guard !restored.isEmpty else { return }
+        for (index, text) in restored {
+            translations[index] = text
+        }
+        await bulkApply(indices: Array(restored.keys), texts: Array(restored.values))
+    }
+
     func beginTranslating(total: Int) {
         totalCount = total
         translatedCount = 0
