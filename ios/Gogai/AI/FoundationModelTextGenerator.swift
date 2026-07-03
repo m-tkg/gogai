@@ -51,17 +51,18 @@ struct FoundationModelTextGenerator: TextGenerating {
         }
     }
 
-    /// LanguageModelError.contextSizeExceeded の実測トークン数/上限からプロンプトを安全な長さまで縮める。
-    /// 文字数からトークン数を正確に見積もれない(特に日本語)ため、実測値をもとに動的に縮小して再試行する。
-    /// それ以外のエラーやトークン数が取得できない場合は nil を返す(= リトライしない)。
+    /// コンテキスト長超過エラーを受けてプロンプトを縮める。
+    /// 対応するエラー型(LanguageModelError.contextSizeExceeded 等)はビルドに使う
+    /// Xcode/SDK バージョンによって存在しないことがある(型で判定すると環境依存でビルドが壊れる)ため、
+    /// エラーの説明文言に含まれるキーワードで判定する。
+    /// それ以外のエラーや、これ以上縮められない場合は nil を返す(= リトライしない)。
     static func shrinkPromptIfContextExceeded(_ prompt: String, error: Error) -> String? {
-        guard #available(iOS 27.0, *) else { return nil }
-        guard case LanguageModelError.contextSizeExceeded(let context) = error, context.tokenCount > 0 else {
+        let description = String(describing: error).lowercased()
+        guard description.contains("context"),
+              description.contains("exceed") || description.contains("window") else {
             return nil
         }
-        // 安全マージンを持たせて縮小する(instructions分のトークンも contextSize に含まれるため)
-        let ratio = (Double(context.contextSize) / Double(context.tokenCount)) * 0.8
-        let targetLength = max(200, Int(Double(prompt.count) * ratio))
+        let targetLength = max(200, prompt.count / 2)
         guard targetLength < prompt.count else { return nil }
         return String(prompt.prefix(targetLength))
     }
