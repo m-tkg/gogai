@@ -109,8 +109,10 @@ jobs:
           codesign --verify --deep --strict "$APP_PATH"
 
       # notarize は .app 自体に対して1回だけ行い、チケットを .app に staple する。
-      # その後 stapled な .app から dmg / zip の両方を作るため、dmg 個別の notarize は不要
-      # (Apple のチケットはバイナリの CDHash 単位で発行され、コンテナ形式に依存しない)。
+      # dmg / zip はこの stapled 済み .app から作るため、それぞれの個別 notarize は不要。
+      # ただし dmg 自体への staple はできない(dmg 単体を notarize していないと
+      # "CloudKit query ... Record not found" になる)。Gatekeeper は起動時に
+      # 実行ファイル(.app)側の staple 済みチケットを見るため、dmg 側は未 staple で問題ない。
       - name: Notarize and staple app
         if: steps.check.outputs.exists == 'false'
         env:
@@ -130,9 +132,7 @@ jobs:
 
       - name: Create DMG
         if: steps.check.outputs.exists == 'false'
-        run: |
-          bash Scripts/make-dmg.sh "$APP_PATH" "Gogai" "$DMG_PATH"
-          xcrun stapler staple "$DMG_PATH"
+        run: bash Scripts/make-dmg.sh "$APP_PATH" "Gogai" "$DMG_PATH"
 
       # アプリ内自動更新機能(UpdateChecker)が展開する配布用 zip。
       # stapled 済みの .app をそのまま zip 化するため、展開後もオフラインで Gatekeeper を通過できる。
