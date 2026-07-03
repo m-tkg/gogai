@@ -4,21 +4,22 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
 
 ## 機能
 
-- RSS フィードの追加・削除・グループ管理
+- RSS フィードの追加・削除・グループ管理（並び替え対応）
 - ドメイン URL からの RSS フィード自動検出
 - 記事一覧（favicon・タイトル・本文プレビュー・日時表示・未読インジケーター）
-- AI による記事の要約・翻訳（Claude CLI / OpenAI / Gemini）
-  - 結果を DB にキャッシュ（再実行ボタンで再取得可）
-  - 要約はカード内に表示、翻訳は新タブで Markdown レンダリング
-  - 要約/翻訳済み記事には「要」「訳」バッジを表示
 - ダークモード（手動切替 + localStorage 永続化）
 - 設定画面（記事の保持期間を変更可能）
 - アプリの更新（設定画面から git pull + ビルド + サービス再起動）
 - 設定した日数以上経過した記事の自動削除（デフォルト 180 日）
-- **iOS アプリ**（SwiftUI）
+- **ストック**（Instapaper 的な保存機能。旧お気に入り機能の後継）
+  - サーバーに URL・タイトル・要約を保存し、カテゴリで分類・並び替え可能
+  - iOS/iPadOS/macOS の Foundation Models（オンデバイス AI）で要約・翻訳を生成し結果をサーバーに保存
+- **iOS / iPadOS / macOS（Mac Catalyst）アプリ**（SwiftUI）
   - LAN IP または Cloudflare Tunnel URL（Gist 経由）でサーバーに接続
   - 起動時・バックグラウンド復帰時・5 分ごとに記事を自動更新
-  - 右スワイプで既読/未読、左スワイプで AI 要約生成
+  - 右スワイプで既読/未読、左スワイプでストックに追加
+  - iOS/iPadOS の共有シートから任意ページをストックに追加可能
+  - macOS 版は設定画面から GitHub Releases 経由で自動更新
 - **Cloudflare Tunnel**（Raspberry Pi 用）
   - 起動時に Quick Tunnel URL を自動取得し GitHub Gist に書き込む
   - iOS アプリは Gist URL をサーバー URL として登録可能
@@ -28,11 +29,11 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
 | レイヤー | 技術 |
 |---------|------|
 | Backend | Node.js + Hono + TypeScript + better-sqlite3 |
-| Frontend | React 19 + Vite 8 + TanStack Query + Tailwind CSS v4 |
-| iOS | SwiftUI + Swift 6.0 + URLSession（iOS 17.0+） |
+| Frontend | React 19 + Vite + TanStack Query + Tailwind CSS v4 |
+| iOS/iPadOS/macOS | SwiftUI + Swift 6.0 + URLSession（iOS 17.0+ / Mac Catalyst） |
 | DB | SQLite（WAL モード） |
-| Test | Vitest（バックエンドのみ、92 件） / XCTest（iOS） |
-| Infra | Docker Compose + nginx / systemd（Raspberry Pi） |
+| Test | Vitest（backend + frontend） / XCTest（iOS/iPadOS/macOS） |
+| Infra | Docker Compose + nginx / systemd（Raspberry Pi）/ GitHub Actions（macOS 版リリース） |
 
 ## ディレクトリ構成
 
@@ -40,42 +41,45 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
 gogai/
 ├── backend/
 │   ├── src/
-│   │   ├── db/schema.ts              # DB 初期化・スキーマ定義
-│   │   ├── routes/                   # Hono ルーター
-│   │   │   ├── admin.ts              # git pull + 再起動
+│   │   ├── db/schema.ts              # DB 初期化・スキーマ定義（マイグレーション管理）
+│   │   ├── routes/                   # Hono ルーター（パース + サービス呼び出しのみ）
+│   │   │   ├── admin.ts              # 更新確認 + git pull + 再起動
 │   │   │   ├── articles.ts
 │   │   │   ├── feeds.ts
 │   │   │   ├── groups.ts
-│   │   │   └── settings.ts
+│   │   │   ├── settings.ts
+│   │   │   ├── stocks.ts
+│   │   │   └── stock-categories.ts
 │   │   ├── services/                 # ビジネスロジック
-│   │   │   ├── ai-config.ts          # AI 設定ファイル読み込み
-│   │   │   ├── ai-provider.ts        # AI プロバイダーインターフェース
-│   │   │   ├── article-content.ts    # 記事リンクから本文取得
 │   │   │   ├── articles.ts
 │   │   │   ├── feed-discovery.ts     # RSS URL 自動検出
+│   │   │   ├── feed-refresher.ts     # フィード再取得
+│   │   │   ├── feed-registration.ts  # フィード登録・URL変更・再取得の共通フロー
 │   │   │   ├── feeds.ts
 │   │   │   ├── groups.ts
 │   │   │   ├── rss-fetcher.ts
 │   │   │   ├── settings.ts
-│   │   │   └── providers/
-│   │   │       ├── claude-cli.ts     # Claude Code CLI
-│   │   │       ├── gemini.ts         # Google Gemini API
-│   │   │       └── openai.ts         # OpenAI API
-│   │   └── index.ts                  # サーバーエントリーポイント
-│   ├── ai.config.json                # AI プロバイダー設定
+│   │   │   ├── stocks.ts
+│   │   │   └── stock-categories.ts
+│   │   └── index.ts                  # サーバーエントリーポイント（起動・スケジューリング）
 │   └── data/                         # SQLite DB（.gitignore 済み）
 ├── frontend/
 │   └── src/
-│       ├── api/client.ts             # API クライアント
+│       ├── api/                      # client.ts / types.ts / queryKeys.ts / errors.ts
 │       ├── components/
+│       │   ├── articles/             # ArticleCard など
+│       │   ├── sidebar/              # GroupSection / FeedList / FeedItem / AddForms
+│       │   ├── ui/
 │       │   ├── ArticleDetail.tsx
 │       │   ├── ArticleList.tsx
 │       │   ├── Settings.tsx
 │       │   └── Sidebar.tsx
+│       ├── hooks/                    # useFeedMutations / useGroupMutations / useDragReorder など
 │       └── App.tsx
-├── ios/                              # iOS アプリ（Xcode プロジェクト）
+├── ios/                              # iOS / iPadOS / macOS(Mac Catalyst) アプリ（Xcode プロジェクト）
 │   ├── Gogai.xcodeproj/
-│   ├── Gogai/                        # アプリソース
+│   ├── Gogai/                        # アプリ本体（詳細は CLAUDE.md 参照）
+│   ├── GogaiShareExtension/          # 共有シート拡張（URL をストックに追加）
 │   └── GogaiTests/                   # XCTest ユニットテスト
 ├── daemon/                           # systemd サービスファイル（Raspberry Pi 用）
 │   ├── gogai-backend.service
@@ -83,6 +87,8 @@ gogai/
 │   ├── gogai-cloudflare.service      # Cloudflare Tunnel サービス
 │   ├── cloudflare-tunnel.sh          # Tunnel 起動 + Gist 書き込みスクリプト
 │   └── setup.sh
+├── .github/workflows/
+│   └── mac-release.yml               # macOS(Mac Catalyst) 版のビルド・署名・公証・GitHub Release作成
 ├── docker-compose.yml
 ├── Makefile
 └── README.md
@@ -92,7 +98,14 @@ gogai/
 
 ### ローカル開発
 
+`git clone` 後は以下だけで動きます。`.env` は不要（`PORT`/`DB_PATH` はデフォルト値で動作）。
+`node_modules/`・`backend/data/`（SQLite DB）・`ios/build/` などはすべて `.gitignore` 対象で、
+コマンド実行時や Xcode のビルド時に自動生成されるため、手動で用意するものはありません。
+
 ```bash
+git clone git@github.com:m-tkg/gogai.git
+cd gogai
+
 # 依存関係インストール
 make install
 
@@ -143,7 +156,7 @@ sudo systemctl start gogai-cloudflare
 - Cloudflare Quick Tunnel を起動して `*.trycloudflare.com` URL を取得
 - GitHub Gist に URL を書き込む
 - iOS アプリはその Gist URL をサーバー URL として登録可能
-  - 例: `https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47`
+  - 例: `https://gist.github.com/<your-username>/<your-gist-id>`
   - 起動するたびに Gist から最新 URL を取得するため、Pi 再起動後も自動で繋がる
 
 ### Docker
@@ -162,27 +175,10 @@ make docker-logs
 make docker-down
 ```
 
-## AI 設定
-
-`backend/ai.config.json` でプロバイダーを切り替えます。
-
-```json
-{
-  "provider": "claude",
-  "openai": { "model": "gpt-4o-mini" },
-  "gemini": { "model": "gemini-2.0-flash" }
-}
-```
-
-| provider | 必要な設定 |
-|---------|----------|
-| `claude` | Claude Code CLI がインストール済みであること |
-| `openai` | 環境変数 `OPENAI_API_KEY` |
-| `gemini` | 環境変数 `GEMINI_API_KEY` |
-
-Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できます（デフォルト: `~/.local/bin/claude`）。
-
 ## API エンドポイント
+
+要約・翻訳は iOS/iPadOS/macOS 側のオンデバイス AI（Foundation Models）で生成するため、
+サーバー側に AI プロバイダー設定は存在しません（生成結果をストックに保存するのみ）。
 
 ### Groups
 
@@ -192,6 +188,8 @@ Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できま
 | POST | `/api/groups` | グループ作成 `{ name }` |
 | PUT | `/api/groups/:id` | グループ更新 `{ name }` |
 | DELETE | `/api/groups/:id` | グループ削除 |
+| PATCH | `/api/groups/reorder` | グループの並び替え `{ ids: number[] }` |
+| POST | `/api/groups/:id/refresh` | グループ配下のフィードを一括更新 |
 
 ### Feeds
 
@@ -201,6 +199,8 @@ Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できま
 | POST | `/api/feeds` | フィード追加 `{ url, groupId? }` ※ドメイン URL も可 |
 | PUT | `/api/feeds/:id` | フィード更新 `{ title?, groupId? }` |
 | DELETE | `/api/feeds/:id` | フィード削除（記事も CASCADE 削除） |
+| PATCH | `/api/feeds/reorder` | フィードの並び替え `{ ids: number[] }` |
+| POST | `/api/feeds/refresh-all` | 全フィードを一括更新 |
 | POST | `/api/feeds/:id/refresh` | 記事を手動更新 |
 
 ### Articles
@@ -208,10 +208,30 @@ Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できま
 | Method | Path | 説明 |
 |--------|------|------|
 | GET | `/api/articles` | 記事一覧 `?feedId=&groupId=&unreadOnly=&limit=&offset=` |
+| GET | `/api/articles/counts` | フィードごとの記事数・未読数 |
 | GET | `/api/articles/:id` | 記事詳細 |
 | POST | `/api/articles/:id/read` | 既読にする |
 | POST | `/api/articles/:id/unread` | 未読にする |
-| POST | `/api/articles/:id/claude` | AI 処理 `{ action: "summarize"\|"translate", force?: boolean }` |
+
+### Stocks
+
+| Method | Path | 説明 |
+|--------|------|------|
+| GET | `/api/stocks` | ストック一覧 `?category_id=` |
+| POST | `/api/stocks` | ストック追加 `{ url, title?, source?, category? }` |
+| PUT | `/api/stocks/:id` | タイトル・カテゴリ更新 `{ title, category }` |
+| DELETE | `/api/stocks/:id` | ストック削除 |
+| PUT | `/api/stocks/:id/summary` | 要約を保存（端末側でオンデバイス生成した結果） `{ summary }` |
+| GET | `/api/stocks/:id/translation` | 翻訳結果を取得 |
+| PUT | `/api/stocks/:id/translation` | 翻訳結果を保存 `{ segments }` |
+| DELETE | `/api/stocks/:id/translation` | 翻訳結果を削除（再翻訳用） |
+
+### Stock Categories
+
+| Method | Path | 説明 |
+|--------|------|------|
+| GET | `/api/stock-categories` | カテゴリ一覧 |
+| PATCH | `/api/stock-categories/reorder` | カテゴリの並び替え `{ ids: number[] }` |
 
 ### Settings
 
@@ -224,22 +244,30 @@ Claude CLI のバイナリパスは環境変数 `CLAUDE_PATH` で指定できま
 
 | Method | Path | 説明 |
 |--------|------|------|
+| GET | `/api/admin/update-check` | `git fetch` でリモートと比較し更新の有無を返す |
 | POST | `/api/admin/restart` | git pull + npm run build → レスポンス返却後に `process.exit(0)` で終了（systemd が自動再起動） |
 
 ## DB スキーマ
 
 ```sql
-groups    (id, name, created_at)
-feeds     (id, url, title, favicon_url, group_id→groups, last_fetched_at, created_at)
+groups    (id, name, is_secret, display_order, created_at)
+feeds     (id, url, title, favicon_url, group_id→groups, last_fetched_at, display_order, created_at)
 articles  (id, feed_id→feeds, guid, title, link, summary, content,
-           published_at, is_read, ai_summary, ai_translation, created_at)
+           published_at, is_read, read_at, created_at)
 settings  (key, value)
+
+stock_categories   (id, name, display_order, created_at)
+stocks              (id, url, title, source, category_id→stock_categories,
+                     summary, stocked_at, created_at)
+stock_translations  (stock_id→stocks, segments, translated_at)
 ```
 
 - `feeds.group_id` は `ON DELETE SET NULL`（グループ削除時にフィードは残る）
 - `articles.feed_id` は `ON DELETE CASCADE`（フィード削除時に記事も削除）
-- `articles.ai_summary` / `ai_translation`: AI 結果のキャッシュ
+- `stocks.category_id` は `stock_categories` への必須参照（旧お気に入り機能をストックへ統合した後継）
+- `stock_translations.stock_id` は `ON DELETE CASCADE`（ストック削除時に翻訳も削除）
 - `settings`: key-value 形式（現在 `retention_days` のみ）
+- 要約・翻訳は iOS/iPadOS/macOS 側のオンデバイス AI（Foundation Models）で生成し、結果をサーバーに保存する（サーバー側に AI 機能は無い）
 
 ## 環境変数
 
@@ -247,10 +275,6 @@ settings  (key, value)
 |-----|---------|------|
 | `PORT` | `3040` | バックエンドのポート番号 |
 | `DB_PATH` | `backend/data/rss.db` | SQLite ファイルパス |
-| `AI_CONFIG_PATH` | `backend/ai.config.json` | AI 設定ファイルパス |
-| `CLAUDE_PATH` | `~/.local/bin/claude` | Claude CLI バイナリパス |
-| `OPENAI_API_KEY` | — | OpenAI 使用時に必要 |
-| `GEMINI_API_KEY` | — | Gemini 使用時に必要 |
 
 ## Makefile コマンド一覧
 
@@ -261,8 +285,8 @@ settings  (key, value)
 | `make dev-backend` | バックエンドのみ起動 |
 | `make dev-frontend` | フロントエンドのみ起動 |
 | `make build` | 両プロジェクトをビルド |
-| `make test` | バックエンドのテストを実行 |
-| `make test-watch` | テストをウォッチモードで実行 |
+| `make test` | backend + frontend のテストを実行 |
+| `make test-watch` | backend テストをウォッチモードで実行 |
 | `make typecheck` | 型チェックのみ実行 |
 | `make clean` | dist を削除 |
 | `make docker-up` | Docker コンテナを起動 |
@@ -278,4 +302,10 @@ settings  (key, value)
 | `make daemon-logs` | ログをリアルタイム表示 |
 | `make ios-sync-icons` | `appiconset/` → xcassets へアイコンを同期 |
 | `make ios-build` | アイコン同期 + シミュレータービルド |
+| `make ios-test` | iOS ユニットテストを実行（iPhone 17 Pro シミュレーター） |
 | `make ios-deploy` | アイコン同期 + Release ビルド + 実機インストール + 起動 |
+| `make mac-archive` | macOS(Mac Catalyst) 版をアーカイブ |
+| `make mac-export` | アーカイブから `.app` をエクスポート |
+| `make mac-dmg` | 配布用 dmg を作成（Applications ショートカット同梱） |
+| `make mac-notarize` | dmg を公証・staple |
+| `make mac-distribute` | アーカイブ〜公証までの一連の処理を実行 |

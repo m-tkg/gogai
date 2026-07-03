@@ -8,11 +8,15 @@
 gogai/
 ├── backend/    Node.js + Hono + TypeScript（ポート 3040）
 ├── frontend/   React 19 + Vite + Tailwind CSS v4（ポート 5173）
-├── ios/        iOS アプリ（SwiftUI + Swift 6.0）
+├── ios/        iOS / iPadOS / macOS(Mac Catalyst) アプリ（SwiftUI + Swift 6.0）+ 共有シート拡張
 ├── daemon/     systemd サービスファイル（Raspberry Pi 用）
+├── .github/workflows/  GitHub Actions（macOS 版のビルド・署名・公証・リリース）
 ├── docker-compose.yml
 └── Makefile
 ```
+
+`git clone` 後は `.env` 不要（`PORT`/`DB_PATH` はデフォルト値で動作）。`make install && make dev` だけで動く。
+`node_modules/`・`backend/data/`・`ios/build/` 等は `.gitignore` 対象でツールが自動生成する。
 
 ## 開発コマンド
 
@@ -26,12 +30,13 @@ make daemon-restart # Raspberry Pi でサービスを再起動
 make ios-build      # iOS シミュレータービルド
 make ios-test       # iOS ユニットテストを実行
 make ios-deploy     # iOS 実機インストール＆起動
+make mac-distribute # macOS(Mac Catalyst) 版をローカルでアーカイブ〜公証まで実行
 ```
 
 ## バックエンド
 
 - **エントリーポイント**: `backend/src/index.ts`（起動・スケジューリングのみ）
-- **ルーター**: `backend/src/routes/` (groups / feeds / articles / settings / admin)。パースとサービス呼び出しのみ。ビジネスロジックは置かない
+- **ルーター**: `backend/src/routes/` (groups / feeds / articles / settings / admin / stocks / stock-categories)。パースとサービス呼び出しのみ。ビジネスロジックは置かない
 - **サービス層**: `backend/src/services/`（`feed-registration.ts` がフィード登録・URL変更・再取得の共通フロー）
 - **エラー処理**: `backend/src/errors.ts` の `AppError(message, status)` を throw し、各ルーターの `app.onError(errorHandler)` が `{ error: string }` に変換する。UNIQUE 制約違反は `isUniqueConstraintError()` で判定
 - **定数**: `backend/src/config.ts`（retention_days のデフォルト/上下限）
@@ -42,7 +47,7 @@ make ios-deploy     # iOS 実機インストール＆起動
 
 - パス: `backend/data/rss.db`（環境変数 `DB_PATH` で変更可）
 - WAL モード有効、外部キー制約有効
-- テーブル: `groups` → `feeds` → `articles`、`settings`
+- テーブル: `groups` → `feeds` → `articles`、`settings`、`stock_categories` → `stocks` → `stock_translations`
 - スキーマ変更は `schema.ts` の `MIGRATIONS` 配列の**末尾に冪等なマイグレーションを追加**する（名前付き、何度実行しても安全な実装にする）
 
 ### favicon
@@ -130,10 +135,10 @@ ios/
 ├── Gogai.xcodeproj/
 ├── Gogai/
 │   ├── App/                  GogaiApp.swift（@main）/ RootView.swift
-│   ├── Models/               Article（updating() ヘルパーあり）/ Feed / Group / Settings など（Codable + Sendable）
+│   ├── Models/               Article（updating() ヘルパーあり）/ Feed / Group / Settings / Stock など（Codable + Sendable）
 │   ├── Network/              APIClient / Endpoint / APIError
-│   ├── Repositories/         Group / Feed / Article / Settings リポジトリ
-│   ├── Stores/               GroupStore / FeedStore / ArticleStore / SettingsStore
+│   ├── Repositories/         Group / Feed / Article / Settings / Stock リポジトリ
+│   ├── Stores/               GroupStore / FeedStore / ArticleStore / SettingsStore / StockStore
 │   │                         ArticleCollection（全記事キャッシュのマージ規則を持つ値型）
 │   ├── Views/
 │   │   ├── FilterFooterView.swift   フィルター footer（ストック/全て/未読のみ）
@@ -145,13 +150,20 @@ ios/
 │   │   ├── Articles/        ArticleListView / ArticleRowView / ArticleDetailView
 │   │   │                    HTMLContentView（WKWebView で HTML レンダリング）
 │   │   │                    BrowserView（アプリ内ブラウザ）
+│   │   ├── Stocks/          StockCategoryListView / StockListView / StockRowView / StockDetailView
+│   │   │                    AddStockView / EditStockView（ストック機能。旧お気に入りの後継）
 │   │   └── Settings/        SettingsView / AdminView
 │   ├── AI/                   ローカル AI（要約・翻訳）
 │   │                         LocalArticleAI（プロンプト整形）/ FoundationModelTextGenerator
 │   │                         LocalAIResultSheet（結果表示）/ LocalAIOverlay（右下ボタン群）
-│   │                         TranslatedPageView+Model（レイアウト保持のページ内翻訳）
+│   │                         TranslatedPageView+Model（システム翻訳、レイアウト保持のページ内翻訳）
+│   │                         FMPageTranslator/FMTranslatedPageView（基盤モデルによるレイアウト保持翻訳）
+│   │                         StockSummarizer/StockSummary（ストック要約の map-reduce パイプライン）
 │   │                         ArticleContentFetcher（記事 URL から本文抽出）
-│   └── Utilities/            ServerURLManager / DefaultsKeys / HorizontalSwipe / DateFormatter+
+│   ├── Update/                Mac 版アプリ内自動更新（ReleaseInfo / MacUpdater、詳細は後述）
+│   └── Utilities/            ServerURLManager / DefaultsKeys / HorizontalSwipe / DateFormatter+ / AppGroup
+├── GogaiShareExtension/       iOS/iPadOS 共有シート拡張（ShareViewController / ShareStockView）
+│                              共有された URL をストックに追加する（App Group 経由で本体アプリと通信）
 └── GogaiTests/               XCTest ユニットテスト
 ```
 
@@ -212,7 +224,7 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - Gist URL を保存することで Pi 再起動後も最新トンネル URL を自動取得できる
 
 ```swift
-// 入力例: https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47
+// 入力例: https://gist.github.com/<your-username>/<your-gist-id>
 // → GitHub API で Gist のコンテンツ（トンネル URL）を取得
 // → resolvedURL = https://xxxx.trycloudflare.com
 ```
@@ -229,6 +241,16 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - `markAllAsRead()` — 表示中の未読記事を sequential API 呼び出しで一括既読
 - シークレットフィード判定は `GroupStore.secretFeedIds(in:)` を使う
 
+### ストック機能の仕様（旧お気に入りの後継）
+
+- Instapaper 的な保存機能。サーバー側に URL・タイトル・カテゴリ・要約を保存する（お気に入りの後継として統合済み、`is_favorite` カラムは削除済み）
+- 追加経路: 記事一覧の左スワイプ（ストック元は所属グループ名）/ iOS・iPadOS の共有シート（`GogaiShareExtension`）
+- 要約はストック追加時に自動生成せず、**ボタン起点**で明示的に生成する（`StockSummarizer` が map-reduce でオンデバイス生成し `PUT /api/stocks/:id/summary` で保存）
+- 翻訳はレイアウト保持のページ内翻訳を基盤モデルで行う（`FMPageTranslator`/`FMTranslatedPageView`）。結果は `stock_translations` に保存し再翻訳可能
+- 編集可能なのはタイトル・カテゴリのみ。カテゴリは並び替え可能（`PATCH /api/stock-categories/reorder`）
+- `StockListView` の行を長押しすると、詳細ページのフッターと同じ操作（元記事・翻訳・要約を生成・編集・削除）をコンテキストメニューで実行できる
+- シークレットフィード判定と同様、`StockStore` が一覧・作成・更新・削除を保持する
+
 ### ローカル AI（要約・翻訳、iOS/iPadOS 27 以上）
 
 - ゲート: `LocalAI.isAvailable`（iOS 27 以上 + `SystemLanguageModel` が available）。条件を満たさない端末ではボタン非表示
@@ -238,7 +260,22 @@ make ios-deploy DEVICE_ID=<device-uuid>
   - システム翻訳（デフォルト外）→ `TranslatedPageView`: WKWebView でテキストノードだけ翻訳し、レイアウト・画像を保持
   - ローカル AI（基盤モデル）→ 訳文テキストを sheet 表示
 - AI への入力は `ArticleContentFetcher` が記事 URL から本文抽出（失敗時は RSS 本文にフォールバック）。4096 トークン制限のため 3,000 字に切り詰め
+  - 文字数からトークン数を正確に見積もれない（特に日本語）ため、`exceededContextWindowSize` 系のエラーを検知したら
+    プロンプトを縮小して自動リトライする（`FoundationModelTextGenerator.shrinkPromptIfContextExceeded`）。
+    型ではなくエラー文言のキーワードで判定している（Xcode/SDK バージョンによって型が存在しないことがあるため）
 - Translation framework はシミュレーター不可（実機で確認）。Foundation Models は iOS 27 シミュレーターで動作確認可能
+
+### Mac 版アプリ内自動更新（`Update/`、Mac Catalyst のみ）
+
+- `#if targetEnvironment(macCatalyst)` でガード（Mac Catalyst は `os(macOS)` では判定できない）
+- 設定画面（SettingsView）から手動チェックのみ。起動時のサイレントチェックは無い
+- `ReleaseInfo`/`VersionComparator`: GitHub Releases API のレスポンス型とバージョン比較（純粋ロジック、XCTest 対象）
+- `UpdateChecker`/`SelfUpdater`/`UpdateService`: GitHub Release の `.zip` アセットをダウンロードし、
+  自身のバンドルと入れ替えて再起動する（副作用が大きくテスト対象外）
+  - Mac Catalyst は `Foundation.Process`（`executableURL`/`run()`/`terminationHandler`）が使用不可のため、
+    `posix_spawn`（Darwin libc）で子プロセスを起動する
+  - リリースのバージョンは `MARKETING_VERSION` の `xx.xx.xx` 形式（セマンティックバージョニング）をそのまま使う。
+    タグは `v{MARKETING_VERSION}`（例 `v1.0.0`）
 
 ### GogaiApp の自動更新
 
@@ -254,6 +291,8 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | **記事一覧ページ** | `ArticleListView` | フィード/グループ選択後の記事一覧 |
 | **概要ページ** | `ArticleDetailView` | 記事タイトル・要約を表示 |
 | **記事ページ** | `BrowserView`（SFSafariViewController）| 記事本文を Safari で表示 |
+| **ストック一覧ページ** | `StockCategoryListView` / `StockListView` | カテゴリ別のストック一覧 |
+| **ストック詳細ページ** | `StockDetailView` | ストックのタイトル・要約・翻訳を表示 |
 
 ### 画面・インタラクション仕様
 
@@ -266,10 +305,12 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: ストックに入れる（ストック元は所属グループ名） |
 | 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
 | 概要ページ（ArticleDetailView） | 左スワイプ: 記事ページ（BrowserView）を push 遷移（右から左）で開く |
-| FilterFooterView | 「ストック」「全て」「未読のみ」ボタン（フィードページ・記事一覧ページ共通）|
+| FilterFooterView | 「全て」「未読のみ」「ストック」ボタン（フィードページ・記事一覧ページ共通、ストックは一番右端）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | 記事ページ（BrowserView） | 右スワイプ または 右下の閉じるボタンで閉じる |
-| AdminView | アップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
+| ストック一覧ページ（StockListView） | 行を長押し: 詳細ページのフッターと同じ操作（元記事/翻訳/要約を生成/編集/削除）をコンテキストメニューで実行 |
+| AdminView | サーバー（Raspberry Pi）のアップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
+| SettingsView（macOS のみ） | アプリ自体のアップデート確認 + ダウンロードしてインストール（GitHub Releases 経由、詳細は「Mac 版アプリ内自動更新」参照）|
 
 ### ナビゲーション構造
 
@@ -281,6 +322,20 @@ make ios-deploy DEVICE_ID=<device-uuid>
 ### デバッガなしで実機実行（高速化）
 
 Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI の `make ios-deploy` を使う（どちらもデバッガなしで起動）。
+
+### macOS（Mac Catalyst）版のビルド・リリース（`.github/workflows/mac-release.yml`）
+
+- トリガー: `main` への push（`ios/**` 変更時）または手動実行。`MARKETING_VERSION` から解決したタグ（`v{version}`）の
+  GitHub Release が既に存在すればスキップする（ビルドをやり直さない）
+- 署名: Xcode の自動プロビジョニング管理を経由せず、`CODE_SIGNING_ALLOWED=NO` で署名なしビルドしてから
+  Developer ID 証明書で直接 `codesign` する（App Group entitlement は非サンドボックスのためプロビジョニングプロファイル不要）
+- 公証: `.app` を zip 化して 1 回だけ notarize し、`.app` 自体に staple する。dmg 自体は notarize していないため
+  **dmg への staple はできない**（`stapler staple` は "Record not found" になる）。Gatekeeper は起動時に
+  実行ファイル（`.app`）側の staple 済みチケットを見るため、dmg が未 staple でも配布・実行に支障はない
+- 配布物: `.dmg`（手動配布用、`Scripts/make-dmg.sh` で `/Applications` シンボリックリンクを同梱）と
+  `.zip`（アプリ内自動更新 `UpdateChecker` 用。stapled 済みの `.app` をそのまま zip 化）の両方をリリースに添付する
+- ローカルの `make mac-*` 系ターゲット（`mac-archive`/`mac-export`/`mac-dmg`/`mac-notarize`/`mac-distribute`）は
+  自動プロビジョニング（`-allowProvisioningUpdates`）を使う点が CI と異なる
 
 ## テスト指針
 
@@ -334,5 +389,5 @@ sudo systemctl enable --now gogai-cloudflare
 ```
 
 - `~/.cloudflared/config.yml` に名前付きトンネルの設定がある場合、`--config` に空の一時ファイルを渡してクイックトンネルとして起動する（既存設定の ingress ルールが干渉するため）
-- Gist URL: `https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47`
+- Gist URL: `https://gist.github.com/<your-username>/<your-gist-id>`
 - iOS アプリの「サーバー URL」にこの Gist URL を入力すると、起動時に最新トンネル URL を自動解決して接続する
