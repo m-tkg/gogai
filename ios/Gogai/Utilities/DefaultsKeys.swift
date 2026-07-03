@@ -8,4 +8,5 @@ enum DefaultsKeys {
     static let serverURL = "serverURL"
     static let resolvedServerURL = "resolvedServerURL"
     static let translationEngine = "translationEngine"
+    static let stockSortAscending = "stockSortAscending"
 }

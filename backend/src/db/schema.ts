@@ -154,6 +154,39 @@ const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    name: 'create-stock-tables',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS stock_categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          display_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS stocks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          url TEXT NOT NULL UNIQUE,
+          title TEXT,
+          source TEXT NOT NULL DEFAULT '',
+          category_id INTEGER NOT NULL REFERENCES stock_categories(id),
+          summary TEXT,
+          stocked_at TEXT NOT NULL DEFAULT (datetime('now')),
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_stocks_category_id ON stocks(category_id);
+        CREATE INDEX IF NOT EXISTS idx_stocks_stocked_at ON stocks(stocked_at DESC);
+
+        CREATE TABLE IF NOT EXISTS stock_translations (
+          stock_id INTEGER PRIMARY KEY REFERENCES stocks(id) ON DELETE CASCADE,
+          segments TEXT NOT NULL,
+          translated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `)
+    },
+  },
 ]
 
 export function initSchema(db: Database.Database): void {
