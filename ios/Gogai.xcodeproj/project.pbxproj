@@ -109,7 +109,7 @@
 		FF0000000000000000006CAB /* StockRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000055AB /* StockRepository.swift */; };
 		FF0000000000000000006DAB /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000065AB /* AppGroup.swift */; };
 		FF0000000000000000006EAB /* DefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003BAB /* DefaultsKeys.swift */; };
-		FF0000000000000000006FAB /* GogaiShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD0000000000000000006AAB /* GogaiShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
+		FF0000000000000000006FAB /* GogaiShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD0000000000000000006AAB /* GogaiShareExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
 		FF00000000000000000070AB /* StockRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000070AB /* StockRowView.swift */; };
 /* End PBXBuildFile section */
 
@@ -792,6 +792,7 @@
 		};
 		GG00000000000000000004AB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = BB0000000000000000000CAB /* GogaiShareExtension */;
 			targetProxy = GG00000000000000000003AB /* PBXContainerItemProxy */;
 		};
