@@ -121,10 +121,10 @@ final class StockStore: ObservableObject {
         guard let url = URL(string: stock.url) else { throw StockSummaryGenerationError.invalidURL }
 
         let summarizer = StockSummarizer(generator: generator)
-        let summary = try await BackgroundExecution.run(name: "Stock.summarize") {
-            try await summarizer.summarize(url: url, title: stock.title, session: session)
+        try await BackgroundExecution.run(name: "Stock.summarize") {
+            let summary = try await summarizer.summarize(url: url, title: stock.title, session: session)
+            try await saveSummary(id: stockId, summary: summary)
         }
-        try await saveSummary(id: stockId, summary: summary)
     }
 
     @MainActor
