@@ -114,6 +114,7 @@
 		FF00000000000000000071AB /* ReleaseInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000071AB /* ReleaseInfo.swift */; };
 		FF00000000000000000072AB /* MacUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000072AB /* MacUpdater.swift */; };
 		FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000073AB /* ReleaseInfoTests.swift */; };
+		FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -249,6 +250,7 @@
 		DD00000000000000000071AB /* ReleaseInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfo.swift; sourceTree = "<group>"; };
 		DD00000000000000000072AB /* MacUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdater.swift; sourceTree = "<group>"; };
 		EE00000000000000000073AB /* ReleaseInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfoTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGeneratorTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
@@ -494,6 +496,7 @@
 				EE00000000000000000060AB /* StockSummarizerTests.swift */,
 				EE00000000000000000061AB /* StockSummaryTests.swift */,
 				EE00000000000000000064AB /* FMPageTranslatorTests.swift */,
+				EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -791,6 +794,7 @@
 				FF00000000000000000061AB /* StockSummaryTests.swift in Sources */,
 				FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */,
 				FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */,
+				FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
