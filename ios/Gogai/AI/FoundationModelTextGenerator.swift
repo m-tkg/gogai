@@ -31,9 +31,38 @@ enum LocalAI {
 /// Apple のオンデバイス基盤モデル（Foundation Models framework）による実装
 @available(iOS 26.0, *)
 struct FoundationModelTextGenerator: TextGenerating {
+    /// contextSizeExceeded を受けてプロンプトを縮小し再試行する最大回数
+    static let maxContextRetries = 2
+
     func generate(instructions: String, prompt: String) async throws -> String {
+        try await generate(instructions: instructions, prompt: prompt, remainingRetries: Self.maxContextRetries)
+    }
+
+    private func generate(instructions: String, prompt: String, remainingRetries: Int) async throws -> String {
         let session = LanguageModelSession(instructions: instructions)
-        let response = try await session.respond(to: prompt)
-        return response.content
+        do {
+            let response = try await session.respond(to: prompt)
+            return response.content
+        } catch {
+            guard remainingRetries > 0, let shrunkPrompt = Self.shrinkPromptIfContextExceeded(prompt, error: error) else {
+                throw error
+            }
+            return try await generate(instructions: instructions, prompt: shrunkPrompt, remainingRetries: remainingRetries - 1)
+        }
+    }
+
+    /// LanguageModelError.contextSizeExceeded の実測トークン数/上限からプロンプトを安全な長さまで縮める。
+    /// 文字数からトークン数を正確に見積もれない(特に日本語)ため、実測値をもとに動的に縮小して再試行する。
+    /// それ以外のエラーやトークン数が取得できない場合は nil を返す(= リトライしない)。
+    static func shrinkPromptIfContextExceeded(_ prompt: String, error: Error) -> String? {
+        guard #available(iOS 27.0, *) else { return nil }
+        guard case LanguageModelError.contextSizeExceeded(let context) = error, context.tokenCount > 0 else {
+            return nil
+        }
+        // 安全マージンを持たせて縮小する(instructions分のトークンも contextSize に含まれるため)
+        let ratio = (Double(context.contextSize) / Double(context.tokenCount)) * 0.8
+        let targetLength = max(200, Int(Double(prompt.count) * ratio))
+        guard targetLength < prompt.count else { return nil }
+        return String(prompt.prefix(targetLength))
     }
 }
