@@ -188,9 +188,6 @@ struct StockDetailView: View {
     private var bottomBar: some View {
         HStack(spacing: 24) {
             Spacer()
-            if URL(string: currentStock.url) != nil {
-                StockDetailFooterButton(icon: "safari", label: "元記事") { showBrowser = true }
-            }
             if canShowTranslation {
                 StockDetailFooterButton(icon: "character.bubble", label: "翻訳") { showTranslation = true }
             }
@@ -204,8 +201,11 @@ struct StockDetailView: View {
                     stockStore.requestSummary(for: currentStock.id)
                 }
             }
-            StockDetailFooterButton(icon: "pencil", label: "編集") { showEdit = true }
             StockDetailFooterButton(icon: "trash", label: "削除", isDestructive: true) { showDeleteConfirm = true }
+            StockDetailFooterButton(icon: "pencil", label: "編集") { showEdit = true }
+            if URL(string: currentStock.url) != nil {
+                StockDetailFooterButton(icon: "safari", label: "表示") { showBrowser = true }
+            }
             Spacer()
         }
         .padding(.vertical, 10)
