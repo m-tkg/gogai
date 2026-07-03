@@ -1,0 +1,161 @@
+name: Mac Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/mac-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios
+    env:
+      ARCHIVE_PATH: ${{ github.workspace }}/.build/mac/Gogai.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/.build/mac/export
+      DMG_PATH: ${{ github.workspace }}/.build/mac/Gogai.dmg
+      PROVISIONING_PROFILE_UUID: 9ebf5083-0e0c-4545-b133-8ef4464734a0
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select latest available Xcode
+        run: |
+          LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          echo "Selected: $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
+          xcodebuild -version
+
+      - name: Sync app icons
+        run: |
+          cp appiconset/*.png Gogai/Assets.xcassets/AppIcon.appiconset/
+          rm -f Gogai/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png
+          cp appiconset/Contents.json Gogai/Assets.xcassets/AppIcon.appiconset/
+
+      # ビルド設定からバージョンを解決する(アーカイブ前。ビルドを走らせずに済む)
+      - name: Resolve version
+        id: ver
+        run: |
+          SETTINGS=$(xcodebuild -showBuildSettings \
+            -project Gogai.xcodeproj -scheme Gogai -configuration Release \
+            -destination "platform=macOS,variant=Mac Catalyst" 2>/dev/null)
+          V=$(echo "$SETTINGS" | awk -F'= ' '/ MARKETING_VERSION /{print $2; exit}')
+          B=$(echo "$SETTINGS" | awk -F'= ' '/ CURRENT_PROJECT_VERSION /{print $2; exit}')
+          TAG="mac-v${V}-${B}"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $V ($B), tag: $TAG"
+
+      - name: Check existing release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.ver.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.ver.outputs.tag }} already exists; skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Developer ID 証明書を一時キーチェーンに取り込む
+      - name: Import signing certificate
+        if: steps.check.outputs.exists == 'false'
+        env:
+          P12_BASE64: ${{ secrets.SIGNING_CERTIFICATE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PW="$(uuidgen)"
+          echo "$P12_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          echo "SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+      # App Group 対応済みの Developer ID プロビジョニングプロファイルをインストールする。
+      # ローカルの `make mac-export`(自動署名 + Xcode ログイン済みアカウント)で一度生成したものを
+      # Secrets に保存して再利用している(有効期限 2044 年。capability を変更したら再取得が必要)。
+      - name: Install provisioning profile
+        if: steps.check.outputs.exists == 'false'
+        env:
+          PROFILE_BASE64: ${{ secrets.MAC_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_DIR"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_DIR/$PROVISIONING_PROFILE_UUID.provisionprofile"
+
+      - name: Archive for macOS (Mac Catalyst)
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          xcodebuild archive \
+            -project Gogai.xcodeproj \
+            -scheme Gogai \
+            -configuration Release \
+            -destination "platform=macOS,variant=Mac Catalyst" \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM=G72M73C546 \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            PROVISIONING_PROFILE="$PROVISIONING_PROFILE_UUID" \
+            -quiet
+
+      - name: Export (Developer ID)
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          rm -rf "$EXPORT_PATH"
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist ExportOptions-mac-ci.plist
+
+      - name: Create DMG
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          rm -f "$DMG_PATH"
+          hdiutil create -volname "Gogai" \
+            -srcfolder "$EXPORT_PATH/Gogai.app" \
+            -ov -format UDZO \
+            "$DMG_PATH"
+
+      - name: Notarize and staple
+        if: steps.check.outputs.exists == 'false'
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+        run: |
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$NOTARY_APPLE_ID" \
+            --password "$NOTARY_PASSWORD" \
+            --team-id "$NOTARY_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+
+      - name: Create tag and release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Gogai ${{ steps.ver.outputs.version }} (macOS)" \
+            --generate-notes \
+            "$DMG_PATH"
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain "$SIGN_KEYCHAIN" || true
