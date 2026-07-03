@@ -1,0 +1,30 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    volumes:
+      - db-data:/app/data
+    environment:
+      - PORT=3040
+      - DB_PATH=/app/data/rss.db
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3040/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # nginx がバックエンドへリバースプロキシするので /api をそのまま使う
+        VITE_API_URL: ""
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db-data:
