@@ -12,20 +12,7 @@ struct StockListView: View {
         List {
             ForEach(stocks) { stock in
                 NavigationLink(value: stock) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(stock.title ?? stock.url)
-                            .font(.body)
-                            .lineLimit(2)
-                        HStack(spacing: 8) {
-                            Text(stock.source)
-                            Text(stock.stocked_at.displayDate)
-                            if stock.summary == nil {
-                                Label("要約待ち", systemImage: "hourglass")
-                            }
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
+                    StockRowView(stock: stock)
                 }
             }
             .onDelete { offsets in
