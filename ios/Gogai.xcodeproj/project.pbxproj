@@ -110,6 +110,7 @@
 		FF0000000000000000006DAB /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000065AB /* AppGroup.swift */; };
 		FF0000000000000000006EAB /* DefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003BAB /* DefaultsKeys.swift */; };
 		FF0000000000000000006FAB /* GogaiShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD0000000000000000006AAB /* GogaiShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
+		FF00000000000000000070AB /* StockRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000070AB /* StockRowView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -241,6 +242,7 @@
 		DD00000000000000000069AB /* GogaiShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GogaiShareExtension.entitlements; sourceTree = "<group>"; };
 		DD0000000000000000006AAB /* GogaiShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GogaiShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD0000000000000000006BAB /* Gogai.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Gogai.entitlements; sourceTree = "<group>"; };
+		DD00000000000000000070AB /* StockRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRowView.swift; sourceTree = "<group>"; };
 		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
@@ -446,6 +448,7 @@
 				DD0000000000000000005BAB /* StockDetailView.swift */,
 				DD0000000000000000005CAB /* AddStockView.swift */,
 				DD0000000000000000005DAB /* EditStockView.swift */,
+				DD00000000000000000070AB /* StockRowView.swift */,
 			);
 			path = Stocks;
 			sourceTree = "<group>";
@@ -727,6 +730,7 @@
 				FF00000000000000000062AB /* FMPageTranslator.swift in Sources */,
 				FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */,
 				FF00000000000000000065AB /* AppGroup.swift in Sources */,
+				FF00000000000000000070AB /* StockRowView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
