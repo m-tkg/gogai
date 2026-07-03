@@ -12,8 +12,19 @@ struct StockRowView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: Error?
-    @State private var isGeneratingSummary = false
-    @State private var summaryError: Error?
+
+    /// View のライフサイクルに依存しないストアのキュー状態を見る(戻ってもキューは継続する)。
+    private var isGeneratingSummary: Bool {
+        stockStore.currentlySummarizingStockId == currentStock.id || isQueued
+    }
+
+    private var isQueued: Bool {
+        stockStore.pendingSummaryStockIds.contains(currentStock.id)
+    }
+
+    private var summaryError: String? {
+        stockStore.summaryErrors[currentStock.id]
+    }
 
     private var currentStock: Stock {
         stockStore.stocks.first(where: { $0.id == stock.id }) ?? stock
@@ -30,7 +41,7 @@ struct StockRowView: View {
     }
 
     private var summaryErrorBinding: Binding<Bool> {
-        Binding(get: { summaryError != nil }, set: { if !$0 { summaryError = nil } })
+        Binding(get: { summaryError != nil }, set: { if !$0 { stockStore.clearSummaryError(for: currentStock.id) } })
     }
 
     var body: some View {
@@ -42,7 +53,7 @@ struct StockRowView: View {
                 Text(currentStock.source)
                 Text(currentStock.stocked_at.displayDate)
                 if isGeneratingSummary {
-                    Label("生成中", systemImage: "sparkles")
+                    Label(isQueued ? "順番待ち" : "生成中", systemImage: "sparkles")
                 } else if currentStock.summary == nil {
                     Label("要約待ち", systemImage: "hourglass")
                 }
@@ -67,7 +78,7 @@ struct StockRowView: View {
             }
             if currentStock.summary == nil {
                 Button {
-                    Task { await generateSummary() }
+                    stockStore.requestSummary(for: currentStock.id)
                 } label: {
                     Label("要約を生成", systemImage: "sparkles")
                 }
@@ -113,19 +124,9 @@ struct StockRowView: View {
             Text(deleteError?.localizedDescription ?? "")
         }
         .alert("要約の生成に失敗しました", isPresented: summaryErrorBinding) {
-            Button("OK") { summaryError = nil }
+            Button("OK") { stockStore.clearSummaryError(for: currentStock.id) }
         } message: {
-            Text(summaryError?.localizedDescription ?? "")
-        }
-    }
-
-    private func generateSummary() async {
-        isGeneratingSummary = true
-        defer { isGeneratingSummary = false }
-        do {
-            try await stockStore.generateSummary(for: currentStock.id)
-        } catch {
-            summaryError = error
+            Text(summaryError ?? "")
         }
     }
 }

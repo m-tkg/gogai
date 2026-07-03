@@ -33,22 +33,52 @@ enum LocalAI {
 struct FoundationModelTextGenerator: TextGenerating {
     /// contextSizeExceeded を受けてプロンプトを縮小し再試行する最大回数
     static let maxContextRetries = 2
+    /// concurrentRequests を受けて短い待機の後に再試行する最大回数
+    static let maxConcurrentRetries = 2
+    /// concurrentRequests 検知時の待機時間(要約キューが翻訳優先で中断した際、
+    /// オンデバイスモデル側の処理がまだ終わっていない場合の猶予)
+    static let concurrentRetryDelay: Duration = .milliseconds(300)
 
     func generate(instructions: String, prompt: String) async throws -> String {
-        try await generate(instructions: instructions, prompt: prompt, remainingRetries: Self.maxContextRetries)
+        try await generate(
+            instructions: instructions, prompt: prompt,
+            remainingContextRetries: Self.maxContextRetries,
+            remainingConcurrentRetries: Self.maxConcurrentRetries
+        )
     }
 
-    private func generate(instructions: String, prompt: String, remainingRetries: Int) async throws -> String {
+    private func generate(
+        instructions: String, prompt: String,
+        remainingContextRetries: Int, remainingConcurrentRetries: Int
+    ) async throws -> String {
         let session = LanguageModelSession(instructions: instructions)
         do {
             let response = try await session.respond(to: prompt)
             return response.content
         } catch {
-            guard remainingRetries > 0, let shrunkPrompt = Self.shrinkPromptIfContextExceeded(prompt, error: error) else {
+            if remainingConcurrentRetries > 0, Self.isConcurrentRequestsError(error) {
+                try await Task.sleep(for: Self.concurrentRetryDelay)
+                return try await generate(
+                    instructions: instructions, prompt: prompt,
+                    remainingContextRetries: remainingContextRetries,
+                    remainingConcurrentRetries: remainingConcurrentRetries - 1
+                )
+            }
+            guard remainingContextRetries > 0, let shrunkPrompt = Self.shrinkPromptIfContextExceeded(prompt, error: error) else {
                 throw error
             }
-            return try await generate(instructions: instructions, prompt: shrunkPrompt, remainingRetries: remainingRetries - 1)
+            return try await generate(
+                instructions: instructions, prompt: shrunkPrompt,
+                remainingContextRetries: remainingContextRetries - 1,
+                remainingConcurrentRetries: remainingConcurrentRetries
+            )
         }
+    }
+
+    /// LanguageModelSession.Error.concurrentRequests(オンデバイスモデルは同時に1リクエストしか
+    /// 処理できない)を検知する。型ではなくキーワードで判定する理由は shrinkPromptIfContextExceeded と同じ。
+    static func isConcurrentRequestsError(_ error: Error) -> Bool {
+        String(describing: error).lowercased().contains("concurrentrequests")
     }
 
     /// コンテキスト長超過エラーを受けてプロンプトを縮める。

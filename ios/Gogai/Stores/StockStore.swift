@@ -26,6 +26,21 @@ final class StockStore: ObservableObject {
     /// テスト用の差し替えポイント。デフォルトはオンデバイス Foundation Models(利用不可なら nil)。
     var makeSummaryGenerator: () -> (any TextGenerating)? = { LocalAI.makeGenerator() }
 
+    // MARK: - 要約キュー
+    // View(戻るボタン等)のライフサイクルに依存せず Store が持つことで、
+    // 画面遷移後もキュー処理を継続できる。オンデバイス AI は同時に1リクエストしか
+    // 処理できないため(LanguageModelSession.Error.concurrentRequests)、常に直列実行する。
+
+    /// 実行待ちのストック ID(先頭が次に実行される)
+    @Published private(set) var pendingSummaryStockIds: [Int] = []
+    /// 現在生成中のストック ID
+    @Published private(set) var currentlySummarizingStockId: Int?
+    /// ストックIDごとの直近の要約失敗メッセージ
+    @Published private(set) var summaryErrors: [Int: String] = [:]
+
+    private var summaryQueueTask: Task<Void, Never>?
+    private var isSummaryQueuePaused = false
+
     private var client: (any APIClientProtocol)?
 
     init() {
@@ -121,10 +136,82 @@ final class StockStore: ObservableObject {
         guard let url = URL(string: stock.url) else { throw StockSummaryGenerationError.invalidURL }
 
         let summarizer = StockSummarizer(generator: generator)
-        let summary = try await BackgroundExecution.run(name: "Stock.summarize") {
-            try await summarizer.summarize(url: url, title: stock.title, session: session)
+        try await BackgroundExecution.run(name: "Stock.summarize") {
+            let summary = try await summarizer.summarize(url: url, title: stock.title, session: session)
+            try await saveSummary(id: stockId, summary: summary)
         }
-        try await saveSummary(id: stockId, summary: summary)
+    }
+
+    /// 要約をキューに追加する(fire-and-forget)。View のライフサイクル(戻るボタン等)に
+    /// 依存せず Store が保持し続けるため、画面遷移後もキュー処理を継続する。
+    /// 既に生成中/待機中/生成済みのストックは無視する。
+    @MainActor
+    func requestSummary(for stockId: Int, session: URLSession = .shared) {
+        guard stocks.first(where: { $0.id == stockId })?.summary == nil else { return }
+        guard currentlySummarizingStockId != stockId, !pendingSummaryStockIds.contains(stockId) else { return }
+        summaryErrors[stockId] = nil
+        pendingSummaryStockIds.append(stockId)
+        driveSummaryQueue(session: session)
+    }
+
+    /// 翻訳を優先させるため、実行中の要約があれば中断してキュー処理を一時停止する。
+    /// オンデバイス AI は同時に1リクエストしか処理できないための措置(#126 参照)。
+    /// 中断された要約は再開時に最初からやり直す(オンデバイスモデルに部分再開の手段が無いため)。
+    ///
+    /// summaryQueueTask はここで同期的に nil クリアする(キャンセルされたタスク自身の後片付けを
+    /// 待たない)。そうしないと、キャンセル後すぐに resumeSummaryQueueAfterTranslation で新しい
+    /// タスクを開始した場合、遅れて実行される旧タスクの後片付けが新タスクの参照を誤って
+    /// クリアしてしまうレースが起こり得る(driveSummaryQueue の再入防止ガードが壊れる)。
+    @MainActor
+    func pauseSummaryQueueForTranslation() {
+        isSummaryQueuePaused = true
+        summaryQueueTask?.cancel()
+        summaryQueueTask = nil
+    }
+
+    /// 翻訳完了後、要約キューを再開する。
+    @MainActor
+    func resumeSummaryQueueAfterTranslation(session: URLSession = .shared) {
+        isSummaryQueuePaused = false
+        driveSummaryQueue(session: session)
+    }
+
+    /// エラーアラートを閉じた後の表示クリア用。
+    @MainActor
+    func clearSummaryError(for stockId: Int) {
+        summaryErrors[stockId] = nil
+    }
+
+    @MainActor
+    private func driveSummaryQueue(session: URLSession) {
+        guard summaryQueueTask == nil, !isSummaryQueuePaused else { return }
+        summaryQueueTask = Task { [weak self] in
+            await self?.runSummaryQueue(session: session)
+            // pauseSummaryQueueForTranslation は自分で summaryQueueTask を同期的にクリアするため、
+            // キャンセルされて戻ってきた場合はここで触らない(新しいタスクの参照を壊さないため)。
+            if !Task.isCancelled {
+                self?.summaryQueueTask = nil
+            }
+        }
+    }
+
+    @MainActor
+    private func runSummaryQueue(session: URLSession) async {
+        while !isSummaryQueuePaused, !pendingSummaryStockIds.isEmpty {
+            let stockId = pendingSummaryStockIds.removeFirst()
+            currentlySummarizingStockId = stockId
+            do {
+                try await generateSummary(for: stockId, session: session)
+            } catch is CancellationError {
+                // 翻訳優先のため中断された。やり直せるようキュー先頭へ戻して終了する。
+                pendingSummaryStockIds.insert(stockId, at: 0)
+                currentlySummarizingStockId = nil
+                return
+            } catch {
+                summaryErrors[stockId] = error.localizedDescription
+            }
+            currentlySummarizingStockId = nil
+        }
     }
 
     @MainActor
