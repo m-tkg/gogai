@@ -91,6 +91,32 @@ final class TranslatedPageModelTests: XCTestCase {
         XCTAssertFalse(model.isShowingOriginal)
     }
 
+    // MARK: - restoreTranslations（サーバー保存済み訳文の復元）
+
+    func test_restoreTranslations_保存済みの訳文を一括で書き戻す() async throws {
+        let model = try await makeLoadedModel(html: """
+        <html><body><p id="p1">Hello</p><p id="p2">World</p></body></html>
+        """)
+        _ = try await model.extractTexts()
+
+        await model.restoreTranslations([0: "こんにちは", 1: "世界"])
+
+        let p1Text = try await model.webView.evaluateJavaScript("document.getElementById('p1').textContent") as? String
+        let p2Text = try await model.webView.evaluateJavaScript("document.getElementById('p2').textContent") as? String
+        XCTAssertEqual(p1Text, "こんにちは")
+        XCTAssertEqual(p2Text, "世界")
+        XCTAssertTrue(model.hasTranslations)
+    }
+
+    func test_restoreTranslations_空辞書なら何もしない() async throws {
+        let model = try await makeLoadedModel(html: "<html><body><p id=\"p1\">Hello</p></body></html>")
+        _ = try await model.extractTexts()
+
+        await model.restoreTranslations([:])
+
+        XCTAssertFalse(model.hasTranslations)
+    }
+
     func test_hasTranslations_訳を適用するまでfalse() async throws {
         let model = try await makeLoadedModel(html: "<html><body><p>Hello</p></body></html>")
         _ = try await model.extractTexts()

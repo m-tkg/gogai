@@ -41,9 +41,16 @@ struct StockDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showBrowser = false
+    @State private var showTranslation = false
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: Error?
+
+    /// 翻訳を実行できる(または結果を再確認できる)条件:
+    /// この端末で AI が使えるか、既に翻訳済みで結果が保存されているか
+    private var canShowTranslation: Bool {
+        LocalAI.isAvailable || currentStock.has_translation
+    }
 
     private var currentStock: Stock {
         stockStore.stocks.first(where: { $0.id == stock.id }) ?? stock
@@ -88,6 +95,13 @@ struct StockDetailView: View {
                     } label: {
                         Image(systemName: "safari")
                     }
+                    if canShowTranslation {
+                        Button {
+                            showTranslation = true
+                        } label: {
+                            Image(systemName: "character.bubble")
+                        }
+                    }
                 }
                 Button {
                     showEdit = true
@@ -105,6 +119,9 @@ struct StockDetailView: View {
             if let url = URL(string: currentStock.url) {
                 BrowserView(url: url)
             }
+        }
+        .navigationDestination(isPresented: $showTranslation) {
+            FMTranslatedPageView(stock: currentStock)
         }
         .sheet(isPresented: $showEdit) {
             EditStockView(stock: currentStock)

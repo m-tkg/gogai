@@ -84,6 +84,23 @@ final class StockStore: ObservableObject {
         }
     }
 
+    /// 保存済みの翻訳を取得する(未保存・取得失敗時は nil)
+    @MainActor
+    func fetchTranslation(id: Int) async -> StockTranslationPayload? {
+        guard let client else { return nil }
+        return try? await StockRepository(client: client).fetchTranslation(id: id)
+    }
+
+    /// 翻訳を保存する(UPSERT。再翻訳時の上書きもこのメソッドを使う)
+    @MainActor
+    func saveTranslation(id: Int, segments: String) async throws {
+        guard let client else { return }
+        try await StockRepository(client: client).saveTranslation(id: id, segments: segments)
+        if let idx = stocks.firstIndex(where: { $0.id == id }) {
+            stocks[idx] = stocks[idx].updating(hasTranslation: true)
+        }
+    }
+
     /// summary が未生成のストックを stocked_at の古い順に逐次生成する。
     /// オンデバイス AI が利用できない端末や、既に実行中の場合は何もしない。
     @MainActor

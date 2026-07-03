@@ -96,6 +96,9 @@
 		FF0000000000000000005FAB /* StockSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005FAB /* StockSummary.swift */; };
 		FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000060AB /* StockSummarizerTests.swift */; };
 		FF00000000000000000061AB /* StockSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000061AB /* StockSummaryTests.swift */; };
+		FF00000000000000000062AB /* FMPageTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000062AB /* FMPageTranslator.swift */; };
+		FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000063AB /* FMTranslatedPageView.swift */; };
+		FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000064AB /* FMPageTranslatorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -196,6 +199,9 @@
 		DD0000000000000000005FAB /* StockSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummary.swift; sourceTree = "<group>"; };
 		EE00000000000000000060AB /* StockSummarizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizerTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000061AB /* StockSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummaryTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000062AB /* FMPageTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMPageTranslator.swift; sourceTree = "<group>"; };
+		DD00000000000000000063AB /* FMTranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTranslatedPageView.swift; sourceTree = "<group>"; };
+		EE00000000000000000064AB /* FMPageTranslatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMPageTranslatorTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005AAB /* StockListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockListView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
@@ -327,6 +333,8 @@
 				DD0000000000000000004EAB /* TranslationCache.swift */,
 				DD0000000000000000005EAB /* StockSummarizer.swift */,
 				DD0000000000000000005FAB /* StockSummary.swift */,
+				DD00000000000000000062AB /* FMPageTranslator.swift */,
+				DD00000000000000000063AB /* FMTranslatedPageView.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -422,6 +430,7 @@
 				EE0000000000000000004DAB /* TranslationCacheTests.swift */,
 				EE00000000000000000060AB /* StockSummarizerTests.swift */,
 				EE00000000000000000061AB /* StockSummaryTests.swift */,
+				EE00000000000000000064AB /* FMPageTranslatorTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -632,6 +641,8 @@
 				FF0000000000000000005DAB /* EditStockView.swift in Sources */,
 				FF0000000000000000005EAB /* StockSummarizer.swift in Sources */,
 				FF0000000000000000005FAB /* StockSummary.swift in Sources */,
+				FF00000000000000000062AB /* FMPageTranslator.swift in Sources */,
+				FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -663,6 +674,7 @@
 				FF00000000000000000058AB /* StockStoreTests.swift in Sources */,
 				FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */,
 				FF00000000000000000061AB /* StockSummaryTests.swift in Sources */,
+				FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
