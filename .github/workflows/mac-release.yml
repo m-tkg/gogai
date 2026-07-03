@@ -18,10 +18,9 @@ jobs:
       run:
         working-directory: ios
     env:
-      ARCHIVE_PATH: ${{ github.workspace }}/.build/mac/Gogai.xcarchive
-      EXPORT_PATH: ${{ github.workspace }}/.build/mac/export
+      DERIVED_DATA_PATH: ${{ github.workspace }}/.build/mac/DerivedData
+      APP_PATH: ${{ github.workspace }}/.build/mac/DerivedData/Build/Products/Release-maccatalyst/Gogai.app
       DMG_PATH: ${{ github.workspace }}/.build/mac/Gogai.dmg
-      PROVISIONING_PROFILE_UUID: 9ebf5083-0e0c-4545-b133-8ef4464734a0
     steps:
       - uses: actions/checkout@v5
 
@@ -38,7 +37,7 @@ jobs:
           rm -f Gogai/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png
           cp appiconset/Contents.json Gogai/Assets.xcassets/AppIcon.appiconset/
 
-      # ビルド設定からバージョンを解決する(アーカイブ前。ビルドを走らせずに済む)
+      # ビルド設定からバージョンを解決する(実ビルド前。ビルドを走らせずに済む)
       - name: Resolve version
         id: ver
         run: |
@@ -83,49 +82,37 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           echo "SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
-      # App Group 対応済みの Developer ID プロビジョニングプロファイルをインストールする。
-      # ローカルの `make mac-export`(自動署名 + Xcode ログイン済みアカウント)で一度生成したものを
-      # Secrets に保存して再利用している(有効期限 2044 年。capability を変更したら再取得が必要)。
-      - name: Install provisioning profile
-        if: steps.check.outputs.exists == 'false'
-        env:
-          PROFILE_BASE64: ${{ secrets.MAC_PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-          mkdir -p "$PROFILE_DIR"
-          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_DIR/$PROVISIONING_PROFILE_UUID.provisionprofile"
-
-      - name: Archive for macOS (Mac Catalyst)
+      # Xcode の自動プロビジョニング管理を経由せず、署名なしでビルドしてから
+      # 直接 codesign する(App Group entitlement はサンドボックス化されていないため
+      # プロビジョニングプロファイル無しで有効。Xcode 管理プロファイルは
+      # CODE_SIGN_STYLE=Manual では使えないため、この方式を採る)。
+      - name: Build (unsigned)
         if: steps.check.outputs.exists == 'false'
         run: |
-          xcodebuild archive \
+          xcodebuild build \
             -project Gogai.xcodeproj \
             -scheme Gogai \
             -configuration Release \
             -destination "platform=macOS,variant=Mac Catalyst" \
-            -archivePath "$ARCHIVE_PATH" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
-            DEVELOPMENT_TEAM=G72M73C546 \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            PROVISIONING_PROFILE="$PROVISIONING_PROFILE_UUID" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
             -quiet
 
-      - name: Export (Developer ID)
+      - name: Codesign with Developer ID
         if: steps.check.outputs.exists == 'false'
         run: |
-          rm -rf "$EXPORT_PATH"
-          xcodebuild -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
-            -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist ExportOptions-mac-ci.plist
+          codesign --force --deep --options runtime \
+            --entitlements Gogai/Gogai.entitlements \
+            --sign "Developer ID Application: Masaki TAKAGI (G72M73C546)" \
+            "$APP_PATH"
+          codesign --verify --deep --strict "$APP_PATH"
 
       - name: Create DMG
         if: steps.check.outputs.exists == 'false'
         run: |
           rm -f "$DMG_PATH"
           hdiutil create -volname "Gogai" \
-            -srcfolder "$EXPORT_PATH/Gogai.app" \
+            -srcfolder "$APP_PATH" \
             -ov -format UDZO \
             "$DMG_PATH"
 
