@@ -1,4 +1,0 @@
-Target dependency graph (2 targets)
-Target 'GogaiTests' in project 'Gogai'
-➜ Explicit dependency on target 'Gogai' in project 'Gogai'
-Target 'Gogai' in project 'Gogai' (no dependencies)
