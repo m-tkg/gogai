@@ -11,25 +11,40 @@ struct StockCategoryListView: View {
     @State private var isEditing = false
     @State private var showAddStock = false
 
-    /// 要約キューの状態を「「タイトル」を要約中… 他N件待機中」の形で表示する。
-    private var summaryQueueBannerText: String? {
-        guard let currentId = stockStore.currentlySummarizingStockId else { return nil }
-        let title = stockStore.stocks.first(where: { $0.id == currentId })?.title ?? "記事"
-        let pendingCount = stockStore.pendingSummaryStockIds.count
-        let suffix = pendingCount > 0 ? "… 他\(pendingCount)件待機中" : "…"
-        return "「\(title)」を要約中\(suffix)"
+    /// 現在生成中 + 待機中を合わせた要約キューの一覧(表示用)。
+    private var summaryQueueItems: [(id: Int, title: String, isGenerating: Bool)] {
+        var items: [(id: Int, title: String, isGenerating: Bool)] = []
+        if let currentId = stockStore.currentlySummarizingStockId {
+            items.append((currentId, title(for: currentId), true))
+        }
+        items += stockStore.pendingSummaryStockIds.map { (id: $0, title: title(for: $0), isGenerating: false) }
+        return items
+    }
+
+    private func title(for stockId: Int) -> String {
+        stockStore.stocks.first(where: { $0.id == stockId })?.title ?? "記事"
     }
 
     var body: some View {
         List {
-            if let banner = summaryQueueBannerText {
-                Section {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                        Text(banner)
+            if !summaryQueueItems.isEmpty {
+                Section("要約キュー") {
+                    ForEach(summaryQueueItems, id: \.id) { item in
+                        HStack(spacing: 8) {
+                            if item.isGenerating {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "hourglass")
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(item.title)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(item.isGenerating ? "生成中" : "順番待ち")
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.subheadline)
                     }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
                 }
             }
             ForEach(stockStore.categories) { category in
