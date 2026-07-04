@@ -325,8 +325,9 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 
 ### macOS（Mac Catalyst）版のビルド・リリース（`.github/workflows/mac-release.yml`）
 
-- トリガー: `main` への push（`ios/**` 変更時）または手動実行。`MARKETING_VERSION` から解決したタグ（`v{version}`）の
-  GitHub Release が既に存在すればスキップする（ビルドをやり直さない）
+- トリガー: `v*` タグの push、または手動実行（`workflow_dispatch` はタグを指定して実行すること。ブランチからの
+  手動実行は弾かれる）。push されたタグと `MARKETING_VERSION` から算出したタグ（`v{version}`）が一致しない場合は失敗する。
+  対応する GitHub Release が既に存在すればスキップする（ビルドをやり直さない）
 - 署名: Xcode の自動プロビジョニング管理を経由せず、`CODE_SIGNING_ALLOWED=NO` で署名なしビルドしてから
   Developer ID 証明書で直接 `codesign` する（App Group entitlement は非サンドボックスのためプロビジョニングプロファイル不要）
 - 公証: `.app` を zip 化して 1 回だけ notarize し、`.app` 自体に staple する。dmg 自体は notarize していないため
