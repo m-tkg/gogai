@@ -70,7 +70,6 @@ struct UpdateService {
     }
 }
 
-@MainActor
 enum SelfUpdater {
     enum UpdateError: LocalizedError {
         case notWritable(String)
