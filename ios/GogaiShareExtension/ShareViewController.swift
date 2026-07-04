@@ -120,10 +120,26 @@ final class ShareViewController: UIViewController {
         } catch {
             // 途中まで読めていればそのデータで抽出を試みる
         }
-        guard let html = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+        guard let html = decodeUTF8HTML(data) else {
             return nil
         }
         return extractTitleTag(from: html)
+    }
+
+    /// 64KB 打ち切りにより末尾がマルチバイト文字の途中で切れている場合があるため、
+    /// デコードに失敗した末尾バイトを落としてから再試行する(最大で UTF-8 の1文字分 = 3バイト)。
+    /// ここで isoLatin1 等へフォールバックすると、正しい UTF-8 部分(タイトル)まで
+    /// 巻き込んで文字化けするため行わない。
+    private static func decodeUTF8HTML(_ data: Data) -> String? {
+        var bytes = data
+        for _ in 0..<4 {
+            if let html = String(data: bytes, encoding: .utf8) {
+                return html
+            }
+            guard !bytes.isEmpty else { break }
+            bytes.removeLast()
+        }
+        return nil
     }
 
     private static func extractTitleTag(from html: String) -> String? {
