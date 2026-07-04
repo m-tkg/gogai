@@ -10,6 +10,7 @@ struct StockCategoryListView: View {
 
     @State private var isEditing = false
     @State private var showAddStock = false
+    @State private var isQueueExpanded = true
 
     /// 現在生成中 + 待機中を合わせた要約キューの一覧(表示用)。
     private var summaryQueueItems: [(id: Int, title: String, isGenerating: Bool)] {
@@ -47,22 +48,51 @@ struct StockCategoryListView: View {
                 .disabled(!LocalAI.isAvailable)
             }
             if !summaryQueueItems.isEmpty {
-                Section("要約キュー") {
-                    ForEach(summaryQueueItems, id: \.id) { item in
-                        HStack(spacing: 8) {
-                            if item.isGenerating {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "hourglass")
+                Section {
+                    DisclosureGroup(isExpanded: $isQueueExpanded) {
+                        ForEach(summaryQueueItems, id: \.id) { item in
+                            HStack(spacing: 8) {
+                                if item.isGenerating {
+                                    ProgressView()
+                                } else {
+                                    Image(systemName: "hourglass")
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(item.title)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text(item.isGenerating ? "生成中" : "順番待ち")
+                                    .foregroundStyle(.secondary)
+                                Button {
+                                    stockStore.cancelSummary(for: item.id)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            .font(.subheadline)
+                        }
+                    } label: {
+                        HStack {
+                            Text("要約キュー (\(summaryQueueItems.count))")
+                            if stockStore.isSummaryQueuePausedByUser {
+                                Text("一時停止中")
+                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                            Text(item.title)
-                                .lineLimit(1)
                             Spacer()
-                            Text(item.isGenerating ? "生成中" : "順番待ち")
-                                .foregroundStyle(.secondary)
+                            Button {
+                                if stockStore.isSummaryQueuePausedByUser {
+                                    stockStore.resumeSummaryQueue()
+                                } else {
+                                    stockStore.pauseSummaryQueue()
+                                }
+                            } label: {
+                                Image(systemName: stockStore.isSummaryQueuePausedByUser ? "play.fill" : "pause.fill")
+                            }
+                            .buttonStyle(.borderless)
                         }
-                        .font(.subheadline)
                     }
                 }
             }
