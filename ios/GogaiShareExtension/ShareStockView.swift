@@ -20,6 +20,8 @@ struct ShareStockView: View {
     let onFinish: () -> Void
 
     @State private var source = "共有"
+    @State private var categories: [StockCategory] = []
+    @State private var selectedExistingCategory = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -34,6 +36,19 @@ struct ShareStockView: View {
                 Section("ストック元 / カテゴリ") {
                     TextField("例: 共有", text: $source)
                         .autocorrectionDisabled()
+                    if !categories.isEmpty {
+                        Picker("既存のカテゴリから選ぶ", selection: $selectedExistingCategory) {
+                            Text("選択してください").tag("")
+                            ForEach(categories) { category in
+                                Text(category.name).tag(category.name)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .onChange(of: selectedExistingCategory) { _, newValue in
+                            guard !newValue.isEmpty else { return }
+                            source = newValue
+                        }
+                    }
                 }
                 if let errorMessage {
                     Section {
@@ -55,7 +70,13 @@ struct ShareStockView: View {
                 }
             }
             .disabled(isSaving)
+            .task { await loadCategories() }
         }
+    }
+
+    private func loadCategories() async {
+        guard let client = Self.makeClient() else { return }
+        categories = (try? await StockRepository(client: client).fetchCategories()) ?? []
     }
 
     private func save() async {
