@@ -23,9 +23,10 @@ struct FilterFooterView: View {
 
             if let onStockTap {
                 Button(action: onStockTap) {
-                    Label("ストック", systemImage: "tray.full")
+                    Image(systemName: "tray.full")
                 }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("ストック")
             }
         }
         .padding(.horizontal, 12)
