@@ -97,7 +97,7 @@ struct StockRowView: View {
         }
         .navigationDestination(isPresented: $showBrowser) {
             if let url = URL(string: currentStock.url) {
-                BrowserView(url: url)
+                BrowserView(url: url, onClose: { showBrowser = false })
             }
         }
         .navigationDestination(isPresented: $showTranslation) {
