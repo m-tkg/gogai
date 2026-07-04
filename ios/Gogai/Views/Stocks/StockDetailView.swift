@@ -178,11 +178,16 @@ struct StockDetailView: View {
         }
     }
 
-    /// 元記事(記事ページ)。右下に閉じるボタンを重ね、右スワイプでも閉じられる(RSS 記事ページと同じ操作)
+    /// 元記事(記事ページ)。
+    /// iOS/iPadOS: 右下に閉じるボタンを重ね、右スワイプでも閉じられる(RSS 記事ページと同じ操作)
+    /// macOS(Mac Catalyst): BrowserView 自身のツールバー(閉じる/戻る/進む/リロード)をそのまま使う
     @ViewBuilder
     private var browserDestination: some View {
         if let url = URL(string: currentStock.url) {
-            BrowserView(url: url)
+            #if targetEnvironment(macCatalyst)
+            BrowserView(url: url, onClose: { showBrowser = false })
+            #else
+            BrowserView(url: url, onClose: { showBrowser = false })
                 .overlay(alignment: .bottomTrailing) {
                     CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる") { showBrowser = false }
                         .padding(.trailing, 16)
@@ -190,6 +195,7 @@ struct StockDetailView: View {
                 }
                 .toolbar(.hidden, for: .navigationBar)
                 .onHorizontalSwipe(.right) { showBrowser = false }
+            #endif
         }
     }
 

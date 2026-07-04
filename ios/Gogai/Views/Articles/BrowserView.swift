@@ -5,6 +5,9 @@ import WebKit
 
 struct BrowserView: View {
     let url: URL
+    /// 呼び出し元が navigationDestination(isPresented:) 等で表示している場合、
+    /// dismiss() では正しく閉じられないことがあるため、明示的な閉じる手段を渡せるようにする
+    var onClose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @StateObject private var browser = BrowserModel()
 
@@ -15,7 +18,9 @@ struct BrowserView: View {
                 .navigationTitle(browser.title.isEmpty ? url.host() ?? "" : browser.title)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("閉じる") { dismiss() }
+                        Button("閉じる") {
+                            if let onClose { onClose() } else { dismiss() }
+                        }
                     }
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button {
@@ -119,11 +124,14 @@ import SafariServices
 // iOS/iPadOS: SFSafariViewController（Safari 拡張・広告ブロック対応）
 struct BrowserView: View {
     let url: URL
+    var onClose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        SafariView(url: url, onDismiss: { dismiss() })
-            .ignoresSafeArea()
+        SafariView(url: url, onDismiss: {
+            if let onClose { onClose() } else { dismiss() }
+        })
+        .ignoresSafeArea()
     }
 }
 
