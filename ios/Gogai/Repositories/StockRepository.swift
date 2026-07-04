@@ -51,6 +51,15 @@ struct StockRepository: Sendable {
         try await client.sendVoid(try .put("/api/stocks/\(id)/translation", body: Body(segments: segments)))
     }
 
+    /// URL(正規化後)で既存ストックを検索する(共有シート等で追加前に既存か確認する用途)
+    func lookup(url: String) async throws -> Stock? {
+        struct Response: Decodable, Sendable { let stock: Stock? }
+        let response: Response = try await client.send(
+            .get("/api/stocks/lookup", queryItems: [URLQueryItem(name: "url", value: url)])
+        )
+        return response.stock
+    }
+
     func fetchCategories() async throws -> [StockCategory] {
         try await client.send(.get("/api/stock-categories"))
     }
