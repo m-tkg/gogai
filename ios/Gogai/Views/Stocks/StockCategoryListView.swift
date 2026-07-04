@@ -37,6 +37,11 @@ struct StockCategoryListView: View {
         }
     }
 
+    /// カテゴリ内のいずれかのストックで要約エラーが発生しているか(赤いビックリマーク表示用)
+    private func categoryHasSummaryError(_ category: StockCategory) -> Bool {
+        stockStore.stocks.contains { $0.category_id == category.id && stockStore.summaryErrors[$0.id] != nil }
+    }
+
     var body: some View {
         List {
             if !unsummarizedStockIds.isEmpty {
@@ -102,6 +107,10 @@ struct StockCategoryListView: View {
                         Image(systemName: "folder")
                             .foregroundStyle(.secondary)
                         Text(category.name)
+                        if categoryHasSummaryError(category) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundStyle(.red)
+                        }
                         Spacer()
                         Text("\(category.stock_count)")
                             .foregroundStyle(.secondary)

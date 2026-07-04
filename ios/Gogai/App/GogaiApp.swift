@@ -87,6 +87,8 @@ struct GogaiApp: App {
             await stockStore.fetchAll()
             // アプリが要約処理中に終了していた場合、永続化されたキューを再開する
             stockStore.resumePersistedSummaryQueueIfNeeded()
+            // 前回起動時の要約エラー(赤いビックリマーク表示用)を復元する
+            stockStore.restorePersistedSummaryErrorsIfNeeded()
         }
     }
 }
