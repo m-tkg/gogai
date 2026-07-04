@@ -25,8 +25,27 @@ struct StockCategoryListView: View {
         stockStore.stocks.first(where: { $0.id == stockId })?.title ?? "記事"
     }
 
+    /// まだ要約がないストックの ID(一括要約の対象)
+    private var unsummarizedStockIds: [Int] {
+        stockStore.stocks.filter { $0.summary == nil }.map(\.id)
+    }
+
+    private func summarizeAllUnsummarized() {
+        for id in unsummarizedStockIds {
+            stockStore.requestSummary(for: id)
+        }
+    }
+
     var body: some View {
         List {
+            if !unsummarizedStockIds.isEmpty {
+                Button {
+                    summarizeAllUnsummarized()
+                } label: {
+                    Label("未要約のものを一括要約", systemImage: "sparkles")
+                }
+                .disabled(!LocalAI.isAvailable)
+            }
             if !summaryQueueItems.isEmpty {
                 Section("要約キュー") {
                     ForEach(summaryQueueItems, id: \.id) { item in
