@@ -83,6 +83,10 @@ struct GogaiApp: App {
             // バッジ用のサーバー集計（シークレット込み・1 リクエスト）を最新化する
             await articleStore.refreshCounts()
         }
-        Task { @MainActor in await stockStore.fetchAll() }
+        Task { @MainActor in
+            await stockStore.fetchAll()
+            // アプリが要約処理中に終了していた場合、永続化されたキューを再開する
+            stockStore.resumePersistedSummaryQueueIfNeeded()
+        }
     }
 }

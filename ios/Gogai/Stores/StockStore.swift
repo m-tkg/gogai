@@ -32,9 +32,13 @@ final class StockStore: ObservableObject {
     // 処理できないため(LanguageModelSession.Error.concurrentRequests)、常に直列実行する。
 
     /// 実行待ちのストック ID(先頭が次に実行される)
-    @Published private(set) var pendingSummaryStockIds: [Int] = []
+    @Published private(set) var pendingSummaryStockIds: [Int] = [] {
+        didSet { persistSummaryQueueSnapshot() }
+    }
     /// 現在生成中のストック ID
-    @Published private(set) var currentlySummarizingStockId: Int?
+    @Published private(set) var currentlySummarizingStockId: Int? {
+        didSet { persistSummaryQueueSnapshot() }
+    }
     /// ストックIDごとの直近の要約失敗メッセージ
     @Published private(set) var summaryErrors: [Int: String] = [:]
 
@@ -180,6 +184,30 @@ final class StockStore: ObservableObject {
     @MainActor
     func clearSummaryError(for stockId: Int) {
         summaryErrors[stockId] = nil
+    }
+
+    /// アプリ終了(強制終了含む)後の再起動時に、永続化された要約キューを再開する。
+    /// fetchAll() で stocks を読み込んだ後に呼ぶこと。
+    /// 既に要約済み/削除済みのストック ID は除外する(他端末で完了している場合があるため)。
+    @MainActor
+    func resumePersistedSummaryQueueIfNeeded(session: URLSession = .shared) {
+        guard pendingSummaryStockIds.isEmpty, currentlySummarizingStockId == nil else { return }
+        let persistedIds = UserDefaults.standard.array(forKey: DefaultsKeys.stockSummaryQueue) as? [Int] ?? []
+        let restoredIds = persistedIds.filter { id in
+            guard let stock = stocks.first(where: { $0.id == id }) else { return false }
+            return stock.summary == nil
+        }
+        guard !restoredIds.isEmpty else { return }
+        pendingSummaryStockIds = restoredIds
+        driveSummaryQueue(session: session)
+    }
+
+    /// 現在の要約キュー(生成中 + 待機中)を UserDefaults へ保存する。
+    /// アプリ強制終了後も resumePersistedSummaryQueueIfNeeded() で再開できるようにするため。
+    /// didSet(非 actor-isolated context)から呼ぶため @MainActor を付けない。
+    private func persistSummaryQueueSnapshot() {
+        let snapshot = (currentlySummarizingStockId.map { [$0] } ?? []) + pendingSummaryStockIds
+        UserDefaults.standard.set(snapshot, forKey: DefaultsKeys.stockSummaryQueue)
     }
 
     @MainActor

@@ -15,6 +15,7 @@ final class StockStoreTests: XCTestCase {
     override func tearDown() {
         MockURLProtocol.requestHandler = nil
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.stockSortAscending)
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.stockSummaryQueue)
         super.tearDown()
     }
 
@@ -413,6 +414,90 @@ final class StockStoreTests: XCTestCase {
         XCTAssertNil(store.summaryErrors[1])
         XCTAssertEqual(store.pendingSummaryStockIds, [])
         XCTAssertNotNil(store.stocks.first(where: { $0.id == 1 })?.summary)
+    }
+
+    // MARK: - 要約キューの永続化(アプリ終了後の再開)
+
+    @MainActor
+    func test_requestSummary_キューに入れるとUserDefaultsへ永続化する() async throws {
+        store.stocks = [makeStock(id: 1)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, session: .mock())
+
+        XCTAssertEqual(UserDefaults.standard.array(forKey: DefaultsKeys.stockSummaryQueue) as? [Int], [1])
+
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+    }
+
+    @MainActor
+    func test_要約が完了すると永続化キューから取り除かれる() async throws {
+        store.stocks = [makeStock(id: 1)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, session: .mock())
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+
+        XCTAssertEqual(UserDefaults.standard.array(forKey: DefaultsKeys.stockSummaryQueue) as? [Int] ?? [], [])
+    }
+
+    @MainActor
+    func test_resumePersistedSummaryQueueIfNeeded_永続化されたキューを再開する() async throws {
+        UserDefaults.standard.set([1], forKey: DefaultsKeys.stockSummaryQueue)
+        store.stocks = [makeStock(id: 1)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.resumePersistedSummaryQueueIfNeeded(session: .mock())
+
+        var iterator = generator.calledStream.makeAsyncIterator()
+        let first = await iterator.next()
+        XCTAssertEqual(first, 1)
+        XCTAssertEqual(store.currentlySummarizingStockId, 1)
+
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+        XCTAssertNotNil(store.stocks.first(where: { $0.id == 1 })?.summary)
+    }
+
+    @MainActor
+    func test_resumePersistedSummaryQueueIfNeeded_既に要約済みのIDは再開しない() {
+        UserDefaults.standard.set([1], forKey: DefaultsKeys.stockSummaryQueue)
+        var stock = makeStock(id: 1)
+        stock = stock.updating(summary: "既存の要約")
+        store.stocks = [stock]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+
+        store.resumePersistedSummaryQueueIfNeeded(session: .mock())
+
+        XCTAssertEqual(store.pendingSummaryStockIds, [])
+        XCTAssertNil(store.currentlySummarizingStockId)
+        XCTAssertEqual(generator.callCount, 0)
+    }
+
+    @MainActor
+    func test_resumePersistedSummaryQueueIfNeeded_存在しないストックIDは無視する() {
+        UserDefaults.standard.set([999], forKey: DefaultsKeys.stockSummaryQueue)
+        store.stocks = []
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+
+        store.resumePersistedSummaryQueueIfNeeded(session: .mock())
+
+        XCTAssertEqual(store.pendingSummaryStockIds, [])
+        XCTAssertNil(store.currentlySummarizingStockId)
     }
 
     // MARK: - sortAscending の永続化
