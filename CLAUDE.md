@@ -325,6 +325,11 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 
 ### macOS（Mac Catalyst）版のビルド・リリース（`.github/workflows/mac-release.yml`）
 
+- **バージョンタグのフォーマット**: `v{MARKETING_VERSION}`（例 `v1.1.0`）。`MARKETING_VERSION` は
+  `xx.xx.xx` 形式のセマンティックバージョニング
+- **リリース手順**: (1) `ios/Gogai.xcodeproj/project.pbxproj` の `MARKETING_VERSION`・`CURRENT_PROJECT_VERSION`
+  （ビルド番号）を上げる PR を作成しマージする (2) `main` を最新化してから `v{MARKETING_VERSION}` タグを作成し push する。
+  タグ push が CI のトリガーになる（詳細は下記トリガー参照）
 - トリガー: `v*` タグの push、または手動実行（`workflow_dispatch` はタグを指定して実行すること。ブランチからの
   手動実行は弾かれる）。push されたタグと `MARKETING_VERSION` から算出したタグ（`v{version}`）が一致しない場合は失敗する。
   対応する GitHub Release が既に存在すればスキップする（ビルドをやり直さない）
