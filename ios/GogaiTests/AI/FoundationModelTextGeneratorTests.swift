@@ -67,4 +67,16 @@ final class FoundationModelTextGeneratorTests: XCTestCase {
     func test_isConcurrentRequestsError_関係ないエラーはfalse() {
         XCTAssertFalse(FoundationModelTextGenerator.isConcurrentRequestsError(URLError(.badServerResponse)))
     }
+
+    // MARK: - isRateLimitedError
+
+    func test_isRateLimitedError_rateLimitedを含むエラーを検知する() {
+        let error = FakeError(description: "rateLimited(RateLimited(resetDate: nil))")
+
+        XCTAssertTrue(FoundationModelTextGenerator.isRateLimitedError(error))
+    }
+
+    func test_isRateLimitedError_関係ないエラーはfalse() {
+        XCTAssertFalse(FoundationModelTextGenerator.isRateLimitedError(URLError(.badServerResponse)))
+    }
 }
