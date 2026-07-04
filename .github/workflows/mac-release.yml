@@ -21,16 +21,17 @@ jobs:
       DMG_PATH: ${{ github.workspace }}/.build/mac/Gogai.dmg
       ZIP_PATH: ${{ github.workspace }}/.build/mac/Gogai.zip
     steps:
+      - uses: actions/checkout@v5
+
       # workflow_dispatch はタグ以外の ref (main 等) からも起動できてしまうため、
-      # タグ起点の運用を強制するためにここで弾く。
+      # タグ起点の運用を強制するためにここで弾く。working-directory: ios は
+      # チェックアウト前には存在しないため、このステップは checkout の後に置く。
       - name: Require tag ref
         run: |
           if [ "${{ github.ref_type }}" != "tag" ]; then
             echo "::error::このワークフローはタグ(例: v1.0.0)からのみ実行できます。workflow_dispatch はタグを指定して実行してください。"
             exit 1
           fi
-
-      - uses: actions/checkout@v5
 
       - name: Select latest available Xcode
         run: |
