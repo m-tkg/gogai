@@ -2,7 +2,7 @@
         docker-up docker-down docker-build docker-logs docker-clean \
         daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
         restart-daemon ios-sync-icons ios-build ios-test ios-deploy \
-        mac-archive mac-export mac-dmg mac-notarize mac-distribute
+        mac-archive mac-export mac-dmg mac-notarize mac-distribute release-tag
 
 # ── ローカル開発 ──────────────────────────────────────────
 
@@ -206,3 +206,40 @@ mac-distribute: mac-notarize
 	@echo "========================================="
 	@echo "  配布用 DMG: $(MAC_DMG_PATH)"
 	@echo "========================================="
+
+# ── リリース ──────────────────────────────────────────────────
+
+# project.pbxproj の MARKETING_VERSION から v{version} タグを作成して push する
+release-tag:
+	@versions="$$(grep 'MARKETING_VERSION = ' ios/Gogai.xcodeproj/project.pbxproj | sed -E 's/.*MARKETING_VERSION = ([^;]+);/\1/' | sort -u)"; \
+	if [ -z "$$versions" ]; then \
+		echo "error: MARKETING_VERSION が project.pbxproj から取得できません" >&2; \
+		exit 1; \
+	fi; \
+	if [ "$$(echo "$$versions" | wc -l | tr -d ' ')" != "1" ]; then \
+		echo "error: MARKETING_VERSION の値が一致していません:" >&2; \
+		echo "$$versions" >&2; \
+		exit 1; \
+	fi; \
+	tag="v$$versions"; \
+	branch="$$(git rev-parse --abbrev-ref HEAD)"; \
+	if [ "$$branch" != "main" ]; then \
+		echo "error: main ブランチで実行してください (現在: $$branch)" >&2; \
+		exit 1; \
+	fi; \
+	if [ -n "$$(git status --porcelain)" ]; then \
+		echo "error: 作業ツリーに未コミットの変更があります" >&2; \
+		exit 1; \
+	fi; \
+	git fetch origin main --quiet; \
+	if [ "$$(git rev-parse HEAD)" != "$$(git rev-parse origin/main)" ]; then \
+		echo "error: ローカルの main が origin/main と同期していません" >&2; \
+		exit 1; \
+	fi; \
+	if git rev-parse "$$tag" >/dev/null 2>&1; then \
+		echo "error: タグ $$tag は既に存在します" >&2; \
+		exit 1; \
+	fi; \
+	git tag -a "$$tag" -m "Release $$tag"; \
+	git push origin "$$tag"; \
+	echo "タグ $$tag を push しました。リリースワークフローがビルド・公開します。"
