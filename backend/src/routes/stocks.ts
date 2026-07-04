@@ -13,6 +13,14 @@ app.get('/', (c) => {
   return c.json(service.findAll(categoryId))
 })
 
+// URL(正規化後)で既存ストックを検索する(共有シート等で追加前に既存か確認する用途)
+app.get('/lookup', (c) => {
+  const url = c.req.query('url')
+  if (!url?.trim()) throw new AppError('url is required', 400)
+  const stock = new StocksService(getDb()).findExisting(url)
+  return c.json({ stock })
+})
+
 app.post('/', async (c) => {
   const { url, title, source, category } = await c.req.json<{
     url: string

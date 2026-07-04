@@ -22,6 +22,7 @@ struct ShareStockView: View {
     @State private var source = "共有"
     @State private var categories: [StockCategory] = []
     @State private var selectedExistingCategory = ""
+    @State private var existingStock: Stock?
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -32,6 +33,15 @@ struct ShareStockView: View {
                     Text(url.absoluteString)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
+                }
+                if let existingStock {
+                    Section {
+                        Label(
+                            "既にストックに登録されています(\(existingStock.title ?? existingStock.url) / \(existingStock.category_name))",
+                            systemImage: "exclamationmark.circle.fill"
+                        )
+                        .foregroundStyle(.orange)
+                    }
                 }
                 Section("ストック元 / カテゴリ") {
                     TextField("例: 共有", text: $source)
@@ -70,13 +80,21 @@ struct ShareStockView: View {
                 }
             }
             .disabled(isSaving)
-            .task { await loadCategories() }
+            .task {
+                await loadCategories()
+                await checkExisting()
+            }
         }
     }
 
     private func loadCategories() async {
         guard let client = Self.makeClient() else { return }
         categories = (try? await StockRepository(client: client).fetchCategories()) ?? []
+    }
+
+    private func checkExisting() async {
+        guard let client = Self.makeClient() else { return }
+        existingStock = try? await StockRepository(client: client).lookup(url: url.absoluteString)
     }
 
     private func save() async {

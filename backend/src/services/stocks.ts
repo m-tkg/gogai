@@ -66,6 +66,19 @@ export class StocksService {
     return this.db.prepare('SELECT * FROM stocks WHERE url = ?').get(url) as Stock | undefined
   }
 
+  // URL の # 以降(フラグメント)は同一ページを指す装飾情報のことが多いため、
+  // 保存・重複チェックの両方で取り除いて正規化する
+  private static normalizeUrl(url: string): string {
+    const hashIndex = url.indexOf('#')
+    return hashIndex === -1 ? url : url.slice(0, hashIndex)
+  }
+
+  // URL(正規化後)で既存ストックを検索する。共有シート等で「追加前に既存か確認する」用途
+  findExisting(url: string): StockView | null {
+    const existing = this.findByUrl(StocksService.normalizeUrl(url))
+    return existing ? this.toView(this.findRowById(existing.id) as StockViewRow) : null
+  }
+
   findAll(categoryId?: number): StockView[] {
     const query = `
       SELECT s.*, c.name as category_name,
@@ -88,7 +101,8 @@ export class StocksService {
 
   // url が既に存在する場合は何もせず既存ストックを返す（no-op）。created で新規作成かを判別できる
   create(input: CreateStockInput): { stock: StockView; created: boolean } {
-    const existing = this.findByUrl(input.url)
+    const url = StocksService.normalizeUrl(input.url)
+    const existing = this.findByUrl(url)
     if (existing) {
       return { stock: this.toView(this.findRowById(existing.id) as StockViewRow), created: false }
     }
@@ -102,7 +116,7 @@ export class StocksService {
          VALUES (?, ?, ?, ?)
          RETURNING id`
       )
-      .get(input.url, input.title ?? null, input.source ?? '', category.id) as { id: number }
+      .get(url, input.title ?? null, input.source ?? '', category.id) as { id: number }
 
     return { stock: this.toView(this.findRowById(created.id) as StockViewRow), created: true }
   }

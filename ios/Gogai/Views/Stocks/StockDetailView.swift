@@ -176,7 +176,8 @@ struct StockDetailView: View {
     }
 
     /// 元記事(記事ページ)。
-    /// iOS/iPadOS: 右下に閉じるボタンを重ね、右スワイプでも閉じられる(RSS 記事ページと同じ操作)
+    /// iOS/iPadOS: 下部フッター右端に閉じるボタンを配置し、右スワイプでも閉じられる(SFSafariViewController
+    /// 自身の下部バーと重ならないよう、フローティングではなく専用フッターにする)
     /// macOS(Mac Catalyst): BrowserView 自身のツールバー(閉じる/戻る/進む/リロード)をそのまま使う
     @ViewBuilder
     private var browserDestination: some View {
@@ -184,14 +185,19 @@ struct StockDetailView: View {
             #if targetEnvironment(macCatalyst)
             BrowserView(url: url, onClose: { showBrowser = false })
             #else
-            BrowserView(url: url, onClose: { showBrowser = false })
-                .overlay(alignment: .bottomTrailing) {
-                    CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる") { showBrowser = false }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 16)
+            VStack(spacing: 0) {
+                BrowserView(url: url, onClose: { showBrowser = false })
+                Divider()
+                HStack {
+                    Spacer()
+                    StockDetailFooterButton(icon: "xmark", label: "閉じる") { showBrowser = false }
                 }
-                .toolbar(.hidden, for: .navigationBar)
-                .onHorizontalSwipe(.right) { showBrowser = false }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.bar)
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .onHorizontalSwipe(.right) { showBrowser = false }
             #endif
         }
     }

@@ -117,6 +117,52 @@ describe('stocks ルート（HTTP 契約）', () => {
       const list = await (await stocksRouter.request('/')).json()
       expect(list).toHaveLength(1)
     })
+
+    it('url の # 以降(フラグメント)は保存時に取り除かれる', async () => {
+      const res = await postJson('/', { url: 'https://example.com/a#section2', source: 'Tech' })
+      expect(res.status).toBe(201)
+      const body = await res.json()
+      expect(body.url).toBe('https://example.com/a')
+    })
+
+    it('# の有無だけが違う url は重複扱いになる', async () => {
+      const created = await (await postJson('/', { url: 'https://example.com/a', source: 'Tech' })).json()
+      const res = await postJson('/', { url: 'https://example.com/a#section2', source: 'News' })
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.id).toBe(created.id)
+    })
+  })
+
+  describe('GET /lookup', () => {
+    it('既存の url があればストックを返す', async () => {
+      const created = await (await postJson('/', { url: 'https://example.com/a', title: 'A', source: 'Tech' })).json()
+      const res = await stocksRouter.request(`/lookup?url=${encodeURIComponent('https://example.com/a')}`)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.stock.id).toBe(created.id)
+    })
+
+    it('# 以降が違うだけの url でも既存として見つかる', async () => {
+      const created = await (await postJson('/', { url: 'https://example.com/a', source: 'Tech' })).json()
+      const res = await stocksRouter.request(`/lookup?url=${encodeURIComponent('https://example.com/a#top')}`)
+      const body = await res.json()
+      expect(body.stock.id).toBe(created.id)
+    })
+
+    it('存在しない url は stock: null を返す', async () => {
+      const res = await stocksRouter.request(`/lookup?url=${encodeURIComponent('https://example.com/not-found')}`)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.stock).toBeNull()
+    })
+
+    it('url 未指定は 400 で { error } を返す', async () => {
+      const res = await stocksRouter.request('/lookup')
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toBeTypeOf('string')
+    })
   })
 
   describe('PUT /:id', () => {
