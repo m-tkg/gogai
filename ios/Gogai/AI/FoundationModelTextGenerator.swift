@@ -38,18 +38,23 @@ struct FoundationModelTextGenerator: TextGenerating {
     /// concurrentRequests 検知時の待機時間(要約キューが翻訳優先で中断した際、
     /// オンデバイスモデル側の処理がまだ終わっていない場合の猶予)
     static let concurrentRetryDelay: Duration = .milliseconds(300)
+    /// rateLimited を受けて再試行する最大回数
+    static let maxRateLimitRetries = 2
+    /// rateLimited 検知時の待機時間(試行ごとに指数的に伸ばす)
+    static let rateLimitRetryDelays: [Duration] = [.seconds(1), .seconds(2)]
 
     func generate(instructions: String, prompt: String) async throws -> String {
         try await generate(
             instructions: instructions, prompt: prompt,
             remainingContextRetries: Self.maxContextRetries,
-            remainingConcurrentRetries: Self.maxConcurrentRetries
+            remainingConcurrentRetries: Self.maxConcurrentRetries,
+            remainingRateLimitRetries: Self.maxRateLimitRetries
         )
     }
 
     private func generate(
         instructions: String, prompt: String,
-        remainingContextRetries: Int, remainingConcurrentRetries: Int
+        remainingContextRetries: Int, remainingConcurrentRetries: Int, remainingRateLimitRetries: Int
     ) async throws -> String {
         let session = LanguageModelSession(instructions: instructions)
         do {
@@ -61,7 +66,18 @@ struct FoundationModelTextGenerator: TextGenerating {
                 return try await generate(
                     instructions: instructions, prompt: prompt,
                     remainingContextRetries: remainingContextRetries,
-                    remainingConcurrentRetries: remainingConcurrentRetries - 1
+                    remainingConcurrentRetries: remainingConcurrentRetries - 1,
+                    remainingRateLimitRetries: remainingRateLimitRetries
+                )
+            }
+            if remainingRateLimitRetries > 0, Self.isRateLimitedError(error) {
+                let attempt = Self.maxRateLimitRetries - remainingRateLimitRetries
+                try await Task.sleep(for: Self.rateLimitRetryDelays[attempt])
+                return try await generate(
+                    instructions: instructions, prompt: prompt,
+                    remainingContextRetries: remainingContextRetries,
+                    remainingConcurrentRetries: remainingConcurrentRetries,
+                    remainingRateLimitRetries: remainingRateLimitRetries - 1
                 )
             }
             guard remainingContextRetries > 0, let shrunkPrompt = Self.shrinkPromptIfContextExceeded(prompt, error: error) else {
@@ -70,7 +86,8 @@ struct FoundationModelTextGenerator: TextGenerating {
             return try await generate(
                 instructions: instructions, prompt: shrunkPrompt,
                 remainingContextRetries: remainingContextRetries - 1,
-                remainingConcurrentRetries: remainingConcurrentRetries
+                remainingConcurrentRetries: remainingConcurrentRetries,
+                remainingRateLimitRetries: remainingRateLimitRetries
             )
         }
     }
@@ -79,6 +96,13 @@ struct FoundationModelTextGenerator: TextGenerating {
     /// 処理できない)を検知する。型ではなくキーワードで判定する理由は shrinkPromptIfContextExceeded と同じ。
     static func isConcurrentRequestsError(_ error: Error) -> Bool {
         String(describing: error).lowercased().contains("concurrentrequests")
+    }
+
+    /// LanguageModelSession.Error.rateLimited / LanguageModelError.rateLimited(オンデバイスモデルの
+    /// 単位時間あたりのリクエスト数制限)を検知する。型ではなくキーワードで判定する理由は
+    /// shrinkPromptIfContextExceeded と同じ。
+    static func isRateLimitedError(_ error: Error) -> Bool {
+        String(describing: error).lowercased().contains("ratelimited")
     }
 
     /// コンテキスト長超過エラーを受けてプロンプトを縮める。
