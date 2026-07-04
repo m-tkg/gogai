@@ -11,6 +11,7 @@ struct StockRowView: View {
     @State private var showTranslation = false
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
+    @State private var showSummaryErrorAlert = false
     @State private var deleteError: Error?
 
     /// View のライフサイクルに依存しないストアのキュー状態を見る(戻ってもキューは継続する)。
@@ -40,10 +41,6 @@ struct StockRowView: View {
         Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })
     }
 
-    private var summaryErrorBinding: Binding<Bool> {
-        Binding(get: { summaryError != nil }, set: { if !$0 { stockStore.clearSummaryError(for: currentStock.id) } })
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(currentStock.title ?? currentStock.url)
@@ -54,6 +51,14 @@ struct StockRowView: View {
                 Text(currentStock.stocked_at.displayDate)
                 if isGeneratingSummary {
                     Label(isQueued ? "順番待ち" : "生成中", systemImage: "sparkles")
+                } else if summaryError != nil {
+                    Button {
+                        showSummaryErrorAlert = true
+                    } label: {
+                        Label("要約エラー", systemImage: "exclamationmark.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
                 } else if currentStock.summary == nil {
                     Label("要約待ち", systemImage: "hourglass")
                 }
@@ -123,7 +128,15 @@ struct StockRowView: View {
         } message: {
             Text(deleteError?.localizedDescription ?? "")
         }
-        .alert("要約の生成に失敗しました", isPresented: summaryErrorBinding) {
+        // 一覧を見ている間に失敗した場合は即座にアラートで知らせる。
+        // 前回起動時に失敗し永続化されているだけの場合(再起動直後の初回表示など)は自動表示せず、
+        // 上のビックリマークをタップした時だけ表示する(スクロール中に次々ポップアップしないようにするため)。
+        .onChange(of: summaryError) { oldValue, newValue in
+            if oldValue == nil, newValue != nil {
+                showSummaryErrorAlert = true
+            }
+        }
+        .alert("要約の生成に失敗しました", isPresented: $showSummaryErrorAlert) {
             Button("OK") { stockStore.clearSummaryError(for: currentStock.id) }
         } message: {
             Text(summaryError ?? "")

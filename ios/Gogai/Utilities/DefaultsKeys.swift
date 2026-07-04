@@ -9,4 +9,5 @@ enum DefaultsKeys {
     static let translationEngine = "translationEngine"
     static let stockSortAscending = "stockSortAscending"
     static let stockSummaryQueue = "stockSummaryQueue"
+    static let stockSummaryErrors = "stockSummaryErrors"
 }

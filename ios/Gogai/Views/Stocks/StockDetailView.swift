@@ -77,6 +77,7 @@ struct StockDetailView: View {
     @State private var showTranslation = false
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
+    @State private var showShareSheet = false
     @State private var deleteError: Error?
 
     /// 要約の生成中/待機中はストアのキュー状態を見る(View のライフサイクルに依存しないため、
@@ -105,10 +106,6 @@ struct StockDetailView: View {
 
     private var deleteErrorBinding: Binding<Bool> {
         Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })
-    }
-
-    private var summaryErrorBinding: Binding<Bool> {
-        Binding(get: { summaryError != nil }, set: { if !$0 { stockStore.clearSummaryError(for: currentStock.id) } })
     }
 
     var body: some View {
@@ -153,6 +150,11 @@ struct StockDetailView: View {
         .sheet(isPresented: $showEdit) {
             EditStockView(stock: currentStock)
         }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = URL(string: currentStock.url) {
+                ShareSheet(items: [url])
+            }
+        }
         .confirmationDialog("このストックを削除しますか？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("削除", role: .destructive) {
                 Task {
@@ -170,11 +172,6 @@ struct StockDetailView: View {
             Button("OK") { deleteError = nil }
         } message: {
             Text(deleteError?.localizedDescription ?? "")
-        }
-        .alert("要約の生成に失敗しました", isPresented: summaryErrorBinding) {
-            Button("OK") { stockStore.clearSummaryError(for: currentStock.id) }
-        } message: {
-            Text(summaryError ?? "")
         }
     }
 
@@ -209,6 +206,14 @@ struct StockDetailView: View {
                 Text(isQueued ? "要約の順番待ちです…" : "要約を生成しています…")
             }
             .foregroundStyle(.secondary)
+        } else if let summaryError {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("要約の生成に失敗しました", systemImage: "exclamationmark.circle.fill")
+                    .foregroundStyle(.red)
+                Text(summaryError)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         } else {
             Label("要約はまだありません", systemImage: "text.badge.plus")
                 .foregroundStyle(.secondary)
@@ -218,6 +223,9 @@ struct StockDetailView: View {
     private var bottomBar: some View {
         HStack(spacing: 24) {
             Spacer()
+            if URL(string: currentStock.url) != nil {
+                StockDetailFooterButton(icon: "square.and.arrow.up", label: "共有") { showShareSheet = true }
+            }
             StockDetailFooterButton(
                 icon: "sparkles",
                 label: "要約",

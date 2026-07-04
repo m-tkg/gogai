@@ -40,7 +40,9 @@ final class StockStore: ObservableObject {
         didSet { persistSummaryQueueSnapshot() }
     }
     /// ストックIDごとの直近の要約失敗メッセージ
-    @Published private(set) var summaryErrors: [Int: String] = [:]
+    @Published private(set) var summaryErrors: [Int: String] = [:] {
+        didSet { persistSummaryErrorsSnapshot() }
+    }
     /// ユーザーが一時停止ボタンで止めたかどうか(翻訳優先による一時停止とは別軸)
     @Published private(set) var isSummaryQueuePausedByUser = false
 
@@ -112,6 +114,7 @@ final class StockStore: ObservableObject {
         guard let client else { return }
         try await StockRepository(client: client).delete(id: id)
         stocks.removeAll { $0.id == id }
+        summaryErrors[id] = nil
         await removeEmptyCategoriesLocally()
     }
 
@@ -241,12 +244,35 @@ final class StockStore: ObservableObject {
         driveSummaryQueue(session: session)
     }
 
+    /// アプリ再起動時に、永続化された要約エラー(赤いビックリマーク表示用)を復元する。
+    /// fetchAll() で stocks を読み込んだ後に呼ぶこと。削除済み・他端末で要約成功済みのストックは除外する。
+    @MainActor
+    func restorePersistedSummaryErrorsIfNeeded() {
+        guard let stored = UserDefaults.standard.dictionary(forKey: DefaultsKeys.stockSummaryErrors) as? [String: String] else { return }
+        summaryErrors = stored.reduce(into: [Int: String]()) { result, entry in
+            guard let id = Int(entry.key),
+                  let stock = stocks.first(where: { $0.id == id }),
+                  stock.summary == nil
+            else { return }
+            result[id] = entry.value
+        }
+    }
+
     /// 現在の要約キュー(生成中 + 待機中)を UserDefaults へ保存する。
     /// アプリ強制終了後も resumePersistedSummaryQueueIfNeeded() で再開できるようにするため。
     /// didSet(非 actor-isolated context)から呼ぶため @MainActor を付けない。
     private func persistSummaryQueueSnapshot() {
         let snapshot = (currentlySummarizingStockId.map { [$0] } ?? []) + pendingSummaryStockIds
         UserDefaults.standard.set(snapshot, forKey: DefaultsKeys.stockSummaryQueue)
+    }
+
+    /// summaryErrors(ストックIDごとの直近の要約失敗メッセージ)を UserDefaults へ保存する。
+    /// アプリ再起動後もカテゴリ一覧・ストック一覧の赤いビックリマーク表示を維持するため
+    /// (複数端末間の同期はしない。要約生成自体が端末ローカルのオンデバイス AI 処理のため)。
+    /// didSet(非 actor-isolated context)から呼ぶため @MainActor を付けない。
+    private func persistSummaryErrorsSnapshot() {
+        let stringKeyed = Dictionary(uniqueKeysWithValues: summaryErrors.map { (String($0.key), $0.value) })
+        UserDefaults.standard.set(stringKeyed, forKey: DefaultsKeys.stockSummaryErrors)
     }
 
     @MainActor
