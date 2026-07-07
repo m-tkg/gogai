@@ -2,6 +2,7 @@ import type { FeedsService } from './feeds.js'
 import type { ArticlesService } from './articles.js'
 import { fetchFeed } from './rss-fetcher.js'
 import type { FetchedFeed } from './rss-fetcher.js'
+import { toFeedFields } from './shared/feed-fields.js'
 
 export interface RefreshResult {
   refreshed: number
@@ -21,11 +22,7 @@ async function refreshFeeds(
     try {
       const fetched = await fetchFeedFn(feed.url)
       articlesService.upsertMany(feed.id, fetched.items)
-      feedsService.update(feed.id, {
-        title: fetched.title,
-        faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
-        lastFetchedAt: new Date().toISOString(),
-      })
+      feedsService.update(feed.id, toFeedFields(fetched))
       refreshed++
     } catch (e) {
       console.error(`[feed-refresher] Failed to refresh feed ${feed.url}:`, e)

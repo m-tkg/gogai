@@ -3,6 +3,7 @@ import { ArticlesService } from './articles.js'
 import { discoverFeedUrl } from './feed-discovery.js'
 import { fetchFeed } from './rss-fetcher.js'
 import { AppError, isUniqueConstraintError } from '../errors.js'
+import { toFeedFields } from './shared/feed-fields.js'
 
 // フィード登録・URL 変更・再取得の共通フロー（discover → fetch → upsert → update）。
 // エラーは AppError に正規化して投げる（ルートは onError に委譲するだけでよい）。
@@ -18,16 +19,17 @@ export async function registerFeed(
     if (!feedUrl) throw new AppError('RSSフィードが見つかりませんでした', 422)
 
     const fetched = await fetchFeed(feedUrl)
+    const { title, faviconUrl, lastFetchedAt } = toFeedFields(fetched)
 
     const feed = feedsService.create({
       url: feedUrl,
-      title: fetched.title,
-      faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
+      title,
+      faviconUrl,
       groupId: groupId ?? null,
     })
 
     articlesService.upsertMany(feed.id, fetched.items)
-    feedsService.update(feed.id, { lastFetchedAt: new Date().toISOString() })
+    feedsService.update(feed.id, { lastFetchedAt })
 
     return feed
   } catch (e: unknown) {
@@ -50,9 +52,7 @@ export async function changeFeedUrl(
     articlesService.upsertMany(feedId, fetched.items)
     return feedsService.update(feedId, {
       url: feedUrl,
-      title: fetched.title,
-      faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
-      lastFetchedAt: new Date().toISOString(),
+      ...toFeedFields(fetched),
       groupId,
     })
   } catch (e: unknown) {
@@ -68,11 +68,7 @@ export async function refetchFeed(
   try {
     const fetched = await fetchFeed(feed.url)
     articlesService.upsertMany(feed.id, fetched.items)
-    const updated = feedsService.update(feed.id, {
-      title: fetched.title,
-      faviconUrl: fetched.faviconUrl !== null ? fetched.faviconUrl : undefined,
-      lastFetchedAt: new Date().toISOString(),
-    })
+    const updated = feedsService.update(feed.id, toFeedFields(fetched))
     return { feed: updated, newArticles: fetched.items.length }
   } catch (e: unknown) {
     throw toFeedError(e)
