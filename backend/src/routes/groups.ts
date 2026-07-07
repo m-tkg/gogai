@@ -29,9 +29,15 @@ app.post('/', async (c) => {
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
   const { name, is_secret } = await c.req.json<{ name: string; is_secret?: number }>()
-  const group = new GroupsService(getDb()).update(id, name, is_secret)
-  if (!group) throw new AppError('Not found', 404)
-  return c.json(group)
+  if (!name?.trim()) throw new AppError('name is required', 400)
+  try {
+    const group = new GroupsService(getDb()).update(id, name.trim(), is_secret)
+    if (!group) throw new AppError('Not found', 404)
+    return c.json(group)
+  } catch (e: unknown) {
+    if (isUniqueConstraintError(e)) throw new AppError('Group name already exists', 409)
+    throw e
+  }
 })
 
 app.delete('/:id', (c) => {

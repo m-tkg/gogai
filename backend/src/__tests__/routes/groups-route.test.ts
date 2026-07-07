@@ -95,6 +95,29 @@ describe('groups ルート（HTTP 契約）', () => {
       const body = await res.json()
       expect(body.error).toBeTypeOf('string')
     })
+
+    it('name 未指定は 400 で { error } を返す(POST と同じ規約)', async () => {
+      const created = await (await postJson('/', { name: 'Tech' })).json()
+      const res = await postJson(`/${created.id}`, {}, 'PUT')
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toBeTypeOf('string')
+    })
+
+    it('name が空白のみは 400 を返す', async () => {
+      const created = await (await postJson('/', { name: 'Tech' })).json()
+      const res = await postJson(`/${created.id}`, { name: '   ' }, 'PUT')
+      expect(res.status).toBe(400)
+    })
+
+    it('重複した name への変更は 409 で { error } を返す', async () => {
+      await postJson('/', { name: 'Tech' })
+      const created = await (await postJson('/', { name: 'News' })).json()
+      const res = await postJson(`/${created.id}`, { name: 'Tech' }, 'PUT')
+      expect(res.status).toBe(409)
+      const body = await res.json()
+      expect(body.error).toBeTypeOf('string')
+    })
   })
 
   describe('DELETE /:id', () => {
