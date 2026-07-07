@@ -5,6 +5,7 @@ struct Endpoint: Sendable {
     let method: HTTPMethod
     let queryItems: [URLQueryItem]?
     let body: Data?
+    let headers: [String: String]
 
     enum HTTPMethod: String, Sendable {
         case get = "GET"
@@ -18,20 +19,22 @@ struct Endpoint: Sendable {
         path: String,
         method: HTTPMethod = .get,
         queryItems: [URLQueryItem]? = nil,
-        body: Data? = nil
+        body: Data? = nil,
+        headers: [String: String] = [:]
     ) {
         self.path = path
         self.method = method
         self.queryItems = queryItems
         self.body = body
+        self.headers = headers
     }
 
-    static func get(_ path: String, queryItems: [URLQueryItem]? = nil) -> Endpoint {
-        Endpoint(path: path, method: .get, queryItems: queryItems)
+    static func get(_ path: String, queryItems: [URLQueryItem]? = nil, headers: [String: String] = [:]) -> Endpoint {
+        Endpoint(path: path, method: .get, queryItems: queryItems, headers: headers)
     }
 
-    static func post(_ path: String) -> Endpoint {
-        Endpoint(path: path, method: .post)
+    static func post(_ path: String, headers: [String: String] = [:]) -> Endpoint {
+        Endpoint(path: path, method: .post, headers: headers)
     }
 
     static func post<B: Encodable & Sendable>(_ path: String, body: B) throws -> Endpoint {
@@ -68,6 +71,9 @@ struct Endpoint: Sendable {
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
         request.httpBody = body
         return request
     }

@@ -3,7 +3,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { errorHandler } from '../errors.js'
+import { AppError, errorHandler } from '../errors.js'
 
 const execAsync = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -15,6 +15,21 @@ const GITHUB_BRANCH = 'main'
 
 const app = new Hono()
 app.onError(errorHandler)
+
+// git pull・npm run build・プロセス再起動という強い権限操作のため、ADMIN_SECRET が
+// 設定されていれば X-Admin-Secret ヘッダーでの認証を必須にする。
+// opt-in: 未設定の既存デプロイを壊さないよう、未設定時は従来通り無認証で通す。
+app.use('*', async (c, next) => {
+  const secret = process.env.ADMIN_SECRET
+  if (!secret) {
+    await next()
+    return
+  }
+  if (c.req.header('X-Admin-Secret') !== secret) {
+    throw new AppError('Unauthorized', 401)
+  }
+  await next()
+})
 
 app.get('/update-check', async (c) => {
   // ローカルの最新コミット
