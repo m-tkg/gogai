@@ -625,6 +625,71 @@ final class StockStoreTests: StoreTestCase {
         XCTAssertNil(store.currentlySummarizingStockId)
     }
 
+    // MARK: - restorePersistedSummaryErrorsIfNeeded（永続化された要約エラーの復元）
+
+    @MainActor
+    func test_restorePersistedSummaryErrorsIfNeeded_要約未生成のストックのエラーを復元する() {
+        UserDefaults.standard.set(["1": "エラーメッセージ"], forKey: DefaultsKeys.stockSummaryErrors)
+        store.stocks = [makeStock(id: 1)]
+
+        store.restorePersistedSummaryErrorsIfNeeded()
+
+        XCTAssertEqual(store.summaryErrors[1], "エラーメッセージ")
+    }
+
+    @MainActor
+    func test_restorePersistedSummaryErrorsIfNeeded_要約済みのストックは復元しない() {
+        UserDefaults.standard.set(["1": "エラーメッセージ"], forKey: DefaultsKeys.stockSummaryErrors)
+        var stock = makeStock(id: 1)
+        stock = stock.updating(summary: "既存の要約")
+        store.stocks = [stock]
+
+        store.restorePersistedSummaryErrorsIfNeeded()
+
+        XCTAssertNil(store.summaryErrors[1])
+    }
+
+    @MainActor
+    func test_restorePersistedSummaryErrorsIfNeeded_存在しないストックIDは復元しない() {
+        UserDefaults.standard.set(["999": "エラーメッセージ"], forKey: DefaultsKeys.stockSummaryErrors)
+        store.stocks = []
+
+        store.restorePersistedSummaryErrorsIfNeeded()
+
+        XCTAssertTrue(store.summaryErrors.isEmpty)
+    }
+
+    // MARK: - clearSummaryError（エラーアラートを閉じた後の表示クリア）
+
+    @MainActor
+    func test_clearSummaryError_指定したストックのエラーだけ消す() async throws {
+        store.stocks = [makeStock(id: 1), makeStock(id: 2)]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = { request in
+            if request.url!.path.hasSuffix("/summary") { return (500, Data()) }
+            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+        }
+
+        store.requestSummary(for: 1, session: .mock())
+        store.requestSummary(for: 2, session: .mock())
+
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        generator.release()
+        _ = await iterator.next()
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+
+        XCTAssertNotNil(store.summaryErrors[1])
+        XCTAssertNotNil(store.summaryErrors[2])
+
+        store.clearSummaryError(for: 1)
+
+        XCTAssertNil(store.summaryErrors[1])
+        XCTAssertNotNil(store.summaryErrors[2])
+    }
+
     // MARK: - sortAscending の永続化
 
     func test_sortAscending_defaultsToFalse() {
