@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsApi, adminApi, type UpdateCheck } from '../api/client'
 import { queryKeys } from '../api/queryKeys'
+import { getApiErrorMessage } from '../api/errors'
 
 const MIN = 3
 const MAX = 180
@@ -35,8 +36,8 @@ export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsPro
       setRestartOutput(data.output || '最新の状態です')
       setConfirmRestart(false)
     },
-    onError: (e: { response?: { data?: { error?: string } } }) => {
-      setRestartOutput(`エラー: ${e.response?.data?.error ?? '更新に失敗しました'}`)
+    onError: (e: unknown) => {
+      setRestartOutput(`エラー: ${getApiErrorMessage(e, '更新に失敗しました')}`)
       setConfirmRestart(false)
     },
   })
@@ -49,8 +50,8 @@ export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsPro
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     },
-    onError: (e: { response?: { data?: { error?: string } } }) => {
-      setError(e.response?.data?.error ?? '保存に失敗しました')
+    onError: (e: unknown) => {
+      setError(getApiErrorMessage(e, '保存に失敗しました'))
     },
   })
 
