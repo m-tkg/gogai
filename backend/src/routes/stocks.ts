@@ -38,6 +38,7 @@ app.post('/', async (c) => {
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
   const { title, category } = await c.req.json<{ title: string; category: string }>()
+  if (!category?.trim()) throw new AppError('category is required', 400)
   const stock = new StocksService(getDb()).update(id, { title, category })
   if (!stock) throw new AppError('Not found', 404)
   return c.json(stock)
