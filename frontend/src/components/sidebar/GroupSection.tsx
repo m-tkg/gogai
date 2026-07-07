@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Group, Feed } from '../../api/client'
 import type { useGroupMutations } from '../../hooks/useGroupMutations'
 import { FeedList, type FeedMutations, type DragReorder } from './FeedList'
-import { confirmCancelBtn } from '../ui/formStyles'
+import { ConfirmDeleteInline } from '../ui/ConfirmDeleteInline'
 
 export type GroupMutations = ReturnType<typeof useGroupMutations>
 
@@ -75,21 +75,10 @@ export function GroupSection({
           {group.name}
         </button>
         {confirmDelete ? (
-          <div className="flex items-center gap-1 px-1">
-            <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
-            <button
-              onClick={() => removeGroup.mutate(group.id, { onSuccess: () => setConfirmDelete(false) })}
-              className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-            >
-              削除
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className={confirmCancelBtn}
-            >
-              キャンセル
-            </button>
-          </div>
+          <ConfirmDeleteInline
+            onConfirm={() => removeGroup.mutate(group.id, { onSuccess: () => setConfirmDelete(false) })}
+            onCancel={() => setConfirmDelete(false)}
+          />
         ) : (
           <>
             <button

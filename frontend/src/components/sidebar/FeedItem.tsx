@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Group, Feed } from '../../api/client'
-import { confirmCancelBtn, inputXs, selectXs, secondaryBtnXs } from '../ui/formStyles'
+import { inputXs, selectXs, secondaryBtnXs } from '../ui/formStyles'
+import { ConfirmDeleteInline } from '../ui/ConfirmDeleteInline'
 
 export interface FeedItemProps {
   feed: Feed
@@ -111,21 +112,10 @@ export function FeedItem({ feed, groups, selected, onSelect, onRemove, onRefresh
         <span className="truncate">{feed.title ?? feed.url}</span>
       </button>
       {confirmDelete ? (
-        <div className="flex items-center gap-1 px-1">
-          <span className="text-xs text-red-500 dark:text-red-400">削除?</span>
-          <button
-            onClick={() => onRemove(() => setConfirmDelete(false))}
-            className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            削除
-          </button>
-          <button
-            onClick={() => setConfirmDelete(false)}
-            className={confirmCancelBtn}
-          >
-            キャンセル
-          </button>
-        </div>
+        <ConfirmDeleteInline
+          onConfirm={() => onRemove(() => setConfirmDelete(false))}
+          onCancel={() => setConfirmDelete(false)}
+        />
       ) : (
         <>
           <button
