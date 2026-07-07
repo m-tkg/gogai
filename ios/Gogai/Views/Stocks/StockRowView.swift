@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// ストック一覧の行。長押しで元記事・翻訳・要約生成・編集・削除のコンテキストメニューを表示する
-/// (StockDetailView のフッターと同じアクションセット)。
+/// (StockDetailView のフッターと同じアクションセット)。削除はスワイプからも実行できる
+/// (どちらも同じ確認ダイアログ・エラーハンドリングを共有する)。
 struct StockRowView: View {
     let stock: Stock
 
@@ -48,6 +49,13 @@ struct StockRowView: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                showDeleteConfirm = true
+            } label: {
+                Label("削除", systemImage: "trash")
+            }
         }
         .contextMenu {
             if URL(string: currentStock.url) != nil {
