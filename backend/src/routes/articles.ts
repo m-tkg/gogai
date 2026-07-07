@@ -2,11 +2,10 @@ import { Hono } from 'hono'
 import { ArticlesService, type SortBy } from '../services/articles.js'
 import { getDb } from '../db/schema.js'
 import { AppError, errorHandler } from '../errors.js'
+import { MAX_ARTICLES_LIMIT } from '../config.js'
 
 const app = new Hono()
 app.onError(errorHandler)
-
-const MAX_ARTICLES_LIMIT = 1000
 
 export function parseNonNegativeInt(raw: string | undefined, defaultValue: number, max?: number): number {
   if (raw === undefined) return defaultValue
