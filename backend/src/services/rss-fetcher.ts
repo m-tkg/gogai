@@ -24,6 +24,9 @@ export interface FetchedItem {
 export async function fetchFeed(url: string): Promise<FetchedFeed> {
   const feed = await parser.parseURL(url)
 
+  // 意図的な仕様: ここではサイトの <link>（トップページ URL）優先で favicon を計算し、DB に保存する。
+  // 一方 GET /api/feeds のレスポンスでは routes/feeds.ts の withGoogleFavicon() が
+  // feed.url（RSS フィード自体の URL）から再計算して差し替えるため、値が異なることがある。
   const faviconUrl = getFaviconUrl(feed.link ?? url)
 
   const items: FetchedItem[] = feed.items.map(item => ({

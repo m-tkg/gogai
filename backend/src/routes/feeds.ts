@@ -9,6 +9,12 @@ import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
 import type { Feed } from '../services/feeds.js'
 import { validateReorderIds } from './shared/validate-reorder-ids.js'
 
+// 意図的な仕様: ここでは feed.url（RSS フィード自体の URL）から favicon を計算して
+// レスポンス時に差し替える。一方 DB に保存される favicon_url（fetchFeed 経由、
+// rss-fetcher.ts の getFaviconUrl(feed.link ?? url) 参照）は RSS の <link>（サイトの
+// トップページ URL）優先で計算されており、値が異なることがある。既存テストが
+// この GET /api/feeds のレスポンス挙動を固定しているため、このリファクタリングでは
+// 統一しない（挙動を変えるならプロダクト判断が必要）。
 function withGoogleFavicon(feed: Feed): Feed {
   return { ...feed, favicon_url: getFaviconUrl(feed.url) }
 }

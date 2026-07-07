@@ -3,3 +3,6 @@
 export const RETENTION_DAYS_DEFAULT = 180
 export const RETENTION_DAYS_MIN = 3
 export const RETENTION_DAYS_MAX = 180
+
+// GET /api/articles の limit クエリの上限
+export const MAX_ARTICLES_LIMIT = 1000
