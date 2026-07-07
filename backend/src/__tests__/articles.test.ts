@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema } from '../db/schema.js'
+import type Database from 'better-sqlite3'
 import { ArticlesService } from '../services/articles.js'
 import { FeedsService } from '../services/feeds.js'
 import { GroupsService } from '../services/groups.js'
+import { createTestDb } from './helpers/db.js'
 
 let db: Database.Database
 let articlesService: ArticlesService
@@ -11,9 +11,7 @@ let feedsService: FeedsService
 let feedId: number
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
+  db = createTestDb()
   articlesService = new ArticlesService(db)
   feedsService = new FeedsService(db)
   const feed = feedsService.create({ url: 'https://example.com/feed.xml', title: 'Example' })

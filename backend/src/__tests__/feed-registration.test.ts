@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema } from '../db/schema.js'
+import type Database from 'better-sqlite3'
 import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
 import { discoverFeedUrl } from '../services/feed-discovery.js'
 import { fetchFeed, type FetchedFeed } from '../services/rss-fetcher.js'
 import { registerFeed, changeFeedUrl, refetchFeed } from '../services/feed-registration.js'
 import { AppError } from '../errors.js'
+import { createTestDb } from './helpers/db.js'
 
 vi.mock('../services/feed-discovery.js', () => ({
   discoverFeedUrl: vi.fn(),
@@ -25,9 +25,7 @@ let feedsService: FeedsService
 let articlesService: ArticlesService
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
+  db = createTestDb()
   feedsService = new FeedsService(db)
   articlesService = new ArticlesService(db)
   vi.clearAllMocks()

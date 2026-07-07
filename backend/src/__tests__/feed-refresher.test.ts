@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema } from '../db/schema.js'
+import type Database from 'better-sqlite3'
 import { FeedsService } from '../services/feeds.js'
 import { ArticlesService } from '../services/articles.js'
 import { GroupsService } from '../services/groups.js'
 import { refreshAllFeeds, refreshFeedsByGroupId } from '../services/feed-refresher.js'
 import type { FetchedFeed } from '../services/rss-fetcher.js'
+import { createTestDb } from './helpers/db.js'
 
 let db: Database.Database
 let feedsService: FeedsService
@@ -13,9 +13,7 @@ let articlesService: ArticlesService
 let groupsService: GroupsService
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
+  db = createTestDb()
   feedsService = new FeedsService(db)
   articlesService = new ArticlesService(db)
   groupsService = new GroupsService(db)

@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema, setDb, closeDb } from '../../db/schema.js'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import type Database from 'better-sqlite3'
 import { FeedsService } from '../../services/feeds.js'
 import { ArticlesService } from '../../services/articles.js'
 import { getFaviconUrl } from '../../services/rss-fetcher.js'
 import { discoverFeedUrl } from '../../services/feed-discovery.js'
 import { fetchFeed, type FetchedFeed } from '../../services/rss-fetcher.js'
 import feedsRouter from '../../routes/feeds.js'
+import { useTestDb } from '../helpers/db.js'
+import { jsonRequest } from '../helpers/http.js'
 
 vi.mock('../../services/feed-discovery.js', () => ({
   discoverFeedUrl: vi.fn(),
@@ -20,26 +21,16 @@ vi.mock('../../services/rss-fetcher.js', async (importOriginal) => {
 const discoverFeedUrlMock = vi.mocked(discoverFeedUrl)
 const fetchFeedMock = vi.mocked(fetchFeed)
 
+const getTestDb = useTestDb()
 let db: Database.Database
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
-  setDb(db)
+  db = getTestDb()
   vi.clearAllMocks()
 })
 
-afterEach(() => {
-  closeDb()
-})
-
 function jsonReq(path: string, body: unknown, method = 'POST') {
-  return feedsRouter.request(path, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  return jsonRequest(feedsRouter, path, body, method)
 }
 
 const FETCHED: FetchedFeed = {
