@@ -70,7 +70,13 @@ struct SidebarView: View {
                         FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                     }
                     .onMove { from, to in
-                        Task { try? await feedStore.reorderFeeds(from: from, to: to, groupId: group.id) }
+                        Task {
+                            do {
+                                try await feedStore.reorderFeeds(from: from, to: to, groupId: group.id)
+                            } catch {
+                                reorderError = error
+                            }
+                        }
                     }
                 }
             } header: {
@@ -117,7 +123,13 @@ struct SidebarView: View {
                         FeedRowView(feed: feed, selectedFeedId: $selectedFeedId, onNavigate: onNavigate)
                     }
                     .onMove { from, to in
-                        Task { try? await feedStore.reorderFeeds(from: from, to: to, groupId: nil) }
+                        Task {
+                            do {
+                                try await feedStore.reorderFeeds(from: from, to: to, groupId: nil)
+                            } catch {
+                                reorderError = error
+                            }
+                        }
                     }
                 }
             }
