@@ -1,19 +1,16 @@
 import XCTest
 @testable import Gogai
 
-final class StockStoreTests: XCTestCase {
-    var client: APIClient!
+final class StockStoreTests: StoreTestCase {
     var store: StockStore!
 
     override func setUp() {
         super.setUp()
-        client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
         store = StockStore()
         store.configure(with: client)
     }
 
     override func tearDown() {
-        MockURLProtocol.requestHandler = nil
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.stockSortAscending)
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.stockSummaryQueue)
         super.tearDown()

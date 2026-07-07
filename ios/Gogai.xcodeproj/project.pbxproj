@@ -69,6 +69,7 @@
 		FF0000000000000000004DAB /* TranslationCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004DAB /* TranslationCacheTests.swift */; };
 		FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000008AB /* MockURLProtocol.swift */; };
 		FF00000000000000000079AB /* MockTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000079AB /* MockTextGenerator.swift */; };
+		FF0000000000000000007AAB /* StoreTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000007AAB /* StoreTestCase.swift */; };
 		FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000009AB /* ArticleSortOrderTests.swift */; };
 		FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000003AAB /* ArticleUpdatingTests.swift */; };
 		FF0000000000000000002EAB /* AppCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000AAB /* AppCacheTests.swift */; };
@@ -227,6 +228,7 @@
 		EE0000000000000000004DAB /* TranslationCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCacheTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000008AB /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		EE00000000000000000079AB /* MockTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTextGenerator.swift; sourceTree = "<group>"; };
+		EE0000000000000000007AAB /* StoreTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTestCase.swift; sourceTree = "<group>"; };
 		EE00000000000000000009AB /* ArticleSortOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSortOrderTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000003AAB /* ArticleUpdatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleUpdatingTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000AAB /* AppCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCacheTests.swift; sourceTree = "<group>"; };
@@ -502,6 +504,7 @@
 			isa = PBXGroup;
 			children = (
 				EE00000000000000000079AB /* MockTextGenerator.swift */,
+				EE0000000000000000007AAB /* StoreTestCase.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -795,6 +798,7 @@
 			files = (
 				FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */,
 				FF00000000000000000079AB /* MockTextGenerator.swift in Sources */,
+				FF0000000000000000007AAB /* StoreTestCase.swift in Sources */,
 				FF00000000000000000025AB /* APIClientTests.swift in Sources */,
 				FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */,
 				FF00000000000000000027AB /* FeedRepositoryTests.swift in Sources */,

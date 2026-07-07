@@ -1,8 +1,7 @@
 import XCTest
 @testable import Gogai
 
-final class ArticleStoreTests: XCTestCase {
-    var client: APIClient!
+final class ArticleStoreTests: StoreTestCase {
     var store: ArticleStore!
 
     override func setUp() {
@@ -12,14 +11,8 @@ final class ArticleStoreTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.sortOrder)
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let cache = AppCache(directory: tempDir)
-        client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
         store = ArticleStore(cache: cache)
         store.configure(with: client)
-    }
-
-    override func tearDown() {
-        MockURLProtocol.requestHandler = nil
-        super.tearDown()
     }
 
     private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0) -> Article {
