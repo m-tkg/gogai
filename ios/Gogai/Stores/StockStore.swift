@@ -119,7 +119,7 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
         guard let client else { return }
         try await StockRepository(client: client).saveSummary(id: id, summary: summary)
         if let idx = stocks.firstIndex(where: { $0.id == id }) {
-            stocks[idx] = stocks[idx].updating(summary: summary)
+            stocks[idx] = stocks[idx].updating(summary: .set(summary))
         }
     }
 

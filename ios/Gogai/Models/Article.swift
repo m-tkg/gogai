@@ -15,23 +15,8 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
 
     var isRead: Bool { is_read == 1 }
 
-    /// read_at の更新方法（nil 設定と「変更しない」を区別するため）
-    enum ReadAtUpdate {
-        case keep
-        case clear
-        case set(String)
-
-        func apply(to current: String?) -> String? {
-            switch self {
-            case .keep: return current
-            case .clear: return nil
-            case .set(let value): return value
-            }
-        }
-    }
-
     /// 指定フィールドだけ差し替えた新しい Article を返す（全フィールド手動コピーの集約先）
-    func updating(isRead: Int? = nil, readAt: ReadAtUpdate = .keep) -> Article {
+    func updating(isRead: Int? = nil, readAt: FieldUpdate<String> = .keep) -> Article {
         Article(id: id, feed_id: feed_id, guid: guid,
                 title: title, link: link, summary: summary,
                 content: content, published_at: published_at,
