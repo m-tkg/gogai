@@ -1,8 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { articlesApi, feedsApi, type Article, type SortBy } from '../api/client'
-import { queryKeys, invalidateArticles, invalidateFeedsAndArticles } from '../api/queryKeys'
+import { useQuery } from '@tanstack/react-query'
+import { articlesApi, type Article, type SortBy } from '../api/client'
+import { queryKeys } from '../api/queryKeys'
 import { useState } from 'react'
 import { ArticleCard } from './articles/ArticleCard'
+import { useArticleMutations } from '../hooks/useArticleMutations'
 
 interface ArticleListProps {
   feedId: number | null
@@ -14,7 +15,6 @@ interface ArticleListProps {
 }
 
 export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleId, onOpenSidebar, showSecretGroups = false }: ArticleListProps) {
-  const qc = useQueryClient()
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>('published_at')
 
@@ -23,22 +23,7 @@ export function ArticleList({ feedId, groupId, onSelectArticle, selectedArticleI
     queryFn: () => articlesApi.list({ feedId: feedId ?? undefined, groupId: groupId ?? undefined, unreadOnly, sortBy, limit: 1000, offset: 0, includeSecret: showSecretGroups }),
   })
 
-  const refresh = useMutation({
-    // Why: ボタンは feedId != null のときだけ描画されるが、状態管理ミス時の NaN リクエスト
-    // 発火を防ぐため早期 return で保険をかける。
-    mutationFn: () => feedId == null ? Promise.resolve() : feedsApi.refresh(feedId),
-    onSuccess: () => invalidateFeedsAndArticles(qc),
-  })
-
-  const markAsRead = useMutation({
-    mutationFn: (id: number) => articlesApi.markAsRead(id),
-    onSuccess: () => invalidateArticles(qc),
-  })
-
-  const markAsUnread = useMutation({
-    mutationFn: (id: number) => articlesApi.markAsUnread(id),
-    onSuccess: () => invalidateArticles(qc),
-  })
+  const { refresh, markAsRead, markAsUnread } = useArticleMutations(feedId)
 
   const handleSelect = (article: Article) => {
     onSelectArticle(article)
