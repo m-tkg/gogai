@@ -93,6 +93,28 @@ final class LocalArticleAITests: XCTestCase {
         XCTAssertTrue(text.contains("本文"))
     }
 
+    func test_preparePrompt_タイポグラフィエンティティをデコードする() {
+        let text = LocalArticleAI.preparePrompt(
+            title: nil,
+            content: "&ldquo;test&rdquo; and it&rsquo;s &hellip; &mdash; done"
+        )
+        XCTAssertTrue(text.contains("“test”"))
+        XCTAssertTrue(text.contains("it’s"))
+        XCTAssertTrue(text.contains("…"))
+        XCTAssertTrue(text.contains("—"))
+    }
+
+    func test_preparePrompt_数値文字参照をデコードする() {
+        let text = LocalArticleAI.preparePrompt(title: nil, content: "caf&#233; &#x2665;")
+        XCTAssertTrue(text.contains("café"))
+        XCTAssertTrue(text.contains("♥"))
+    }
+
+    func test_preparePrompt_アイコンフォント用の私用領域コードポイントは除去する() {
+        let text = LocalArticleAI.preparePrompt(title: nil, content: "icon&#xe802;here")
+        XCTAssertEqual(text, "iconhere")
+    }
+
     // MARK: - TranslationEngine（翻訳エンジン選択）
 
     func test_translationEngine_デフォルトはローカルAI() {

@@ -38,6 +38,45 @@ final class ArticleContentFetcherTests: XCTestCase {
         XCTAssertTrue(text.contains("ok"))
     }
 
+    // MARK: - extractText（<article>/<main> 優先抽出）
+
+    func test_extractText_articleタグがあればナビゲーションやフッターを除外する() {
+        let articleBody = String(repeating: "これは記事本文です。", count: 20)
+        let html = """
+        <html><body>
+        <nav>Home About Contact Pricing Sign in Sign up Blog</nav>
+        <article><p>\(articleBody)</p></article>
+        <footer>Copyright 2024 All rights reserved</footer>
+        </body></html>
+        """
+        let text = ArticleContentFetcher.extractText(from: html)
+        XCTAssertTrue(text.contains("これは記事本文です"))
+        XCTAssertFalse(text.contains("Sign in"), "article タグ外のナビゲーションは除外される")
+        XCTAssertFalse(text.contains("Copyright"), "article タグ外のフッターは除外される")
+    }
+
+    func test_extractText_articleタグがなければ従来通りbody全体を使う() {
+        let html = "<html><body><nav>Home</nav><p>本文</p></body></html>"
+        let text = ArticleContentFetcher.extractText(from: html)
+        XCTAssertTrue(text.contains("Home"))
+        XCTAssertTrue(text.contains("本文"))
+    }
+
+    func test_extractText_短すぎるarticleタグは無視してbody全体にフォールバックする() {
+        let longBody = String(repeating: "テスト", count: 50)
+        let html = "<html><body><article>短い</article><p>本当はここに長い本文があります。\(longBody)</p></body></html>"
+        let text = ArticleContentFetcher.extractText(from: html)
+        XCTAssertTrue(text.contains("本当はここに長い本文"))
+    }
+
+    func test_extractText_複数のarticleタグは最も長いものを採用する() {
+        let longBody = String(repeating: "本文です。", count: 60)
+        let html = "<html><body><article>短い関連記事</article><article>\(longBody)</article></body></html>"
+        let text = ArticleContentFetcher.extractText(from: html)
+        XCTAssertTrue(text.contains("本文です"))
+        XCTAssertFalse(text.contains("短い関連記事"))
+    }
+
     // MARK: - fetchPlainText
 
     func test_fetchPlainText_記事URLからテキストを取得する() async throws {
