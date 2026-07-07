@@ -97,6 +97,7 @@
 		FF00000000000000000058AB /* StockStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000058AB /* StockStoreTests.swift */; };
 		FF00000000000000000087AB /* ReorderHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000007DAB /* ReorderHelperTests.swift */; };
 		FF00000000000000000088AB /* ReorderHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000081AB /* ReorderHelper.swift */; };
+		FF00000000000000000089AB /* FieldUpdateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000007EAB /* FieldUpdateTests.swift */; };
 		FF00000000000000000059AB /* StockCategoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000059AB /* StockCategoryListView.swift */; };
 		FF0000000000000000005AAB /* StockListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005AAB /* StockListView.swift */; };
 		FF0000000000000000005BAB /* StockDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000005BAB /* StockDetailView.swift */; };
@@ -262,6 +263,7 @@
 		EE00000000000000000058AB /* StockStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStoreTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000007DAB /* ReorderHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReorderHelperTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000081AB /* ReorderHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReorderHelper.swift; sourceTree = "<group>"; };
+		EE0000000000000000007EAB /* FieldUpdateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldUpdateTests.swift; sourceTree = "<group>"; };
 		DD0000000000000000005EAB /* StockSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizer.swift; sourceTree = "<group>"; };
 		DD0000000000000000005FAB /* StockSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummary.swift; sourceTree = "<group>"; };
 		EE00000000000000000060AB /* StockSummarizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizerTests.swift; sourceTree = "<group>"; };
@@ -603,6 +605,7 @@
 			children = (
 				EE00000000000000000009AB /* ArticleSortOrderTests.swift */,
 				EE0000000000000000003AAB /* ArticleUpdatingTests.swift */,
+				EE0000000000000000007EAB /* FieldUpdateTests.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -867,6 +870,7 @@
 				FF0000000000000000004DAB /* TranslationCacheTests.swift in Sources */,
 				FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */,
 				FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */,
+				FF00000000000000000089AB /* FieldUpdateTests.swift in Sources */,
 				FF0000000000000000002EAB /* AppCacheTests.swift in Sources */,
 				FF00000000000000000036AB /* ServerURLManagerTests.swift in Sources */,
 				FF0000000000000000004AAB /* HorizontalSwipeTests.swift in Sources */,
