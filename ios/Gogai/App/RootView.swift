@@ -45,12 +45,7 @@ struct RootView: View {
                 .fullScreenCover(isPresented: $showStocks) {
                     NavigationStack {
                         StockCategoryListView(isModal: true)
-                            .navigationDestination(for: StockCategory.self) { category in
-                                StockListView(category: category)
-                                    .navigationDestination(for: Stock.self) { stock in
-                                        StockDetailView(stock: stock)
-                                    }
-                            }
+                            .stockDestinations()
                     }
                 }
             } else {
@@ -75,12 +70,7 @@ struct RootView: View {
                     }
                     .navigationDestination(for: StockDestination.self) { _ in
                         StockCategoryListView()
-                            .navigationDestination(for: StockCategory.self) { category in
-                                StockListView(category: category)
-                                    .navigationDestination(for: Stock.self) { stock in
-                                        StockDetailView(stock: stock)
-                                    }
-                            }
+                            .stockDestinations()
                     }
                 }
             }
