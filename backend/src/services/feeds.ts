@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { reorderByDisplayOrder } from './shared/reorder.js'
+import { nextDisplayOrder } from './shared/display-order.js'
 
 export interface Feed {
   id: number
@@ -32,10 +33,7 @@ export class FeedsService {
 
   create(input: CreateFeedInput): Feed {
     // 同グループ内（または ungrouped）の末尾に追加
-    const maxOrder = (this.db.prepare(
-      'SELECT COALESCE(MAX(display_order), -1) as max_order FROM feeds WHERE group_id IS ?'
-    ).get(input.groupId ?? null) as { max_order: number }).max_order
-    const displayOrder = maxOrder + 1
+    const displayOrder = nextDisplayOrder(this.db, 'feeds', 'group_id IS ?', [input.groupId ?? null])
 
     const stmt = this.db.prepare(`
       INSERT INTO feeds (url, title, favicon_url, group_id, display_order)

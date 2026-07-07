@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { reorderByDisplayOrder } from './shared/reorder.js'
+import { nextDisplayOrder } from './shared/display-order.js'
 
 export interface StockCategory {
   id: number
@@ -39,14 +40,10 @@ export class StockCategoriesService {
       .get(trimmed) as StockCategory | undefined
     if (existing) return existing
 
-    const maxOrder = (
-      this.db.prepare('SELECT COALESCE(MAX(display_order), -1) as max_order FROM stock_categories').get() as {
-        max_order: number
-      }
-    ).max_order
+    const displayOrder = nextDisplayOrder(this.db, 'stock_categories')
     return this.db
       .prepare('INSERT INTO stock_categories (name, display_order) VALUES (?, ?) RETURNING *')
-      .get(trimmed, maxOrder + 1) as StockCategory
+      .get(trimmed, displayOrder) as StockCategory
   }
 
   // カテゴリに紐づくストックが 0 件なら削除する
