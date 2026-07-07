@@ -6,10 +6,11 @@ After=network.target gogai-backend.service
 Type=simple
 User=masaki
 WorkingDirectory=/home/masaki/gogai/frontend
-ExecStart=npm run dev
+ExecStartPre=-npm run build
+ExecStart=npm run preview
 Restart=on-failure
 RestartSec=5
-Environment=NODE_ENV=development
+Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
