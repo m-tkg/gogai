@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		FF00000000000000000001AB /* GogaiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000001AB /* GogaiApp.swift */; };
 		FF00000000000000000002AB /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000002AB /* RootView.swift */; };
+		FF00000000000000000085AB /* ArticleNavigationRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007FAB /* ArticleNavigationRootView.swift */; };
+		FF00000000000000000086AB /* StockRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000080AB /* StockRootView.swift */; };
 		FF00000000000000000003AB /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000003AB /* Group.swift */; };
 		FF00000000000000000004AB /* Feed.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000004AB /* Feed.swift */; };
 		FF00000000000000000005AB /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000005AB /* Article.swift */; };
@@ -167,6 +169,8 @@
 /* Begin PBXFileReference section */
 		DD00000000000000000001AB /* GogaiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GogaiApp.swift; sourceTree = "<group>"; };
 		DD00000000000000000002AB /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		DD0000000000000000007FAB /* ArticleNavigationRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleNavigationRootView.swift; sourceTree = "<group>"; };
+		DD00000000000000000080AB /* StockRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRootView.swift; sourceTree = "<group>"; };
 		DD00000000000000000003AB /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
 		DD00000000000000000004AB /* Feed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feed.swift; sourceTree = "<group>"; };
 		DD00000000000000000005AB /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
@@ -335,6 +339,7 @@
 			children = (
 				DD00000000000000000001AB /* GogaiApp.swift */,
 				DD00000000000000000002AB /* RootView.swift */,
+				DD0000000000000000007FAB /* ArticleNavigationRootView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -508,6 +513,7 @@
 				DD00000000000000000070AB /* StockRowView.swift */,
 				DD0000000000000000007EAB /* StockDestinations.swift */,
 				DD0000000000000000007DAB /* StockActions.swift */,
+				DD00000000000000000080AB /* StockRootView.swift */,
 			);
 			path = Stocks;
 			sourceTree = "<group>";
@@ -750,6 +756,8 @@
 			files = (
 				FF00000000000000000001AB /* GogaiApp.swift in Sources */,
 				FF00000000000000000002AB /* RootView.swift in Sources */,
+				FF00000000000000000085AB /* ArticleNavigationRootView.swift in Sources */,
+				FF00000000000000000086AB /* StockRootView.swift in Sources */,
 				FF00000000000000000003AB /* Group.swift in Sources */,
 				FF00000000000000000004AB /* Feed.swift in Sources */,
 				FF00000000000000000005AB /* Article.swift in Sources */,
