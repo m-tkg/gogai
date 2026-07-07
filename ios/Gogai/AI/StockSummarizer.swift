@@ -29,7 +29,7 @@ struct StockSummarizer: Sendable {
     /// 取得済みの本文からサマリーを生成する(テスト用に URL 取得と分離)
     func summarize(title: String?, text: String) async throws -> String {
         let cleanTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanText = LocalArticleAI.stripHTML(text)
+        let cleanText = ArticleContentFetcher.stripHTML(text)
         guard !cleanTitle.isEmpty || !cleanText.isEmpty else { throw LocalAIError.emptyContent }
 
         let sourceText = cleanText.count <= Self.maxPromptLength
