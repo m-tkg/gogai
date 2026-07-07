@@ -1,5 +1,61 @@
 import SwiftUI
 
+/// 要約キュー(生成中 + 待機中)の一覧をトグル開閉で表示するセクション。
+/// 一時停止/再開・個別キャンセルの操作もここに含む。
+private struct SummaryQueueSection: View {
+    let items: [(id: Int, title: String, isGenerating: Bool)]
+    @Binding var isExpanded: Bool
+    let isPausedByUser: Bool
+    let onCancel: (Int) -> Void
+    let onTogglePause: () -> Void
+
+    var body: some View {
+        Section {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                ForEach(items, id: \.id) { item in
+                    HStack(spacing: 8) {
+                        if item.isGenerating {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "hourglass")
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(item.title)
+                            .lineLimit(1)
+                        Spacer()
+                        Text(item.isGenerating ? "生成中" : "順番待ち")
+                            .foregroundStyle(.secondary)
+                        Button {
+                            onCancel(item.id)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .font(.subheadline)
+                }
+            } label: {
+                HStack {
+                    Text("要約キュー (\(items.count))")
+                    if isPausedByUser {
+                        Text("一時停止中")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button {
+                        onTogglePause()
+                    } label: {
+                        Image(systemName: isPausedByUser ? "play.fill" : "pause.fill")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+    }
+}
+
 /// ストックのカテゴリ(フォルダ)一覧。タップすると StockListView へ遷移する。
 struct StockCategoryListView: View {
     /// true の場合、閉じるボタンを表示する(iPad の fullScreenCover 表示用)
@@ -53,53 +109,19 @@ struct StockCategoryListView: View {
                 .disabled(!LocalAI.isAvailable)
             }
             if !summaryQueueItems.isEmpty {
-                Section {
-                    DisclosureGroup(isExpanded: $isQueueExpanded) {
-                        ForEach(summaryQueueItems, id: \.id) { item in
-                            HStack(spacing: 8) {
-                                if item.isGenerating {
-                                    ProgressView()
-                                } else {
-                                    Image(systemName: "hourglass")
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(item.title)
-                                    .lineLimit(1)
-                                Spacer()
-                                Text(item.isGenerating ? "生成中" : "順番待ち")
-                                    .foregroundStyle(.secondary)
-                                Button {
-                                    stockStore.cancelSummary(for: item.id)
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.secondary)
-                                }
-                                .buttonStyle(.borderless)
-                            }
-                            .font(.subheadline)
-                        }
-                    } label: {
-                        HStack {
-                            Text("要約キュー (\(summaryQueueItems.count))")
-                            if stockStore.isSummaryQueuePausedByUser {
-                                Text("一時停止中")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Button {
-                                if stockStore.isSummaryQueuePausedByUser {
-                                    stockStore.resumeSummaryQueue()
-                                } else {
-                                    stockStore.pauseSummaryQueue()
-                                }
-                            } label: {
-                                Image(systemName: stockStore.isSummaryQueuePausedByUser ? "play.fill" : "pause.fill")
-                            }
-                            .buttonStyle(.borderless)
+                SummaryQueueSection(
+                    items: summaryQueueItems,
+                    isExpanded: $isQueueExpanded,
+                    isPausedByUser: stockStore.isSummaryQueuePausedByUser,
+                    onCancel: { stockStore.cancelSummary(for: $0) },
+                    onTogglePause: {
+                        if stockStore.isSummaryQueuePausedByUser {
+                            stockStore.resumeSummaryQueue()
+                        } else {
+                            stockStore.pauseSummaryQueue()
                         }
                     }
-                }
+                )
             }
             ForEach(stockStore.categories) { category in
                 NavigationLink(value: category) {
