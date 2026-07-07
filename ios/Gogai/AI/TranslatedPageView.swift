@@ -29,11 +29,15 @@ struct TranslatedPageView: View {
     @State private var configuration: TranslationSession.Configuration?
 
     var body: some View {
-        TranslatedPageWebView(model: model)
+        PageTranslationWebView(model: model)
             .ignoresSafeArea()
-            .overlay(alignment: .top) { statusBar }
+            .overlay(alignment: .top) {
+                PageTranslationStatusBar(status: model.status, translatedCount: model.translatedCount, totalCount: model.totalCount)
+            }
             // 記事ページ（翻訳前）と同じ右下フローティング配置でボタンを並べる
-            .overlay(alignment: .bottomTrailing) { floatingButtons }
+            .overlay(alignment: .bottomTrailing) {
+                PageTranslationFloatingButtons(model: model) { dismiss() }
+            }
             .translationTask(configuration) { session in
             // Why: TranslationSession は non-Sendable のため unsafe 束縛で
             // region isolation を回避する（このクロージャ内で逐次アクセスのみ）
@@ -50,64 +54,6 @@ struct TranslatedPageView: View {
                 )
             }
         }
-    }
-
-    /// 右下フローティングボタン群（翻訳前の記事ページと同じ位置・スタイル）。
-    /// 上: 原文 ⇄ 訳文トグル（常時表示、翻訳完了まで無効）/ 下: 閉じる
-    private var floatingButtons: some View {
-        VStack(spacing: 12) {
-            CircleIconButton(
-                systemName: model.isShowingOriginal ? "character.bubble" : "doc.plaintext",
-                accessibilityLabel: model.isShowingOriginal ? "翻訳を表示" : "原文を表示",
-                isEnabled: isToggleEnabled
-            ) {
-                Task {
-                    if model.isShowingOriginal {
-                        await model.showTranslation()
-                    } else {
-                        await model.showOriginal()
-                    }
-                }
-            }
-            CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる") { dismiss() }
-        }
-        .padding(.trailing, 16)
-        .padding(.bottom, 70)
-    }
-
-    /// 原文/翻訳トグルは翻訳が完了し、訳が1件以上あるときだけ操作可能
-    private var isToggleEnabled: Bool {
-        model.status == .done && model.hasTranslations
-    }
-
-    @ViewBuilder
-    private var statusBar: some View {
-        switch model.status {
-        case .loading:
-            statusLabel("ページを読み込んでいます…", showsProgress: true)
-        case .ready, .translating:
-            statusLabel(
-                model.totalCount > 0
-                    ? "翻訳中… (\(model.translatedCount)/\(model.totalCount))"
-                    : "翻訳の準備中…",
-                showsProgress: true
-            )
-        case .failed(let message):
-            statusLabel("翻訳に失敗しました: \(message)", showsProgress: false)
-        case .done:
-            EmptyView()
-        }
-    }
-
-    private func statusLabel(_ text: String, showsProgress: Bool) -> some View {
-        HStack(spacing: 8) {
-            if showsProgress { ProgressView() }
-            Text(text).font(.caption)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(.regularMaterial, in: Capsule())
-        .padding(.top, 12)
     }
 
     @available(iOS 18.0, macCatalyst 26.0, *)
@@ -154,15 +100,4 @@ struct TranslatedPageView: View {
             model.markFailed(error.localizedDescription)
         }
     }
-}
-
-/// TranslatedPageModel の WKWebView を SwiftUI に橋渡しする
-private struct TranslatedPageWebView: UIViewRepresentable {
-    @ObservedObject var model: TranslatedPageModel
-
-    func makeUIView(context: Context) -> WKWebView {
-        model.webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {}
 }

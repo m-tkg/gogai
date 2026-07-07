@@ -103,6 +103,9 @@
 		FF00000000000000000061AB /* StockSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000061AB /* StockSummaryTests.swift */; };
 		FF00000000000000000062AB /* FMPageTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000062AB /* FMPageTranslator.swift */; };
 		FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000063AB /* FMTranslatedPageView.swift */; };
+		FF0000000000000000007FAB /* PageTranslationWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000079AB /* PageTranslationWebView.swift */; };
+		FF00000000000000000080AB /* PageTranslationStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007AAB /* PageTranslationStatusBar.swift */; };
+		FF00000000000000000081AB /* PageTranslationFloatingButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007BAB /* PageTranslationFloatingButtons.swift */; };
 		FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000064AB /* FMPageTranslatorTests.swift */; };
 		FF00000000000000000065AB /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000065AB /* AppGroup.swift */; };
 		FF00000000000000000066AB /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000066AB /* ShareViewController.swift */; };
@@ -253,6 +256,9 @@
 		EE00000000000000000061AB /* StockSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummaryTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000062AB /* FMPageTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMPageTranslator.swift; sourceTree = "<group>"; };
 		DD00000000000000000063AB /* FMTranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTranslatedPageView.swift; sourceTree = "<group>"; };
+		DD00000000000000000079AB /* PageTranslationWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTranslationWebView.swift; sourceTree = "<group>"; };
+		DD0000000000000000007AAB /* PageTranslationStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTranslationStatusBar.swift; sourceTree = "<group>"; };
+		DD0000000000000000007BAB /* PageTranslationFloatingButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTranslationFloatingButtons.swift; sourceTree = "<group>"; };
 		EE00000000000000000064AB /* FMPageTranslatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMPageTranslatorTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000065AB /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		DD00000000000000000066AB /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -409,6 +415,9 @@
 				DD0000000000000000005FAB /* StockSummary.swift */,
 				DD00000000000000000062AB /* FMPageTranslator.swift */,
 				DD00000000000000000063AB /* FMTranslatedPageView.swift */,
+				DD00000000000000000079AB /* PageTranslationWebView.swift */,
+				DD0000000000000000007AAB /* PageTranslationStatusBar.swift */,
+				DD0000000000000000007BAB /* PageTranslationFloatingButtons.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -798,6 +807,9 @@
 				FF0000000000000000005FAB /* StockSummary.swift in Sources */,
 				FF00000000000000000062AB /* FMPageTranslator.swift in Sources */,
 				FF00000000000000000063AB /* FMTranslatedPageView.swift in Sources */,
+				FF0000000000000000007FAB /* PageTranslationWebView.swift in Sources */,
+				FF00000000000000000080AB /* PageTranslationStatusBar.swift in Sources */,
+				FF00000000000000000081AB /* PageTranslationFloatingButtons.swift in Sources */,
 				FF00000000000000000065AB /* AppGroup.swift in Sources */,
 				FF00000000000000000070AB /* StockRowView.swift in Sources */,
 				FF00000000000000000071AB /* ReleaseInfo.swift in Sources */,

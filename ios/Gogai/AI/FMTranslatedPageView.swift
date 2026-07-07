@@ -31,10 +31,22 @@ struct FMTranslatedPageView: View {
     private var pageTitle: String { stock.title ?? stock.url }
 
     var body: some View {
-        FMTranslatedPageWebView(model: model)
+        PageTranslationWebView(model: model)
             .ignoresSafeArea()
-            .overlay(alignment: .top) { statusBar }
-            .overlay(alignment: .bottomTrailing) { floatingButtons }
+            .overlay(alignment: .top) {
+                PageTranslationStatusBar(status: model.status, translatedCount: model.translatedCount, totalCount: model.totalCount)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                PageTranslationFloatingButtons(model: model, onClose: { dismiss() }) {
+                    CircleIconButton(
+                        systemName: "arrow.clockwise",
+                        accessibilityLabel: "再翻訳",
+                        isEnabled: isRetranslateEnabled
+                    ) {
+                        Task { await runTranslation(forceRetranslate: true) }
+                    }
+                }
+            }
             .onAppear {
                 if let url = URL(string: stock.url) { model.load(url) }
             }
@@ -45,38 +57,6 @@ struct FMTranslatedPageView: View {
             }
     }
 
-    private var floatingButtons: some View {
-        VStack(spacing: 12) {
-            CircleIconButton(
-                systemName: model.isShowingOriginal ? "character.bubble" : "doc.plaintext",
-                accessibilityLabel: model.isShowingOriginal ? "翻訳を表示" : "原文を表示",
-                isEnabled: isToggleEnabled
-            ) {
-                Task {
-                    if model.isShowingOriginal {
-                        await model.showTranslation()
-                    } else {
-                        await model.showOriginal()
-                    }
-                }
-            }
-            CircleIconButton(
-                systemName: "arrow.clockwise",
-                accessibilityLabel: "再翻訳",
-                isEnabled: isRetranslateEnabled
-            ) {
-                Task { await runTranslation(forceRetranslate: true) }
-            }
-            CircleIconButton(systemName: "xmark", accessibilityLabel: "閉じる") { dismiss() }
-        }
-        .padding(.trailing, 16)
-        .padding(.bottom, 70)
-    }
-
-    private var isToggleEnabled: Bool {
-        model.status == .done && model.hasTranslations
-    }
-
     private var isRetranslateEnabled: Bool {
         model.status == .done || isFailed
     }
@@ -84,36 +64,6 @@ struct FMTranslatedPageView: View {
     private var isFailed: Bool {
         if case .failed = model.status { return true }
         return false
-    }
-
-    @ViewBuilder
-    private var statusBar: some View {
-        switch model.status {
-        case .loading:
-            statusLabel("ページを読み込んでいます…", showsProgress: true)
-        case .ready, .translating:
-            statusLabel(
-                model.totalCount > 0
-                    ? "翻訳中… (\(model.translatedCount)/\(model.totalCount))"
-                    : "翻訳の準備中…",
-                showsProgress: true
-            )
-        case .failed(let message):
-            statusLabel("翻訳に失敗しました: \(message)", showsProgress: false)
-        case .done:
-            EmptyView()
-        }
-    }
-
-    private func statusLabel(_ text: String, showsProgress: Bool) -> some View {
-        HStack(spacing: 8) {
-            if showsProgress { ProgressView() }
-            Text(text).font(.caption)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(.regularMaterial, in: Capsule())
-        .padding(.top, 12)
     }
 
     // MARK: - 翻訳の実行・保存
@@ -194,12 +144,4 @@ struct FMTranslatedPageView: View {
         guard let json, let data = json.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(FMTranslationPayload.self, from: data).segments
     }
-}
-
-/// TranslatedPageModel の WKWebView を SwiftUI に橋渡しする
-private struct FMTranslatedPageWebView: UIViewRepresentable {
-    @ObservedObject var model: TranslatedPageModel
-
-    func makeUIView(context: Context) -> WKWebView { model.webView }
-    func updateUIView(_ webView: WKWebView, context: Context) {}
 }
