@@ -67,6 +67,14 @@ struct StockCategoryListView: View {
     @State private var isEditing = false
     @State private var showAddStock = false
     @State private var isQueueExpanded = true
+    @State private var reorderError: Error?
+
+    private var reorderErrorBinding: Binding<Bool> {
+        Binding(
+            get: { reorderError != nil },
+            set: { if !$0 { reorderError = nil } }
+        )
+    }
 
     /// 現在生成中 + 待機中を合わせた要約キューの一覧(表示用)。
     private var summaryQueueItems: [(id: Int, title: String, isGenerating: Bool)] {
@@ -140,7 +148,13 @@ struct StockCategoryListView: View {
                 }
             }
             .onMove { from, to in
-                Task { try? await stockStore.reorderCategories(from: from, to: to) }
+                Task {
+                    do {
+                        try await stockStore.reorderCategories(from: from, to: to)
+                    } catch {
+                        reorderError = error
+                    }
+                }
             }
         }
         .navigationTitle("ストック")
@@ -173,6 +187,11 @@ struct StockCategoryListView: View {
         }
         .sheet(isPresented: $showAddStock) {
             AddStockView()
+        }
+        .alert("並び替えエラー", isPresented: reorderErrorBinding) {
+            Button("OK") { reorderError = nil }
+        } message: {
+            Text(reorderError?.localizedDescription ?? "")
         }
     }
 }
