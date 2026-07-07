@@ -7,7 +7,6 @@ import { Settings } from './components/Settings'
 import { useSelectionState } from './hooks/useSelectionState'
 import { useDarkMode } from './hooks/useDarkMode'
 import { useLocalStorageBool } from './hooks/useLocalStorageBool'
-import './index.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
