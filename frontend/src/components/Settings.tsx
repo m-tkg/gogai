@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsApi, adminApi, type UpdateCheck } from '../api/client'
-import { queryKeys } from '../api/queryKeys'
+import { queryKeys, invalidateSettings } from '../api/queryKeys'
 import { getApiErrorMessage } from '../api/errors'
 
 const MIN = 3
@@ -45,7 +45,7 @@ export function Settings({ showSecretGroups, onToggleSecretGroups }: SettingsPro
   const update = useMutation({
     mutationFn: () => settingsApi.update({ retention_days: Number(days) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.settings })
+      invalidateSettings(qc)
       setError(null)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)

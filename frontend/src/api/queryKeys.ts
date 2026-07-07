@@ -32,6 +32,10 @@ export function invalidateGroups(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: queryKeys.groups })
 }
 
+export function invalidateSettings(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: queryKeys.settings })
+}
+
 // フィード操作（追加・削除・更新）後の定番: 一覧と記事の両方を更新する
 export function invalidateFeedsAndArticles(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: queryKeys.feeds })
