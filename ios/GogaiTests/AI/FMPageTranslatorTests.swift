@@ -1,21 +1,6 @@
 import XCTest
 @testable import Gogai
 
-private final class MockTextGenerator: TextGenerating, @unchecked Sendable {
-    /// 呼び出しごとに順番に返す応答(プロンプトから id を機械的に再構成したい場合は nil のままにして generate 内で組み立てる)
-    var responseHandler: ((String, String) -> String)?
-    var receivedPrompts: [String] = []
-    var receivedInstructions: [String] = []
-    var error: Error?
-
-    func generate(instructions: String, prompt: String) async throws -> String {
-        receivedInstructions.append(instructions)
-        receivedPrompts.append(prompt)
-        if let error { throw error }
-        return responseHandler?(instructions, prompt) ?? ""
-    }
-}
-
 /// プロンプト中の「⟦id⟧原文」をそのまま「⟦id⟧訳:原文」の形に変換して返す(⟦ctx⟧行は無視する)
 private func echoTranslate(_ prompt: String) -> String {
     prompt

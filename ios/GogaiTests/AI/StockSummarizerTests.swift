@@ -1,21 +1,6 @@
 import XCTest
 @testable import Gogai
 
-private final class MockTextGenerator: TextGenerating, @unchecked Sendable {
-    var responses: [String] = []
-    var receivedPrompts: [String] = []
-    var receivedInstructions: [String] = []
-    var error: Error?
-
-    func generate(instructions: String, prompt: String) async throws -> String {
-        receivedInstructions.append(instructions)
-        receivedPrompts.append(prompt)
-        if let error { throw error }
-        guard !responses.isEmpty else { return "生成結果" }
-        return responses.removeFirst()
-    }
-}
-
 final class StockSummarizerTests: XCTestCase {
 
     override func tearDown() {

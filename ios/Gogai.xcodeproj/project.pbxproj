@@ -68,6 +68,7 @@
 		FF00000000000000000049AB /* TranslatedPageModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000049AB /* TranslatedPageModelTests.swift */; };
 		FF0000000000000000004DAB /* TranslationCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000004DAB /* TranslationCacheTests.swift */; };
 		FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000008AB /* MockURLProtocol.swift */; };
+		FF00000000000000000079AB /* MockTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000079AB /* MockTextGenerator.swift */; };
 		FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000009AB /* ArticleSortOrderTests.swift */; };
 		FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000003AAB /* ArticleUpdatingTests.swift */; };
 		FF0000000000000000002EAB /* AppCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000AAB /* AppCacheTests.swift */; };
@@ -225,6 +226,7 @@
 		EE00000000000000000049AB /* TranslatedPageModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageModelTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000004DAB /* TranslationCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCacheTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000008AB /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
+		EE00000000000000000079AB /* MockTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTextGenerator.swift; sourceTree = "<group>"; };
 		EE00000000000000000009AB /* ArticleSortOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSortOrderTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000003AAB /* ArticleUpdatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleUpdatingTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000000AAB /* AppCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCacheTests.swift; sourceTree = "<group>"; };
@@ -484,6 +486,7 @@
 			isa = PBXGroup;
 			children = (
 				EE00000000000000000008AB /* MockURLProtocol.swift */,
+				CC0000000000000000001BAB /* Support */,
 				CC00000000000000000010AB /* Network */,
 				CC00000000000000000011AB /* Repositories */,
 				CC00000000000000000012AB /* Stores */,
@@ -493,6 +496,14 @@
 				CC0000000000000000001AAB /* Update */,
 			);
 			path = GogaiTests;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000001BAB /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				EE00000000000000000079AB /* MockTextGenerator.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 		CC00000000000000000015AB /* AI */ = {
@@ -783,6 +794,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FF0000000000000000002CAB /* MockURLProtocol.swift in Sources */,
+				FF00000000000000000079AB /* MockTextGenerator.swift in Sources */,
 				FF00000000000000000025AB /* APIClientTests.swift in Sources */,
 				FF00000000000000000026AB /* GroupRepositoryTests.swift in Sources */,
 				FF00000000000000000027AB /* FeedRepositoryTests.swift in Sources */,

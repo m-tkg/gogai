@@ -159,18 +159,6 @@ final class StockStoreTests: XCTestCase {
 
     // MARK: - generateSummary(for:)（ボタン起点の単体生成）
 
-    private final class MockTextGenerator: TextGenerating, @unchecked Sendable {
-        var result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
-        var error: Error?
-        private(set) var callCount = 0
-
-        func generate(instructions: String, prompt: String) async throws -> String {
-            callCount += 1
-            if let error { throw error }
-            return result
-        }
-    }
-
     @MainActor
     func test_generateSummary_指定したストックにサマリーを保存する() async throws {
         store.stocks = [makeStock(id: 1)]
