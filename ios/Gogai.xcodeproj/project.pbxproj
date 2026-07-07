@@ -120,6 +120,7 @@
 		FF0000000000000000006EAB /* DefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003BAB /* DefaultsKeys.swift */; };
 		FF0000000000000000006FAB /* GogaiShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD0000000000000000006AAB /* GogaiShareExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
 		FF00000000000000000070AB /* StockRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000070AB /* StockRowView.swift */; };
+		FF00000000000000000083AB /* StockActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007DAB /* StockActions.swift */; };
 		FF00000000000000000071AB /* ReleaseInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000071AB /* ReleaseInfo.swift */; };
 		FF00000000000000000072AB /* MacUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000072AB /* MacUpdater.swift */; };
 		FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000073AB /* ReleaseInfoTests.swift */; };
@@ -270,6 +271,7 @@
 		DD0000000000000000006AAB /* GogaiShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GogaiShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD0000000000000000006BAB /* Gogai.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Gogai.entitlements; sourceTree = "<group>"; };
 		DD00000000000000000070AB /* StockRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRowView.swift; sourceTree = "<group>"; };
+		DD0000000000000000007DAB /* StockActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockActions.swift; sourceTree = "<group>"; };
 		DD00000000000000000071AB /* ReleaseInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfo.swift; sourceTree = "<group>"; };
 		DD00000000000000000072AB /* MacUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdater.swift; sourceTree = "<group>"; };
 		EE00000000000000000073AB /* ReleaseInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfoTests.swift; sourceTree = "<group>"; };
@@ -502,6 +504,7 @@
 				DD0000000000000000005CAB /* AddStockView.swift */,
 				DD0000000000000000005DAB /* EditStockView.swift */,
 				DD00000000000000000070AB /* StockRowView.swift */,
+				DD0000000000000000007DAB /* StockActions.swift */,
 			);
 			path = Stocks;
 			sourceTree = "<group>";
@@ -816,6 +819,7 @@
 				FF00000000000000000081AB /* PageTranslationFloatingButtons.swift in Sources */,
 				FF00000000000000000065AB /* AppGroup.swift in Sources */,
 				FF00000000000000000070AB /* StockRowView.swift in Sources */,
+				FF00000000000000000083AB /* StockActions.swift in Sources */,
 				FF00000000000000000071AB /* ReleaseInfo.swift in Sources */,
 				FF00000000000000000072AB /* MacUpdater.swift in Sources */,
 				FF00000000000000000076AB /* KeychainStore.swift in Sources */,

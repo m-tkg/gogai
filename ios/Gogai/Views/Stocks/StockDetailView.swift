@@ -81,33 +81,15 @@ struct StockDetailView: View {
     @State private var showRegenerateSummaryConfirm = false
     @State private var deleteError: Error?
 
-    /// 要約の生成中/待機中はストアのキュー状態を見る(View のライフサイクルに依存しないため、
-    /// 戻るボタンで離れてもキュー処理は継続する)。
-    private var isGeneratingSummary: Bool {
-        stockStore.currentlySummarizingStockId == currentStock.id || isQueued
+    private var actions: StockActions {
+        StockActions(stockStore: stockStore, fallbackStock: stock, deleteError: $deleteError)
     }
 
-    private var isQueued: Bool {
-        stockStore.pendingSummaryStockIds.contains(currentStock.id)
-    }
-
-    private var summaryError: String? {
-        stockStore.summaryErrors[currentStock.id]
-    }
-
-    /// 翻訳を実行できる(または結果を再確認できる)条件:
-    /// この端末で AI が使えるか、既に翻訳済みで結果が保存されているか
-    private var canShowTranslation: Bool {
-        LocalAI.isAvailable || currentStock.has_translation
-    }
-
-    private var currentStock: Stock {
-        stockStore.stocks.first(where: { $0.id == stock.id }) ?? stock
-    }
-
-    private var deleteErrorBinding: Binding<Bool> {
-        Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })
-    }
+    private var currentStock: Stock { actions.currentStock }
+    private var isGeneratingSummary: Bool { actions.isGeneratingSummary }
+    private var isQueued: Bool { actions.isQueued }
+    private var summaryError: String? { actions.summaryError }
+    private var canShowTranslation: Bool { actions.canShowTranslation }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -165,17 +147,13 @@ struct StockDetailView: View {
         .confirmationDialog("このストックを削除しますか？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("削除", role: .destructive) {
                 Task {
-                    do {
-                        try await stockStore.deleteStock(id: currentStock.id)
-                        dismiss()
-                    } catch {
-                        deleteError = error
-                    }
+                    await actions.delete()
+                    if deleteError == nil { dismiss() }
                 }
             }
             Button("キャンセル", role: .cancel) {}
         }
-        .alert("削除に失敗しました", isPresented: deleteErrorBinding) {
+        .alert("削除に失敗しました", isPresented: actions.deleteErrorBinding) {
             Button("OK") { deleteError = nil }
         } message: {
             Text(deleteError?.localizedDescription ?? "")
