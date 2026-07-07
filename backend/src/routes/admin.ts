@@ -38,7 +38,7 @@ app.get('/update-check', async (c) => {
     const { stdout } = await execAsync('git rev-parse HEAD', { cwd: PROJECT_ROOT })
     localSha = stdout.trim()
   } catch (e: unknown) {
-    return c.json({ error: 'git rev-parse に失敗しました' }, 500)
+    throw new AppError('git rev-parse に失敗しました', 500)
   }
 
   // git fetch でリモートの最新コミットを取得（GitHub API 不使用・既存認証情報を利用）
@@ -48,7 +48,7 @@ app.get('/update-check', async (c) => {
     const { stdout } = await execAsync(`git rev-parse origin/${GITHUB_BRANCH}`, { cwd: PROJECT_ROOT })
     remoteSha = stdout.trim()
   } catch (e: unknown) {
-    return c.json({ error: 'リモートの取得に失敗しました' }, 500)
+    throw new AppError('リモートの取得に失敗しました', 500)
   }
 
   return c.json({
@@ -75,7 +75,7 @@ app.post('/restart', async (c) => {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[restart] git pull failed:', msg)
-    return c.json({ error: msg }, 500)
+    throw new AppError(msg, 500)
   }
 
   // 現プロセスの PATH を引き継いで npm run build を実行する
@@ -90,7 +90,7 @@ app.post('/restart', async (c) => {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[restart] npm run build failed:', msg)
-    return c.json({ error: `ビルドに失敗しました: ${msg}` }, 500)
+    throw new AppError(`ビルドに失敗しました: ${msg}`, 500)
   }
 
   // レスポンスを先に返し、500ms 後にプロセスを終了する
