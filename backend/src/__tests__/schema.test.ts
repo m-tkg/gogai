@@ -185,4 +185,21 @@ describe('initSchema', () => {
     expect(rows[0].display_order).toBe(rows[0].id)
     expect(rows[1].display_order).toBe(rows[1].id)
   })
+
+  it('display_order 追加済みの場合、initSchema を再実行しても並び替え済みの値を上書きしない', () => {
+    initSchema(db)
+    db.prepare("INSERT INTO feeds (url) VALUES ('https://a.example.com'), ('https://b.example.com')").run()
+    // reorder 相当の操作で id 順とは異なる並びに変更する
+    const [a, b] = db.prepare('SELECT id FROM feeds ORDER BY id').all() as { id: number }[]
+    db.prepare('UPDATE feeds SET display_order = ? WHERE id = ?').run(0, b.id)
+    db.prepare('UPDATE feeds SET display_order = ? WHERE id = ?').run(1, a.id)
+
+    initSchema(db)
+
+    const rows = db.prepare('SELECT id, display_order FROM feeds ORDER BY display_order ASC').all() as {
+      id: number
+      display_order: number
+    }[]
+    expect(rows.map((r) => r.id)).toEqual([b.id, a.id])
+  })
 })

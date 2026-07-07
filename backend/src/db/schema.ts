@@ -37,11 +37,15 @@ export function setDb(db: Database.Database | null): void {
 // 新しい変更はリストの末尾に追加する。マイグレーション履歴はこのリストが唯一の記録。
 // ---------------------------------------------------------------------------
 
-function addColumn(db: Database.Database, table: string, columnDef: string): void {
+// カラムを追加できたら true、既に存在していて追加しなかった場合は false を返す。
+// 呼び出し側はこの戻り値で「初回追加時だけ行う後続処理」を分岐できる。
+function addColumn(db: Database.Database, table: string, columnDef: string): boolean {
   try {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`)
+    return true
   } catch {
     // already exists — ignore
+    return false
   }
 }
 
@@ -119,23 +123,17 @@ const MIGRATIONS: Migration[] = [
   {
     name: 'feeds-add-display-order',
     up: (db) => {
-      try {
-        db.exec(`ALTER TABLE feeds ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0`)
-        // 既存フィードの display_order を id 順で初期化（挿入順を維持）
+      // 既存フィードの display_order を id 順で初期化（挿入順を維持）。初回追加時のみ実行する
+      if (addColumn(db, 'feeds', 'display_order INTEGER NOT NULL DEFAULT 0')) {
         db.exec(`UPDATE feeds SET display_order = id`)
-      } catch {
-        // already exists — ignore
       }
     },
   },
   {
     name: 'groups-add-display-order',
     up: (db) => {
-      try {
-        db.exec(`ALTER TABLE groups ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0`)
+      if (addColumn(db, 'groups', 'display_order INTEGER NOT NULL DEFAULT 0')) {
         db.exec(`UPDATE groups SET display_order = id`)
-      } catch {
-        // already exists — ignore
       }
     },
   },
