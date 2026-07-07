@@ -131,6 +131,8 @@ DERIVED_DATA  = ios/.build
 BUNDLE_ID     = com.mtkg.gogai
 
 ios-deploy: ios-sync-icons
+	@echo "==> Checking device $(DEVICE_ID) is connected..."
+	@DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) ios/Scripts/check-device.sh $(DEVICE_ID)
 	@echo "==> Building Release for device..."
 	cd ios && DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcodebuild build \
