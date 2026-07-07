@@ -188,6 +188,20 @@ describe('stocks ルート（HTTP 契約）', () => {
       const body = await res.json()
       expect(body.error).toBeTypeOf('string')
     })
+
+    it('category 未指定は 400 で { error } を返す', async () => {
+      const created = await (await postJson('/', { url: 'https://example.com/a', source: 'Tech' })).json()
+      const res = await postJson(`/${created.id}`, { title: 'A2' }, 'PUT')
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toBeTypeOf('string')
+    })
+
+    it('category が空白のみは 400 で { error } を返す', async () => {
+      const created = await (await postJson('/', { url: 'https://example.com/a', source: 'Tech' })).json()
+      const res = await postJson(`/${created.id}`, { title: 'A2', category: '   ' }, 'PUT')
+      expect(res.status).toBe(400)
+    })
   })
 
   describe('DELETE /:id', () => {
