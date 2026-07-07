@@ -46,6 +46,7 @@ final class StockStoreTests: StoreTestCase {
 
     @MainActor
     func test_createStock_appendsToStocks() async throws {
+        store.stocks.removeAll()
         let created = makeStock(id: 5)
         MockURLProtocol.requestHandler = { _ in (201, try JSONEncoder().encode(created)) }
 
@@ -701,5 +702,53 @@ final class StockStoreTests: StoreTestCase {
         store.sortAscending = true
 
         XCTAssertTrue(UserDefaults.standard.bool(forKey: DefaultsKeys.stockSortAscending))
+    }
+
+    // MARK: - キャッシュ
+
+    private func makeTmpCache() -> (AppCache, URL) {
+        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try! FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        return (AppCache(directory: tmpDir), tmpDir)
+    }
+
+    func test_init_loadsStocksAndCategoriesFromCache() {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let cachedStocks = [makeStock(id: 42)]
+        let cachedCategories = [makeCategory(id: 7, name: "Cached")]
+        testCache.saveStocks(cachedStocks)
+        testCache.saveStockCategories(cachedCategories)
+
+        let storeWithCache = StockStore(cache: testCache)
+
+        XCTAssertEqual(storeWithCache.stocks.count, 1, "起動時にキャッシュからストックを読み込むこと")
+        XCTAssertEqual(storeWithCache.stocks[0].id, 42)
+        XCTAssertEqual(storeWithCache.categories.count, 1, "起動時にキャッシュからカテゴリを読み込むこと")
+        XCTAssertEqual(storeWithCache.categories[0].id, 7)
+    }
+
+    @MainActor
+    func test_fetchAll_savesToCache() async {
+        let (testCache, tmpDir) = makeTmpCache()
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let storeWithCache = StockStore(cache: testCache)
+        storeWithCache.configure(with: client)
+
+        let categories = [makeCategory()]
+        let stocks = [makeStock()]
+        MockURLProtocol.requestHandler = { request in
+            if request.url!.path.hasSuffix("/api/stock-categories") {
+                return (200, try JSONEncoder().encode(categories))
+            }
+            return (200, try JSONEncoder().encode(stocks))
+        }
+
+        await storeWithCache.fetchAll()
+
+        XCTAssertEqual(testCache.loadStocks().count, 1, "fetchAll 後にストックのキャッシュが保存されること")
+        XCTAssertEqual(testCache.loadStockCategories().count, 1, "fetchAll 後にカテゴリのキャッシュが保存されること")
     }
 }

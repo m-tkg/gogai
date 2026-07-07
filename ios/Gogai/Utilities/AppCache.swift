@@ -56,6 +56,24 @@ final class AppCache: @unchecked Sendable {
         load([Group].self, from: "groups.json") ?? []
     }
 
+    // MARK: - Stocks
+
+    func saveStocks(_ stocks: [Stock]) {
+        save(stocks, to: "stocks.json")
+    }
+
+    func loadStocks() -> [Stock] {
+        load([Stock].self, from: "stocks.json") ?? []
+    }
+
+    func saveStockCategories(_ categories: [StockCategory]) {
+        save(categories, to: "stockCategories.json")
+    }
+
+    func loadStockCategories() -> [StockCategory] {
+        load([StockCategory].self, from: "stockCategories.json") ?? []
+    }
+
     // MARK: - Size
 
     var totalSize: Int64 {
