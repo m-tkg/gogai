@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3'
+import { reorderByDisplayOrder } from './shared/reorder.js'
 
 export interface Feed {
   id: number
@@ -67,13 +68,7 @@ export class FeedsService {
       throw new Error('All feeds must belong to the same group')
     }
 
-    const stmt = this.db.prepare('UPDATE feeds SET display_order = ? WHERE id = ?')
-    const updateMany = this.db.transaction((orderedIds: number[]) => {
-      orderedIds.forEach((id, index) => {
-        stmt.run(index, id)
-      })
-    })
-    updateMany(ids)
+    reorderByDisplayOrder(this.db, 'feeds', ids)
   }
 
   update(id: number, input: UpdateFeedInput): Feed | null {

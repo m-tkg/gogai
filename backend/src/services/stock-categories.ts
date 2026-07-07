@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3'
+import { reorderByDisplayOrder } from './shared/reorder.js'
 
 export interface StockCategory {
   id: number
@@ -59,13 +60,6 @@ export class StockCategoriesService {
   }
 
   reorder(ids: number[]): void {
-    if (ids.length === 0) return
-    const stmt = this.db.prepare('UPDATE stock_categories SET display_order = ? WHERE id = ?')
-    const updateMany = this.db.transaction((orderedIds: number[]) => {
-      orderedIds.forEach((id, index) => {
-        stmt.run(index, id)
-      })
-    })
-    updateMany(ids)
+    reorderByDisplayOrder(this.db, 'stock_categories', ids)
   }
 }
