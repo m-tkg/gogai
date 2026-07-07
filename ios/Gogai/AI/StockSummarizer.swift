@@ -5,9 +5,13 @@ import Foundation
 /// オンデバイスモデルのトークン制限を超える本文は、チャンク分割した中間要約を
 /// 経由する map-reduce で最終要約を生成する。
 struct StockSummarizer: Sendable {
-    /// 最終段プロンプトに渡す本文の上限文字数(LocalArticleAI.maxPromptLength と同じ考え方)
-    static let maxPromptLength = 3000
-    /// 中間要約 1 チャンクあたりの文字数
+    /// 最終段プロンプトに渡す本文の上限文字数。
+    /// LocalArticleAI.maxPromptLength と同じ制約(オンデバイスモデルの入出力合計 4096 トークン)から
+    /// 来る値のため、値を重複定義せず参照する。
+    static let maxPromptLength = LocalArticleAI.maxPromptLength
+    /// 中間要約 1 チャンクあたりの文字数。
+    /// maxPromptLength より小さい値を意図的に使う: 中間要約プロンプトには
+    /// 「チャンク本文 + 指示文」が乗るため、最終段より余裕を持たせる必要がある。
     static let chunkSize = 2800
     /// 中間要約チャンクの上限数(超過分は切り捨てる)
     static let maxChunks = 8
