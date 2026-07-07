@@ -85,7 +85,7 @@ struct LocalAIResultSheet: View {
 
     private func runFoundationModel(with text: String) async {
         guard let ai = LocalAI.makeArticleAI() else {
-            errorMessage = "この端末ではローカル AI を利用できません（iOS 27 以上と Apple Intelligence の有効化が必要です）"
+            errorMessage = LocalAIError.aiUnavailable.errorDescription
             return
         }
         do {
@@ -103,7 +103,7 @@ struct LocalAIResultSheet: View {
                 TranslationCache.shared.persist()
                 result = translated
             }
-        } catch LocalArticleAIError.emptyContent {
+        } catch LocalAIError.emptyContent {
             errorMessage = "この記事には AI に渡せる本文がありません"
         } catch {
             errorMessage = "生成に失敗しました: \(error.localizedDescription)"

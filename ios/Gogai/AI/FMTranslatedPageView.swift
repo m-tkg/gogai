@@ -132,7 +132,7 @@ struct FMTranslatedPageView: View {
 
     private func performTranslation(forceRetranslate: Bool) async {
         guard let generator = LocalAI.makeGenerator() else {
-            model.markFailed("この端末ではローカル AI を利用できません(iOS 27 以上と Apple Intelligence の有効化が必要です)")
+            model.markFailed(LocalAIError.aiUnavailable.errorDescription ?? "")
             return
         }
         do {

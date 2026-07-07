@@ -1,10 +1,5 @@
 import Foundation
 
-enum StockSummarizerError: Error, Equatable {
-    /// 記事本文が空でサマリー対象がない
-    case emptyContent
-}
-
 /// ストックした記事を4セクション構成(何についての記事か/何の目的で書かれたか/
 /// 筆者が一番伝えたいこと/20行以内の要約)で日本語要約する。
 /// オンデバイスモデルのトークン制限を超える本文は、チャンク分割した中間要約を
@@ -35,7 +30,7 @@ struct StockSummarizer: Sendable {
     func summarize(title: String?, text: String) async throws -> String {
         let cleanTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanText = LocalArticleAI.stripHTML(text)
-        guard !cleanTitle.isEmpty || !cleanText.isEmpty else { throw StockSummarizerError.emptyContent }
+        guard !cleanTitle.isEmpty || !cleanText.isEmpty else { throw LocalAIError.emptyContent }
 
         let sourceText = cleanText.count <= Self.maxPromptLength
             ? cleanText

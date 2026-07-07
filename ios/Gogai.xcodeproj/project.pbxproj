@@ -28,6 +28,8 @@
 		FF00000000000000000012AB /* ArticleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000012AB /* ArticleStore.swift */; };
 		FF0000000000000000003FAB /* ArticleCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000003FAB /* ArticleCollection.swift */; };
 		FF00000000000000000041AB /* LocalArticleAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000041AB /* LocalArticleAI.swift */; };
+		FF0000000000000000007BAB /* LocalAIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000077AB /* LocalAIError.swift */; };
+		FF0000000000000000007CAB /* LocalAIErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000007BAB /* LocalAIErrorTests.swift */; };
 		FF00000000000000000046AB /* ArticleContentFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000046AB /* ArticleContentFetcher.swift */; };
 		FF00000000000000000047AB /* TranslatedPageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000047AB /* TranslatedPageModel.swift */; };
 		FF00000000000000000048AB /* TranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000048AB /* TranslatedPageView.swift */; };
@@ -176,6 +178,7 @@
 		DD00000000000000000012AB /* ArticleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleStore.swift; sourceTree = "<group>"; };
 		DD0000000000000000003FAB /* ArticleCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollection.swift; sourceTree = "<group>"; };
 		DD00000000000000000041AB /* LocalArticleAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalArticleAI.swift; sourceTree = "<group>"; };
+		DD00000000000000000077AB /* LocalAIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIError.swift; sourceTree = "<group>"; };
 		DD00000000000000000046AB /* ArticleContentFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleContentFetcher.swift; sourceTree = "<group>"; };
 		DD00000000000000000047AB /* TranslatedPageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageModel.swift; sourceTree = "<group>"; };
 		DD00000000000000000048AB /* TranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageView.swift; sourceTree = "<group>"; };
@@ -228,6 +231,7 @@
 		EE0000000000000000004DAB /* TranslationCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCacheTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000008AB /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		EE00000000000000000079AB /* MockTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTextGenerator.swift; sourceTree = "<group>"; };
+		EE0000000000000000007BAB /* LocalAIErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIErrorTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000007AAB /* StoreTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTestCase.swift; sourceTree = "<group>"; };
 		EE00000000000000000009AB /* ArticleSortOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleSortOrderTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000003AAB /* ArticleUpdatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleUpdatingTests.swift; sourceTree = "<group>"; };
@@ -388,6 +392,7 @@
 			isa = PBXGroup;
 			children = (
 				DD00000000000000000041AB /* LocalArticleAI.swift */,
+				DD00000000000000000077AB /* LocalAIError.swift */,
 				DD00000000000000000046AB /* ArticleContentFetcher.swift */,
 				DD00000000000000000047AB /* TranslatedPageModel.swift */,
 				DD00000000000000000048AB /* TranslatedPageView.swift */,
@@ -520,6 +525,7 @@
 				EE00000000000000000061AB /* StockSummaryTests.swift */,
 				EE00000000000000000064AB /* FMPageTranslatorTests.swift */,
 				EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */,
+				EE0000000000000000007BAB /* LocalAIErrorTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -739,6 +745,7 @@
 				FF00000000000000000012AB /* ArticleStore.swift in Sources */,
 				FF0000000000000000003FAB /* ArticleCollection.swift in Sources */,
 				FF00000000000000000041AB /* LocalArticleAI.swift in Sources */,
+				FF0000000000000000007BAB /* LocalAIError.swift in Sources */,
 				FF00000000000000000046AB /* ArticleContentFetcher.swift in Sources */,
 				FF00000000000000000047AB /* TranslatedPageModel.swift in Sources */,
 				FF00000000000000000048AB /* TranslatedPageView.swift in Sources */,
@@ -825,6 +832,7 @@
 				FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */,
 				FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */,
 				FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */,
+				FF0000000000000000007CAB /* LocalAIErrorTests.swift in Sources */,
 				FF00000000000000000077AB /* KeychainStoreTests.swift in Sources */,
 				FF00000000000000000078AB /* SettingsRepositoryTests.swift in Sources */,
 			);

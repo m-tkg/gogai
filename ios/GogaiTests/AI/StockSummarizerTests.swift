@@ -29,7 +29,7 @@ final class StockSummarizerTests: XCTestCase {
         do {
             _ = try await summarizer.summarize(title: nil, text: "   ")
             XCTFail("emptyContent になるべき")
-        } catch let error as StockSummarizerError {
+        } catch let error as LocalAIError {
             XCTAssertEqual(error, .emptyContent)
         } catch {
             XCTFail("想定外のエラー: \(error)")

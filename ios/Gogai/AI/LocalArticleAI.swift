@@ -7,11 +7,6 @@ protocol TextGenerating: Sendable {
     func generate(instructions: String, prompt: String) async throws -> String
 }
 
-enum LocalArticleAIError: Error, Equatable {
-    /// タイトル・本文のどちらも空で AI に渡すテキストがない
-    case emptyContent
-}
-
 /// 日本語翻訳に使うエンジンの選択（設定画面で切り替え、UserDefaults で永続化）
 enum TranslationEngine: String, CaseIterable, Identifiable {
     /// オンデバイス基盤モデル（Foundation Models framework）に翻訳させる
@@ -55,7 +50,7 @@ struct LocalArticleAI: Sendable {
     /// 記事を日本語で要約する
     func summarize(title: String?, content: String?) async throws -> String {
         let prompt = Self.preparePrompt(title: title, content: content)
-        guard !prompt.isEmpty else { throw LocalArticleAIError.emptyContent }
+        guard !prompt.isEmpty else { throw LocalAIError.emptyContent }
         return try await generator.generate(
             instructions: "あなたは記事要約アシスタントです。与えられた記事を日本語で3〜5文に要約してください。要約の本文のみを出力してください。",
             prompt: prompt
@@ -65,7 +60,7 @@ struct LocalArticleAI: Sendable {
     /// 記事を日本語に翻訳する
     func translateToJapanese(title: String?, content: String?) async throws -> String {
         let prompt = Self.preparePrompt(title: title, content: content)
-        guard !prompt.isEmpty else { throw LocalArticleAIError.emptyContent }
+        guard !prompt.isEmpty else { throw LocalAIError.emptyContent }
         return try await generator.generate(
             instructions: "あなたは翻訳アシスタントです。与えられた記事を自然な日本語に翻訳してください。訳文のみを出力してください。",
             prompt: prompt

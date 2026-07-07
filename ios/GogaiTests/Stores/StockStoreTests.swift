@@ -180,7 +180,7 @@ final class StockStoreTests: StoreTestCase {
         do {
             try await store.generateSummary(for: 1, session: .mock())
             XCTFail("aiUnavailable が throw されるはず")
-        } catch let error as StockSummaryGenerationError {
+        } catch let error as LocalAIError {
             XCTAssertEqual(error, .aiUnavailable)
         } catch {
             XCTFail("想定外のエラー: \(error)")
