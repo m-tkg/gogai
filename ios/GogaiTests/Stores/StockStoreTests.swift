@@ -46,6 +46,7 @@ final class StockStoreTests: StoreTestCase {
 
     @MainActor
     func test_createStock_appendsToStocks() async throws {
+        store.stocks.removeAll()
         let created = makeStock(id: 5)
         MockURLProtocol.requestHandler = { _ in (201, try JSONEncoder().encode(created)) }
 

@@ -35,10 +35,15 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
 
     private var summaryQueue: SummaryQueue!
 
+    private let cache: AppCache
     private var client: (any APIClientProtocol)?
 
-    init() {
+    init(cache: AppCache = .shared) {
+        self.cache = cache
         self.sortAscending = UserDefaults.standard.bool(forKey: DefaultsKeys.stockSortAscending)
+        // 起動時にキャッシュからカテゴリ・ストック一覧を読み込む
+        self.categories = cache.loadStockCategories()
+        self.stocks = cache.loadStocks()
         summaryQueue = SummaryQueue()
         summaryQueue.delegate = self
         summaryQueue.onChange = { [weak self] in
@@ -74,6 +79,8 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
             async let stocksTask = StockRepository(client: client).fetchAll()
             categories = try await categoriesTask
             stocks = try await stocksTask
+            cache.saveStockCategories(categories)
+            cache.saveStocks(stocks)
         } catch {
             self.error = error
         }
