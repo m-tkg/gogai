@@ -51,7 +51,6 @@ export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: Arti
             label="未読にする"
             icon="○"
             color="blue"
-            loading={false}
             onClick={e => { e.stopPropagation(); onMarkAsUnread() }}
           />
         ) : (
@@ -59,7 +58,6 @@ export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: Arti
             label="既読にする"
             icon="●"
             color="gray"
-            loading={false}
             onClick={e => { e.stopPropagation(); onClick() }}
           />
         )}
@@ -68,11 +66,10 @@ export function ArticleCard({ article, selected, onClick, onMarkAsUnread }: Arti
   )
 }
 
-function ActionButton({ label, icon, color, loading, onClick }: {
+function ActionButton({ label, icon, color, onClick }: {
   label: string
   icon: string
   color: 'blue' | 'gray'
-  loading: boolean
   onClick: (e: React.MouseEvent) => void
 }) {
   const colors = {
@@ -82,10 +79,9 @@ function ActionButton({ label, icon, color, loading, onClick }: {
   return (
     <button
       onClick={onClick}
-      disabled={loading}
-      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${colors[color]}`}
+      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${colors[color]}`}
     >
-      <span className={loading ? 'animate-pulse' : ''}>{icon}</span>
+      <span>{icon}</span>
       {label}
     </button>
   )
