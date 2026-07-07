@@ -7,6 +7,8 @@ import Foundation
 struct FMPageTranslator: Sendable {
     /// 1バッチに含める原文の合計文字数の目安。
     /// 日本語訳は原文より膨らむため、入出力合計 4096 トークンに余裕を持たせて小さめに取る。
+    /// StockSummarizer.chunkSize(2800)より小さいのは意図的な差(こちらは id タグ付きの
+    /// 一括翻訳出力、あちらは要点箇条書きの中間要約出力で、出力の膨らみ方が異なるため)。
     static let batchCharBudget = 1800
 
     struct Segment: Equatable, Sendable {
