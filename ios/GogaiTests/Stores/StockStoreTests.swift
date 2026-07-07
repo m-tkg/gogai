@@ -314,7 +314,7 @@ final class StockStoreTests: StoreTestCase {
     @MainActor
     func test_requestSummary_既に要約済みのストックは無視する() {
         var stock = makeStock(id: 1)
-        stock = stock.updating(summary: "既存の要約")
+        stock = stock.updating(summary: .set("既存の要約"))
         store.stocks = [stock]
         let generator = GatedTextGenerator()
         store.makeSummaryGenerator = { generator }
@@ -328,7 +328,7 @@ final class StockStoreTests: StoreTestCase {
     @MainActor
     func test_requestSummary_forceがtrueなら要約済みのストックも再度キューに入れる() async throws {
         var stock = makeStock(id: 1)
-        stock = stock.updating(summary: "既存の要約")
+        stock = stock.updating(summary: .set("既存の要約"))
         store.stocks = [stock]
         let generator = GatedTextGenerator()
         store.makeSummaryGenerator = { generator }
@@ -601,7 +601,7 @@ final class StockStoreTests: StoreTestCase {
     func test_resumePersistedSummaryQueueIfNeeded_既に要約済みのIDは再開しない() {
         UserDefaults.standard.set([1], forKey: DefaultsKeys.stockSummaryQueue)
         var stock = makeStock(id: 1)
-        stock = stock.updating(summary: "既存の要約")
+        stock = stock.updating(summary: .set("既存の要約"))
         store.stocks = [stock]
         let generator = GatedTextGenerator()
         store.makeSummaryGenerator = { generator }
@@ -642,7 +642,7 @@ final class StockStoreTests: StoreTestCase {
     func test_restorePersistedSummaryErrorsIfNeeded_要約済みのストックは復元しない() {
         UserDefaults.standard.set(["1": "エラーメッセージ"], forKey: DefaultsKeys.stockSummaryErrors)
         var stock = makeStock(id: 1)
-        stock = stock.updating(summary: "既存の要約")
+        stock = stock.updating(summary: .set("既存の要約"))
         store.stocks = [stock]
 
         store.restorePersistedSummaryErrorsIfNeeded()
