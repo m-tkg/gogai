@@ -73,25 +73,29 @@ docker-clean:
 daemon-setup:
 	bash daemon/setup.sh
 
-# サービスを起動
+# サービスを起動（cloudflare トンネルは daemon/.env 未設定なら未インストールのため対象外）
 daemon-start:
 	sudo systemctl start gogai-backend gogai-frontend
+	-sudo systemctl start gogai-cloudflare
 
 # サービスを停止
 daemon-stop:
 	sudo systemctl stop gogai-backend gogai-frontend
+	-sudo systemctl stop gogai-cloudflare
 
-# サービスを再起動
+# サービスを再起動（cloudflare トンネルは対象外: 再起動すると quick tunnel の URL が
+# 変わってしまうため、コード更新時の「git pull して再起動」では触らない）
 daemon-restart:
 	sudo systemctl restart gogai-backend gogai-frontend
 
 # サービスの状態確認
 daemon-status:
 	sudo systemctl status gogai-backend gogai-frontend
+	-sudo systemctl status gogai-cloudflare
 
 # ログをリアルタイム表示
 daemon-logs:
-	journalctl -u gogai-backend -u gogai-frontend -f
+	journalctl -u gogai-backend -u gogai-frontend -u gogai-cloudflare -f
 
 # git pull して再起動（設定画面ボタンから呼ばれる）
 restart-daemon: daemon-restart
