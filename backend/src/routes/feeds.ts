@@ -7,6 +7,7 @@ import { registerFeed, changeFeedUrl, refetchFeed } from '../services/feed-regis
 import { getDb } from '../db/schema.js'
 import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
 import type { Feed } from '../services/feeds.js'
+import { validateReorderIds } from './shared/validate-reorder-ids.js'
 
 function withGoogleFavicon(feed: Feed): Feed {
   return { ...feed, favicon_url: getFaviconUrl(feed.url) }
@@ -62,10 +63,10 @@ app.delete('/:id', (c) => {
 })
 
 app.patch('/reorder', async (c) => {
-  const { ids } = await c.req.json<{ ids: number[] }>()
-  if (!Array.isArray(ids)) throw new AppError('ids must be an array', 400)
+  const { ids } = await c.req.json<{ ids: unknown }>()
+  const validIds = validateReorderIds(ids)
   try {
-    new FeedsService(getDb()).reorder(ids)
+    new FeedsService(getDb()).reorder(validIds)
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     throw new AppError(message, 400)

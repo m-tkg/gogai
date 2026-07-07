@@ -5,6 +5,7 @@ import { ArticlesService } from '../services/articles.js'
 import { refreshFeedsByGroupId } from '../services/feed-refresher.js'
 import { getDb } from '../db/schema.js'
 import { AppError, errorHandler, isUniqueConstraintError } from '../errors.js'
+import { validateReorderIds } from './shared/validate-reorder-ids.js'
 
 const app = new Hono()
 app.onError(errorHandler)
@@ -46,11 +47,8 @@ app.delete('/:id', (c) => {
 })
 
 app.patch('/reorder', async (c) => {
-  const { ids } = await c.req.json<{ ids: number[] }>()
-  if (!Array.isArray(ids) || !ids.every(Number.isInteger)) {
-    throw new AppError('ids must be an array of integers', 400)
-  }
-  new GroupsService(getDb()).reorder(ids)
+  const { ids } = await c.req.json<{ ids: unknown }>()
+  new GroupsService(getDb()).reorder(validateReorderIds(ids))
   return c.body(null, 204)
 })
 

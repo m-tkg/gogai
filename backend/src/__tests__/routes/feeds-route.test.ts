@@ -186,6 +186,12 @@ describe('feeds ルート（HTTP 契約）', () => {
       expect((await res.json()).error).toBeTypeOf('string')
     })
 
+    it('ids が整数配列でなければ 400 で { error } を返す', async () => {
+      const res = await jsonReq('/reorder', { ids: ['x'] }, 'PATCH')
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toBeTypeOf('string')
+    })
+
     it('異なるグループのフィードが混在したら 400 を返す', async () => {
       const groupId = (db.prepare("INSERT INTO groups (name) VALUES ('G') RETURNING id").get() as { id: number }).id
       const svc = new FeedsService(db)

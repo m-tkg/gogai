@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
 import { StockCategoriesService } from '../services/stock-categories.js'
 import { getDb } from '../db/schema.js'
-import { AppError, errorHandler } from '../errors.js'
+import { errorHandler } from '../errors.js'
+import { validateReorderIds } from './shared/validate-reorder-ids.js'
 
 const app = new Hono()
 app.onError(errorHandler)
@@ -12,11 +13,8 @@ app.get('/', (c) => {
 })
 
 app.patch('/reorder', async (c) => {
-  const { ids } = await c.req.json<{ ids: number[] }>()
-  if (!Array.isArray(ids) || !ids.every(Number.isInteger)) {
-    throw new AppError('ids must be an array of integers', 400)
-  }
-  new StockCategoriesService(getDb()).reorder(ids)
+  const { ids } = await c.req.json<{ ids: unknown }>()
+  new StockCategoriesService(getDb()).reorder(validateReorderIds(ids))
   return c.body(null, 204)
 })
 
