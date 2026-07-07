@@ -1,19 +1,60 @@
 import XCTest
 import WebKit
+import Combine
 @testable import Gogai
+
+private enum PageLoadWaitError: Error {
+    case timedOut
+    case failed(String)
+}
 
 @MainActor
 final class TranslatedPageModelTests: XCTestCase {
 
+    /// 一度だけ resume することを保証するための箱(sink とタイムアウト Task の二重 resume を防ぐ)
+    @MainActor
+    private final class ResumeGuard {
+        private var resumed = false
+        func resumeOnce(_ body: () -> Void) {
+            guard !resumed else { return }
+            resumed = true
+            body()
+        }
+    }
+
+    /// ポーリングではなく status の変化を直接購読して待つ(didFinish 発火と同時に resume する)。
+    /// タイムアウトはポーリング時代の 5 秒より余裕を持たせて 10 秒にする。
     private func makeLoadedModel(html: String) async throws -> TranslatedPageModel {
         let model = TranslatedPageModel()
-        model.loadHTML(html)
-        for _ in 0..<200 {
-            if model.status == .ready { return model }
-            try await Task.sleep(for: .milliseconds(25))
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let guard_ = ResumeGuard()
+            var cancellable: AnyCancellable?
+            cancellable = model.$status.sink { status in
+                switch status {
+                case .ready:
+                    guard_.resumeOnce {
+                        cancellable?.cancel()
+                        continuation.resume()
+                    }
+                case .failed(let message):
+                    guard_.resumeOnce {
+                        cancellable?.cancel()
+                        continuation.resume(throwing: PageLoadWaitError.failed(message))
+                    }
+                case .loading, .translating, .done:
+                    break
+                }
+            }
+            model.loadHTML(html)
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(10))
+                guard_.resumeOnce {
+                    cancellable?.cancel()
+                    continuation.resume(throwing: PageLoadWaitError.timedOut)
+                }
+            }
         }
-        XCTFail("ページの読み込みが完了しなかった")
-        throw URLError(.timedOut)
+        return model
     }
 
     // MARK: - extractTexts
