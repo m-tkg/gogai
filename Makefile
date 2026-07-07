@@ -104,16 +104,20 @@ ios-sync-icons:
 	rm -f ios/Gogai/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png
 	cp ios/appiconset/Contents.json ios/Gogai/Assets.xcassets/AppIcon.appiconset/
 
+# インストール済みシミュレーターは Xcode バージョンアップ等で入れ替わるため、
+# 固定端末名をハードコードせず利用可能な iPhone シミュレーターを都度解決する
+IOS_SIMULATOR_NAME := $(shell ios/Scripts/select-simulator.sh)
+
 # アイコン同期してビルド（シミュレーター）
 ios-build: ios-sync-icons
 	cd ios && xcodebuild build -project Gogai.xcodeproj -scheme Gogai \
-		-destination "platform=iOS Simulator,name=iPhone 17 Pro" -quiet
+		-destination "platform=iOS Simulator,name=$(IOS_SIMULATOR_NAME)" -quiet
 
 # iOS ユニットテストを実行
 ios-test:
 	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
 		xcodebuild test -project Gogai.xcodeproj -scheme Gogai \
-		-destination "platform=iOS Simulator,name=iPhone 17 Pro" -quiet
+		-destination "platform=iOS Simulator,name=$(IOS_SIMULATOR_NAME)" -quiet
 
 # Release ビルドして実機に転送して起動
 DEVICE_ID    ?= 620080DD-019A-5477-8F2D-96E9E0C8C538
