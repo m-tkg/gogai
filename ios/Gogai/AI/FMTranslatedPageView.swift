@@ -1,6 +1,5 @@
 import SwiftUI
 import WebKit
-import CryptoKit
 
 /// サーバーに保存する翻訳セグメントの形式。
 /// segments は stocks.translation の不透明な JSON としてそのまま保存・取得される。
@@ -188,7 +187,7 @@ struct FMTranslatedPageView: View {
     }
 
     private static func hash(_ text: String) -> String {
-        SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+        text.sha256HexDigest
     }
 
     private static func decodeSegments(_ json: String?) -> [FMTranslationPayload.Segment]? {
