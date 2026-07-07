@@ -340,6 +340,27 @@ final class StockStoreTests: XCTestCase {
     }
 
     @MainActor
+    func test_requestSummary_forceがtrueなら要約済みのストックも再度キューに入れる() async throws {
+        var stock = makeStock(id: 1)
+        stock = stock.updating(summary: "既存の要約")
+        store.stocks = [stock]
+        let generator = GatedTextGenerator()
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = summaryRequestHandler
+
+        store.requestSummary(for: 1, force: true, session: .mock())
+
+        var iterator = generator.calledStream.makeAsyncIterator()
+        _ = await iterator.next()
+        XCTAssertEqual(store.currentlySummarizingStockId, 1, "force: true なら要約済みでもキューに入る")
+
+        generator.release()
+        await waitUntil { store.currentlySummarizingStockId == nil }
+
+        XCTAssertNotEqual(store.stocks[0].summary, "既存の要約", "新しい要約で上書きされる")
+    }
+
+    @MainActor
     func test_requestSummary_失敗しても次のキューは処理を続ける() async throws {
         store.stocks = [makeStock(id: 1), makeStock(id: 2)]
         let generator = GatedTextGenerator()
