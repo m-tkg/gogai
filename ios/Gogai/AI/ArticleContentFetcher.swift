@@ -29,7 +29,61 @@ enum ArticleContentFetcher {
         if let mainContent = extractMainContent(from: text) {
             text = mainContent
         }
-        return LocalArticleAI.stripHTML(text)
+        return stripHTML(text)
+    }
+
+    /// HTML タグ・主要エンティティ・数値文字参照を除去してプレーンテキスト化する。
+    /// LocalArticleAI（要約/翻訳のプロンプト整形）と StockSummarizer（ストック要約)の
+    /// 両方が呼ぶ、本来 HTML 抽出の責務を持つこちら側で所有する。
+    static func stripHTML(_ html: String) -> String {
+        var text = html.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        let entities = [
+            "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": "\"", "&#39;": "'", "&apos;": "'",
+            "&nbsp;": " ", "&rsquo;": "’", "&lsquo;": "‘", "&rdquo;": "”", "&ldquo;": "“",
+            "&hellip;": "…", "&mldr;": "…", "&mdash;": "—", "&ndash;": "–",
+        ]
+        for (entity, char) in entities {
+            text = text.replacingOccurrences(of: entity, with: char)
+        }
+        text = decodeNumericEntities(text)
+        return text
+            .replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// 数値文字参照(&#NNN; / &#xHHHH;)をデコードする。アイコンフォント用の私用領域
+    /// (Private Use Area)コードポイントはテキストとして意味を持たないため空文字にする。
+    private static func decodeNumericEntities(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: "&#x?[0-9a-fA-F]+;", options: .caseInsensitive) else {
+            return text
+        }
+        let ns = text as NSString
+        var result = ""
+        var lastEnd = 0
+        for match in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            result += ns.substring(with: NSRange(location: lastEnd, length: match.range.location - lastEnd))
+            let token = ns.substring(with: match.range)
+            if let scalar = decodeEntityScalar(token), !isPrivateUse(scalar) {
+                result += String(Character(scalar))
+            }
+            lastEnd = match.range.location + match.range.length
+        }
+        result += ns.substring(from: lastEnd)
+        return result
+    }
+
+    private static func decodeEntityScalar(_ token: String) -> Unicode.Scalar? {
+        let inner = token.dropFirst(2).dropLast() // "&#" 接頭辞と ";" 接尾辞を除去
+        let isHex = inner.hasPrefix("x") || inner.hasPrefix("X")
+        let digits = isHex ? inner.dropFirst() : inner[...]
+        guard let value = UInt32(digits, radix: isHex ? 16 : 10) else { return nil }
+        return Unicode.Scalar(value)
+    }
+
+    private static func isPrivateUse(_ scalar: Unicode.Scalar) -> Bool {
+        (0xE000...0xF8FF).contains(scalar.value)
+            || (0xF0000...0xFFFFD).contains(scalar.value)
+            || (0x100000...0x10FFFD).contains(scalar.value)
     }
 
     /// <article> または <main> で囲われた本文があればその中身を返す。
