@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { reorderByDisplayOrder } from './shared/reorder.js'
+import { nextDisplayOrder } from './shared/display-order.js'
 
 export interface Group {
   id: number
@@ -13,11 +14,9 @@ export class GroupsService {
   constructor(private db: Database.Database) {}
 
   create(name: string, isSecret = 0): Group {
-    const maxOrder = (this.db.prepare(
-      'SELECT COALESCE(MAX(display_order), -1) as max_order FROM groups'
-    ).get() as { max_order: number }).max_order
+    const displayOrder = nextDisplayOrder(this.db, 'groups')
     const stmt = this.db.prepare('INSERT INTO groups (name, is_secret, display_order) VALUES (?, ?, ?) RETURNING *')
-    return stmt.get(name, isSecret, maxOrder + 1) as Group
+    return stmt.get(name, isSecret, displayOrder) as Group
   }
 
   findAll(): Group[] {
