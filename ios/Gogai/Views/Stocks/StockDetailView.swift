@@ -78,6 +78,7 @@ struct StockDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var showShareSheet = false
+    @State private var showRegenerateSummaryConfirm = false
     @State private var deleteError: Error?
 
     /// 要約の生成中/待機中はストアのキュー状態を見る(View のライフサイクルに依存しないため、
@@ -154,6 +155,12 @@ struct StockDetailView: View {
             if let url = URL(string: currentStock.url) {
                 ShareSheet(items: [url])
             }
+        }
+        .confirmationDialog("既存の要約を上書きして再生成しますか？", isPresented: $showRegenerateSummaryConfirm, titleVisibility: .visible) {
+            Button("再生成", role: .destructive) {
+                stockStore.requestSummary(for: currentStock.id, force: true)
+            }
+            Button("キャンセル", role: .cancel) {}
         }
         .confirmationDialog("このストックを削除しますか？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("削除", role: .destructive) {
@@ -236,9 +243,13 @@ struct StockDetailView: View {
                 icon: "sparkles",
                 label: "要約",
                 isLoading: isGeneratingSummary,
-                isDisabled: currentStock.summary != nil || isGeneratingSummary || !LocalAI.isAvailable
+                isDisabled: isGeneratingSummary || !LocalAI.isAvailable
             ) {
-                stockStore.requestSummary(for: currentStock.id)
+                if currentStock.summary != nil {
+                    showRegenerateSummaryConfirm = true
+                } else {
+                    stockStore.requestSummary(for: currentStock.id)
+                }
             }
             if canShowTranslation {
                 StockDetailFooterButton(icon: "character.bubble", label: "翻訳") { showTranslation = true }

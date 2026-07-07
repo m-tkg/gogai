@@ -161,10 +161,11 @@ final class StockStore: ObservableObject {
 
     /// 要約をキューに追加する(fire-and-forget)。View のライフサイクル(戻るボタン等)に
     /// 依存せず Store が保持し続けるため、画面遷移後もキュー処理を継続する。
-    /// 既に生成中/待機中/生成済みのストックは無視する。
+    /// 既に生成中/待機中のストックは無視する。生成済みのストックは force: true のときだけ
+    /// 再生成を受け付ける(呼び出し側で上書き確認を取ってから呼ぶこと)。
     @MainActor
-    func requestSummary(for stockId: Int, session: URLSession = .shared) {
-        guard stocks.first(where: { $0.id == stockId })?.summary == nil else { return }
+    func requestSummary(for stockId: Int, force: Bool = false, session: URLSession = .shared) {
+        guard force || stocks.first(where: { $0.id == stockId })?.summary == nil else { return }
         guard currentlySummarizingStockId != stockId, !pendingSummaryStockIds.contains(stockId) else { return }
         summaryErrors[stockId] = nil
         pendingSummaryStockIds.append(stockId)
