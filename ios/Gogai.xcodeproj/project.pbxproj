@@ -116,6 +116,9 @@
 		FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000073AB /* ReleaseInfoTests.swift */; };
 		FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */; };
 		FF00000000000000000075AB /* ShareExtensionPreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000075AB /* ShareExtensionPreprocessor.js */; };
+		FF00000000000000000076AB /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000076AB /* KeychainStore.swift */; };
+		FF00000000000000000077AB /* KeychainStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000077AB /* KeychainStoreTests.swift */; };
+		FF00000000000000000078AB /* SettingsRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000078AB /* SettingsRepositoryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -258,6 +261,9 @@
 		DD0000000000000000005BAB /* StockDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDetailView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005CAB /* AddStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddStockView.swift; sourceTree = "<group>"; };
 		DD0000000000000000005DAB /* EditStockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditStockView.swift; sourceTree = "<group>"; };
+		DD00000000000000000076AB /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		EE00000000000000000077AB /* KeychainStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStoreTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000078AB /* SettingsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepositoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -405,6 +411,7 @@
 				DD00000000000000000034AB /* ShareSheet.swift */,
 				DD00000000000000000035AB /* AppCache.swift */,
 				DD00000000000000000065AB /* AppGroup.swift */,
+				DD00000000000000000076AB /* KeychainStore.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -519,6 +526,7 @@
 				EE00000000000000000004AB /* ArticleRepositoryTests.swift */,
 				EE00000000000000000052AB /* FeedCountTests.swift */,
 				EE00000000000000000057AB /* StockRepositoryTests.swift */,
+				EE00000000000000000078AB /* SettingsRepositoryTests.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -551,6 +559,7 @@
 				EE0000000000000000000BAB /* ServerURLManagerTests.swift */,
 				EE0000000000000000004AAB /* HorizontalSwipeTests.swift */,
 				EE0000000000000000004FAB /* BackgroundExecutionTests.swift */,
+				EE00000000000000000077AB /* KeychainStoreTests.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -765,6 +774,7 @@
 				FF00000000000000000070AB /* StockRowView.swift in Sources */,
 				FF00000000000000000071AB /* ReleaseInfo.swift in Sources */,
 				FF00000000000000000072AB /* MacUpdater.swift in Sources */,
+				FF00000000000000000076AB /* KeychainStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -799,6 +809,8 @@
 				FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */,
 				FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */,
 				FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */,
+				FF00000000000000000077AB /* KeychainStoreTests.swift in Sources */,
+				FF00000000000000000078AB /* SettingsRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

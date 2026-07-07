@@ -119,4 +119,58 @@ describe('admin ルート（HTTP 契約）', () => {
       expect(exitSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('認証（ADMIN_SECRET）', () => {
+    const ORIGINAL_SECRET = process.env.ADMIN_SECRET
+
+    afterEach(() => {
+      if (ORIGINAL_SECRET === undefined) delete process.env.ADMIN_SECRET
+      else process.env.ADMIN_SECRET = ORIGINAL_SECRET
+    })
+
+    it('ADMIN_SECRET 未設定なら従来通り無認証で通る（opt-in）', async () => {
+      delete process.env.ADMIN_SECRET
+      mockExecResults({
+        'rev-parse HEAD': { stdout: 'abc123\n' },
+        'fetch origin': { stdout: '' },
+        'rev-parse origin/main': { stdout: 'abc123\n' },
+      })
+      const res = await adminRouter.request('/update-check')
+      expect(res.status).toBe(200)
+    })
+
+    it('ADMIN_SECRET 設定時、ヘッダーなしは 401 で { error } を返す', async () => {
+      process.env.ADMIN_SECRET = 'test-secret'
+      const res = await adminRouter.request('/update-check')
+      expect(res.status).toBe(401)
+      expect((await res.json()).error).toBeTypeOf('string')
+    })
+
+    it('ADMIN_SECRET 設定時、誤ったヘッダーは 401 を返す', async () => {
+      process.env.ADMIN_SECRET = 'test-secret'
+      const res = await adminRouter.request('/update-check', {
+        headers: { 'X-Admin-Secret': 'wrong' },
+      })
+      expect(res.status).toBe(401)
+    })
+
+    it('ADMIN_SECRET 設定時、正しいヘッダーなら通る', async () => {
+      process.env.ADMIN_SECRET = 'test-secret'
+      mockExecResults({
+        'rev-parse HEAD': { stdout: 'abc123\n' },
+        'fetch origin': { stdout: '' },
+        'rev-parse origin/main': { stdout: 'abc123\n' },
+      })
+      const res = await adminRouter.request('/update-check', {
+        headers: { 'X-Admin-Secret': 'test-secret' },
+      })
+      expect(res.status).toBe(200)
+    })
+
+    it('POST /restart にも同様に認証がかかる', async () => {
+      process.env.ADMIN_SECRET = 'test-secret'
+      const res = await adminRouter.request('/restart', { method: 'POST' })
+      expect(res.status).toBe(401)
+    })
+  })
 })

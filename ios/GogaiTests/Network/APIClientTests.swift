@@ -169,4 +169,13 @@ final class APIClientTests: XCTestCase {
             URLQueryItem(name: "feedId", value: "5")
         ]))
     }
+
+    func test_endpoint_headers_appliedToRequest() async throws {
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Admin-Secret"), "s3cret")
+            return (200, Data("{}".utf8))
+        }
+
+        try await client.sendVoid(.post("/api/admin/restart", headers: ["X-Admin-Secret": "s3cret"]))
+    }
 }

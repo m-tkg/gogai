@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var retentionDaysText = ""
+    @State private var adminSecretText = ""
     @State private var isSaving = false
     @State private var saveError: Error?
     @State private var isCacheCleared = false
@@ -99,6 +100,16 @@ struct SettingsView: View {
                     }
                 }
 
+                Section {
+                    SecureField("未設定", text: $adminSecretText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("管理者シークレット")
+                } footer: {
+                    Text("「管理」画面の操作を保護します。サーバー側の ADMIN_SECRET 環境変数と同じ値を入力してください(サーバー側が未設定の場合は空のままで動作します)。")
+                }
+
                 NavigationLink {
                     AdminView()
                 } label: {
@@ -136,6 +147,7 @@ struct SettingsView: View {
             .task {
                 await settingsStore.fetchSettings()
                 retentionDaysText = String(settingsStore.settings?.retention_days ?? 180)
+                adminSecretText = KeychainStore.get(forKey: KeychainStore.adminSecretKey) ?? ""
                 cacheSize = AppCache.shared.totalSize
             }
         }
@@ -197,6 +209,8 @@ struct SettingsView: View {
         defer { isSaving = false }
         do {
             try await settingsStore.updateRetentionDays(days)
+            let trimmedSecret = adminSecretText.trimmingCharacters(in: .whitespaces)
+            KeychainStore.set(trimmedSecret.isEmpty ? nil : trimmedSecret, forKey: KeychainStore.adminSecretKey)
             dismiss()
         } catch {
             saveError = error
