@@ -1,36 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema, setDb, closeDb } from '../../db/schema.js'
+import { describe, it, expect } from 'vitest'
 import stockCategoriesRouter from '../../routes/stock-categories.js'
 import stocksRouter from '../../routes/stocks.js'
+import { useTestDb } from '../helpers/db.js'
+import { jsonRequest } from '../helpers/http.js'
 
-let db: Database.Database
-
-beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
-  setDb(db)
-})
-
-afterEach(() => {
-  closeDb()
-})
+useTestDb()
 
 function postJson(path: string, body: unknown, method = 'POST') {
-  return stocksRouter.request(path, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  return jsonRequest(stocksRouter, path, body, method)
 }
 
 function patchJson(path: string, body: unknown) {
-  return stockCategoriesRouter.request(path, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  return jsonRequest(stockCategoriesRouter, path, body, 'PATCH')
 }
 
 describe('stock-categories ルート（HTTP 契約）', () => {

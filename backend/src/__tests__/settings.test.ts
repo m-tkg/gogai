@@ -1,14 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema } from '../db/schema.js'
+import type Database from 'better-sqlite3'
 import { SettingsService } from '../services/settings.js'
+import { createTestDb } from './helpers/db.js'
 
 let db: Database.Database
 let service: SettingsService
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  initSchema(db)
+  db = createTestDb()
   service = new SettingsService(db)
 })
 

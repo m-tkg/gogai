@@ -1,17 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema } from '../db/schema.js'
+import type Database from 'better-sqlite3'
 import { FeedsService } from '../services/feeds.js'
 import { GroupsService } from '../services/groups.js'
+import { createTestDb } from './helpers/db.js'
 
 let db: Database.Database
 let feedsService: FeedsService
 let groupsService: GroupsService
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
+  db = createTestDb()
   feedsService = new FeedsService(db)
   groupsService = new GroupsService(db)
 })

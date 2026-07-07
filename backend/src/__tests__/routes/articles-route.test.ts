@@ -1,18 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
-import { initSchema, setDb, closeDb } from '../../db/schema.js'
+import { describe, it, expect, beforeEach } from 'vitest'
+import type Database from 'better-sqlite3'
 import { FeedsService } from '../../services/feeds.js'
 import { ArticlesService } from '../../services/articles.js'
 import articlesRouter, { parseNonNegativeInt } from '../../routes/articles.js'
+import { useTestDb } from '../helpers/db.js'
 
+const getTestDb = useTestDb()
 let db: Database.Database
 let articleId: number
 
 beforeEach(() => {
-  db = new Database(':memory:')
-  db.pragma('foreign_keys = ON')
-  initSchema(db)
-  setDb(db)
+  db = getTestDb()
 
   const feed = new FeedsService(db).create({ url: 'https://example.com/feed.xml', title: 'Feed' })
   const articles = new ArticlesService(db)
@@ -21,10 +19,6 @@ beforeEach(() => {
     { guid: 'g2', title: 'World', link: 'https://example.com/2', summary: 'sum2', content: 'body2', publishedAt: '2026-01-01T00:00:00.000Z' },
   ])
   articleId = articles.findByFeed(feed.id)[0].id
-})
-
-afterEach(() => {
-  closeDb()
 })
 
 describe('articles ルート（HTTP 契約）', () => {
