@@ -39,6 +39,13 @@ interface StockViewRow extends Stock {
   has_translation: number
 }
 
+const STOCK_VIEW_SELECT = `
+  SELECT s.*, c.name as category_name,
+         EXISTS(SELECT 1 FROM stock_translations t WHERE t.stock_id = s.id) as has_translation
+  FROM stocks s
+  JOIN stock_categories c ON c.id = s.category_id
+`
+
 export class StocksService {
   private categories: StockCategoriesService
 
@@ -51,15 +58,7 @@ export class StocksService {
   }
 
   private findRowById(id: number): StockViewRow | undefined {
-    return this.db
-      .prepare(
-        `SELECT s.*, c.name as category_name,
-                EXISTS(SELECT 1 FROM stock_translations t WHERE t.stock_id = s.id) as has_translation
-         FROM stocks s
-         JOIN stock_categories c ON c.id = s.category_id
-         WHERE s.id = ?`
-      )
-      .get(id) as StockViewRow | undefined
+    return this.db.prepare(`${STOCK_VIEW_SELECT} WHERE s.id = ?`).get(id) as StockViewRow | undefined
   }
 
   private findByUrl(url: string): Stock | undefined {
@@ -80,11 +79,7 @@ export class StocksService {
   }
 
   findAll(categoryId?: number): StockView[] {
-    const query = `
-      SELECT s.*, c.name as category_name,
-             EXISTS(SELECT 1 FROM stock_translations t WHERE t.stock_id = s.id) as has_translation
-      FROM stocks s
-      JOIN stock_categories c ON c.id = s.category_id
+    const query = `${STOCK_VIEW_SELECT}
       ${categoryId !== undefined ? 'WHERE s.category_id = ?' : ''}
       ORDER BY s.stocked_at DESC, s.id DESC
     `
