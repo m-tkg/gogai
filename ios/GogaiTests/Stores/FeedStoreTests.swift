@@ -1,20 +1,13 @@
 import XCTest
 @testable import Gogai
 
-final class FeedStoreTests: XCTestCase {
-    var client: APIClient!
+final class FeedStoreTests: StoreTestCase {
     var store: FeedStore!
 
     override func setUp() {
         super.setUp()
-        client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
         store = FeedStore()
         store.configure(with: client)
-    }
-
-    override func tearDown() {
-        MockURLProtocol.requestHandler = nil
-        super.tearDown()
     }
 
     private func makeFeed(id: Int = 1, groupId: Int? = nil, displayOrder: Int = 0) -> Feed {

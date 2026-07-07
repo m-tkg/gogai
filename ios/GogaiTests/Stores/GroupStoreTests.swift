@@ -1,20 +1,13 @@
 import XCTest
 @testable import Gogai
 
-final class GroupStoreTests: XCTestCase {
-    var client: APIClient!
+final class GroupStoreTests: StoreTestCase {
     var store: GroupStore!
 
     override func setUp() {
         super.setUp()
-        client = APIClient(baseURL: URL(string: "http://localhost:3040")!, session: .mock())
         store = GroupStore()
         store.configure(with: client)
-    }
-
-    override func tearDown() {
-        MockURLProtocol.requestHandler = nil
-        super.tearDown()
     }
 
     private func makeGroup(id: Int = 1, name: String = "Tech", isSecret: Int = 0, displayOrder: Int = 0) -> Group {
