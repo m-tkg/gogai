@@ -41,10 +41,8 @@ jobs:
           xcodebuild -version
 
       - name: Sync app icons
-        run: |
-          cp appiconset/*.png Gogai/Assets.xcassets/AppIcon.appiconset/
-          rm -f Gogai/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png
-          cp appiconset/Contents.json Gogai/Assets.xcassets/AppIcon.appiconset/
+        working-directory: .
+        run: make ios-sync-icons
 
       # push されたタグ(v{MARKETING_VERSION})とプロジェクトの MARKETING_VERSION が
       # 一致するか検証する(タグ起点になったため、バージョンのつけ忘れ・ズレを検知する)。
