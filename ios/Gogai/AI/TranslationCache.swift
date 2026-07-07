@@ -1,5 +1,4 @@
 import Foundation
-import CryptoKit
 
 /// 翻訳結果のローカルキャッシュ（1週間で失効）。
 /// キーは「翻訳エンジン + 原文」のハッシュで、同じ原文でもエンジンが違えば別エントリ。
@@ -52,7 +51,6 @@ final class TranslationCache {
     }
 
     private static func key(source: String, engine: TranslationEngine) -> String {
-        let digest = SHA256.hash(data: Data("\(engine.rawValue)\u{0}\(source)".utf8))
-        return digest.map { String(format: "%02x", $0) }.joined()
+        "\(engine.rawValue)\u{0}\(source)".sha256HexDigest
     }
 }
