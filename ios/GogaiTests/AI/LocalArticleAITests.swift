@@ -33,7 +33,7 @@ final class LocalArticleAITests: XCTestCase {
         do {
             _ = try await ai.summarize(title: nil, content: "   ")
             XCTFail("emptyContent エラーになるべき")
-        } catch let error as LocalArticleAIError {
+        } catch let error as LocalAIError {
             XCTAssertEqual(error, .emptyContent)
         } catch {
             XCTFail("想定外のエラー: \(error)")

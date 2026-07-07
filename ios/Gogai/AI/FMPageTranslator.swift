@@ -1,10 +1,5 @@
 import Foundation
 
-enum FMPageTranslatorError: Error {
-    /// モデル応答から該当 id の訳文を取り出せなかった
-    case parseFailed
-}
-
 /// Foundation Model でウェブページのテキストノードを翻訳する。
 /// ノード単体を独立して翻訳すると文脈が失われるため、文書順の連続ノードを
 /// 1バッチにまとめ、id タグ付きで一括翻訳することで文脈を保つ。
@@ -85,7 +80,7 @@ struct FMPageTranslator: Sendable {
             prompt: Self.buildPrompt(batch: [segment], contextText: nil)
         )
         guard let text = Self.parseResponse(response)[segment.index] else {
-            throw FMPageTranslatorError.parseFailed
+            throw LocalAIError.parseFailed
         }
         return text
     }

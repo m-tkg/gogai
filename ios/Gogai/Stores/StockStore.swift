@@ -1,19 +1,5 @@
 import Foundation
 
-enum StockSummaryGenerationError: Error, LocalizedError, Equatable {
-    case aiUnavailable
-    case invalidURL
-
-    var errorDescription: String? {
-        switch self {
-        case .aiUnavailable:
-            return "この端末ではローカル AI を利用できません(iOS 27 以上と Apple Intelligence の有効化が必要です)"
-        case .invalidURL:
-            return "URL が不正です"
-        }
-    }
-}
-
 final class StockStore: ObservableObject {
     @Published var categories: [StockCategory] = []
     @Published var stocks: [Stock] = []
@@ -149,8 +135,8 @@ final class StockStore: ObservableObject {
     @MainActor
     func generateSummary(for stockId: Int, session: URLSession = .shared) async throws {
         guard let stock = stocks.first(where: { $0.id == stockId }) else { return }
-        guard let generator = makeSummaryGenerator() else { throw StockSummaryGenerationError.aiUnavailable }
-        guard let url = URL(string: stock.url) else { throw StockSummaryGenerationError.invalidURL }
+        guard let generator = makeSummaryGenerator() else { throw LocalAIError.aiUnavailable }
+        guard let url = URL(string: stock.url) else { throw LocalAIError.invalidURL }
 
         let summarizer = StockSummarizer(generator: generator)
         try await BackgroundExecution.run(name: "Stock.summarize") {
