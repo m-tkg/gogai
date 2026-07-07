@@ -35,9 +35,9 @@ jobs:
 
       - name: Select latest available Xcode
         run: |
-          LATEST=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-          echo "Selected: $LATEST"
-          sudo xcode-select -s "$LATEST/Contents/Developer"
+          DEVELOPER_DIR=$(Scripts/select-xcode.sh)
+          echo "Selected: $DEVELOPER_DIR"
+          sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
       - name: Sync app icons

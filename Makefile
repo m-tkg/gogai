@@ -112,6 +112,9 @@ ios-sync-icons:
 # 固定端末名をハードコードせず利用可能な iPhone シミュレーターを都度解決する
 IOS_SIMULATOR_NAME := $(shell ios/Scripts/select-simulator.sh)
 
+# 使用する Xcode の DEVELOPER_DIR を都度解決する(CI と共通のロジック、詳細は select-xcode.sh 参照)
+IOS_DEVELOPER_DIR := $(shell ios/Scripts/select-xcode.sh)
+
 # アイコン同期してビルド（シミュレーター）
 ios-build: ios-sync-icons
 	cd ios && xcodebuild build -project Gogai.xcodeproj -scheme Gogai \
@@ -119,7 +122,7 @@ ios-build: ios-sync-icons
 
 # iOS ユニットテストを実行
 ios-test:
-	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+	cd ios && DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcodebuild test -project Gogai.xcodeproj -scheme Gogai \
 		-destination "platform=iOS Simulator,name=$(IOS_SIMULATOR_NAME)" -quiet
 
@@ -130,7 +133,7 @@ BUNDLE_ID     = com.mtkg.gogai
 
 ios-deploy: ios-sync-icons
 	@echo "==> Building Release for device..."
-	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+	cd ios && DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcodebuild build \
 		-project Gogai.xcodeproj \
 		-scheme Gogai \
@@ -140,12 +143,12 @@ ios-deploy: ios-sync-icons
 		-allowProvisioningUpdates \
 		-quiet
 	@echo "==> Installing on device..."
-	DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+	DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcrun devicectl device install app \
 		--device $(DEVICE_ID) \
 		".build/ios/Build/Products/Release-iphoneos/Gogai.app"
 	@echo "==> Launching app..."
-	DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+	DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcrun devicectl device process launch \
 		--device $(DEVICE_ID) \
 		$(BUNDLE_ID)
@@ -165,7 +168,7 @@ MAC_DMG_PATH        = $(MAC_BUILD_DIR)/Gogai.dmg
 mac-archive: ios-sync-icons
 	@echo "==> Archiving for macOS (Mac Catalyst)..."
 	mkdir -p $(MAC_BUILD_DIR)
-	cd ios && DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+	cd ios && DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcodebuild archive \
 		-project Gogai.xcodeproj \
 		-scheme Gogai \
@@ -180,7 +183,7 @@ mac-archive: ios-sync-icons
 mac-export: mac-archive
 	@echo "==> Exporting with Developer ID..."
 	rm -rf $(MAC_EXPORT_PATH)
-	DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+	DEVELOPER_DIR=$(IOS_DEVELOPER_DIR) \
 		xcodebuild -exportArchive \
 		-archivePath $(MAC_ARCHIVE_PATH) \
 		-exportPath $(MAC_EXPORT_PATH) \
