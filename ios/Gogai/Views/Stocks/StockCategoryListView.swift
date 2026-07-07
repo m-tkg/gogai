@@ -68,6 +68,9 @@ struct StockCategoryListView: View {
     @State private var showAddStock = false
     @State private var isQueueExpanded = true
     @State private var reorderError: Error?
+    /// 初回表示のみフェッチするためのガード。StockListView から戻る際は再フェッチしない
+    /// (ArticleListView の hasAppeared と同じパターン)。
+    @State private var hasAppeared = false
 
     private var reorderErrorBinding: Binding<Bool> {
         Binding(
@@ -180,6 +183,10 @@ struct StockCategoryListView: View {
             }
         }
         .task {
+            // 初回表示のみフェッチする(StockListView から戻る際に全件再フェッチしてリストが
+            // 一瞬リセットされるのを防ぐ)。手動更新は .refreshable 側で常にフェッチする。
+            guard !hasAppeared else { return }
+            hasAppeared = true
             await stockStore.fetchAll()
         }
         .refreshable {
