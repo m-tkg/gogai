@@ -98,8 +98,8 @@ final class GroupStore: ObservableObject {
     @MainActor
     func reorderGroups(from source: IndexSet, to destination: Int) async throws {
         guard let client else { return }
-        groups.move(fromOffsets: source, toOffset: destination)
-        let ids = groups.map { $0.id }
-        try await GroupRepository(client: client).reorder(ids: ids)
+        groups = try await reorderAndPersist(groups, from: source, to: destination) { ids in
+            try await GroupRepository(client: client).reorder(ids: ids)
+        }
     }
 }

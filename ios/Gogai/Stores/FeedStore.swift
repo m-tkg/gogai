@@ -86,11 +86,11 @@ final class FeedStore: ObservableObject {
     func reorderFeeds(from source: IndexSet, to destination: Int, groupId: Int?) async throws {
         guard let client else { return }
         // feeds(for: nil) は全フィードを返すため、group_id で直接フィルタする
-        var groupFeeds = feeds.filter { $0.group_id == groupId }
+        let groupFeeds = feeds.filter { $0.group_id == groupId }
         let otherFeeds = feeds.filter { $0.group_id != groupId }
-        groupFeeds.move(fromOffsets: source, toOffset: destination)
-        let ids = groupFeeds.map { $0.id }
-        try await FeedRepository(client: client).reorder(ids: ids)
-        feeds = otherFeeds + groupFeeds
+        let reordered = try await reorderAndPersist(groupFeeds, from: source, to: destination) { ids in
+            try await FeedRepository(client: client).reorder(ids: ids)
+        }
+        feeds = otherFeeds + reordered
     }
 }

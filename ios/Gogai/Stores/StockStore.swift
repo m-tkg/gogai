@@ -256,11 +256,9 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
     @MainActor
     func reorderCategories(from source: IndexSet, to destination: Int) async throws {
         guard let client else { return }
-        var reordered = categories
-        reordered.move(fromOffsets: source, toOffset: destination)
-        let ids = reordered.map { $0.id }
-        try await StockRepository(client: client).reorderCategories(ids: ids)
-        categories = reordered
+        categories = try await reorderAndPersist(categories, from: source, to: destination) { ids in
+            try await StockRepository(client: client).reorderCategories(ids: ids)
+        }
     }
 
     // MARK: - Private

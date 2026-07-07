@@ -8,6 +8,7 @@ private struct Item: Identifiable, Equatable {
 private struct ReorderTestError: Error {}
 
 final class ReorderHelperTests: XCTestCase {
+    @MainActor
     func test_指定した範囲を並び替えてid配列をpersistに渡す() async throws {
         let items = [Item(id: 1), Item(id: 2), Item(id: 3)]
         var persistedIds: [Int]?
@@ -20,6 +21,7 @@ final class ReorderHelperTests: XCTestCase {
         XCTAssertEqual(persistedIds, [3, 1, 2])
     }
 
+    @MainActor
     func test_persistが失敗したら配列を返さずthrowする() async {
         let items = [Item(id: 1), Item(id: 2)]
 
