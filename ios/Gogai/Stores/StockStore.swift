@@ -1,6 +1,6 @@
 import Foundation
 
-final class StockStore: ObservableObject {
+final class StockStore: ObservableObject, SummaryQueueDelegate {
     @Published var categories: [StockCategory] = []
     @Published var stocks: [Stock] = []
     @Published private(set) var isLoading = false
@@ -13,9 +13,10 @@ final class StockStore: ObservableObject {
     var makeSummaryGenerator: () -> (any TextGenerating)? = { LocalAI.makeGenerator() }
 
     // MARK: - 要約キュー
-    // View(戻るボタン等)のライフサイクルに依存せず Store が持つことで、
-    // 画面遷移後もキュー処理を継続できる。オンデバイス AI は同時に1リクエストしか
-    // 処理できないため(LanguageModelSession.Error.concurrentRequests)、常に直列実行する。
+    // 実体は SummaryQueue が保持する(状態変数・実行ロジック・レースコンディション回避のための
+    // 手動同期はすべてそちら参照)。View(戻るボタン等)のライフサイクルに依存せず Store が
+    // 持ち続けるため、画面遷移後もキュー処理を継続できる。ここでは SummaryQueue からの通知を
+    // @Published プロパティへミラーし、UserDefaults への永続化を行う薄い consumer にする。
 
     /// 実行待ちのストック ID(先頭が次に実行される)
     @Published private(set) var pendingSummaryStockIds: [Int] = [] {
@@ -32,25 +33,27 @@ final class StockStore: ObservableObject {
     /// ユーザーが一時停止ボタンで止めたかどうか(翻訳優先による一時停止とは別軸)
     @Published private(set) var isSummaryQueuePausedByUser = false
 
-    private var summaryQueueTask: Task<Void, Never>?
-    /// 翻訳優先のため自動的に一時停止しているか(#126 参照)
-    private var isPausedForTranslation = false
-    /// 実行中にキャンセルされ、完了後もキューへ戻さない対象(一時停止との違いはここ)
-    private var cancelledSummaryStockIds: Set<Int> = []
-
-    /// 実際にキューを進めてよいか(翻訳優先 or ユーザー操作のどちらかで停止していれば false)
-    private var isSummaryQueuePaused: Bool {
-        isPausedForTranslation || isSummaryQueuePausedByUser
-    }
+    private var summaryQueue: SummaryQueue!
 
     private var client: (any APIClientProtocol)?
 
     init() {
         self.sortAscending = UserDefaults.standard.bool(forKey: DefaultsKeys.stockSortAscending)
+        summaryQueue = SummaryQueue()
+        summaryQueue.delegate = self
+        summaryQueue.onChange = { [weak self] in
+            self?.syncSummaryQueueState()
+        }
     }
 
     func configure(with client: any APIClientProtocol) {
         self.client = client
+    }
+
+    /// SummaryQueueDelegate: 実際の要約生成を行う。
+    @MainActor
+    func summaryQueue(_ queue: SummaryQueue, performSummaryFor stockId: Int, session: URLSession) async throws {
+        try await generateSummary(for: stockId, session: session)
     }
 
     /// 指定カテゴリのストックを stocked_at でソートして返す（sortAscending に連動）
@@ -152,67 +155,47 @@ final class StockStore: ObservableObject {
     @MainActor
     func requestSummary(for stockId: Int, force: Bool = false, session: URLSession = .shared) {
         guard force || stocks.first(where: { $0.id == stockId })?.summary == nil else { return }
-        guard currentlySummarizingStockId != stockId, !pendingSummaryStockIds.contains(stockId) else { return }
-        summaryErrors[stockId] = nil
-        pendingSummaryStockIds.append(stockId)
-        driveSummaryQueue(session: session)
+        summaryQueue.enqueue(stockId: stockId, session: session)
     }
 
     /// 翻訳を優先させるため、実行中の要約があれば中断してキュー処理を一時停止する。
     /// オンデバイス AI は同時に1リクエストしか処理できないための措置(#126 参照)。
-    /// 中断された要約は再開時に最初からやり直す(オンデバイスモデルに部分再開の手段が無いため)。
-    ///
-    /// summaryQueueTask はここで同期的に nil クリアする(キャンセルされたタスク自身の後片付けを
-    /// 待たない)。そうしないと、キャンセル後すぐに resumeSummaryQueueAfterTranslation で新しい
-    /// タスクを開始した場合、遅れて実行される旧タスクの後片付けが新タスクの参照を誤って
-    /// クリアしてしまうレースが起こり得る(driveSummaryQueue の再入防止ガードが壊れる)。
     @MainActor
     func pauseSummaryQueueForTranslation() {
-        isPausedForTranslation = true
-        summaryQueueTask?.cancel()
-        summaryQueueTask = nil
+        summaryQueue.pauseForTranslation()
     }
 
     /// 翻訳完了後、要約キューを再開する。ユーザーが一時停止中の場合は再開しない。
     @MainActor
     func resumeSummaryQueueAfterTranslation(session: URLSession = .shared) {
-        isPausedForTranslation = false
-        driveSummaryQueue(session: session)
+        summaryQueue.resumeAfterTranslation(session: session)
     }
 
     /// ユーザー操作による一時停止。実行中の要約があれば中断し、キュー先頭へ戻す(やり直せるように)。
     /// 翻訳優先の一時停止とは独立して管理するため、翻訳が終わっても自動再開されない。
     @MainActor
     func pauseSummaryQueue() {
-        isSummaryQueuePausedByUser = true
-        summaryQueueTask?.cancel()
-        summaryQueueTask = nil
+        summaryQueue.pauseByUser()
     }
 
     /// ユーザー操作による一時停止を解除する。翻訳優先の一時停止が別途かかっている場合は
-    /// (isSummaryQueuePaused が true のままなので)driveSummaryQueue 側のガードで開始されない。
+    /// 再開されない(SummaryQueue 内部のガードによる)。
     @MainActor
     func resumeSummaryQueue(session: URLSession = .shared) {
-        isSummaryQueuePausedByUser = false
-        driveSummaryQueue(session: session)
+        summaryQueue.resumeByUser(session: session)
     }
 
     /// キュー内の特定のストックをキャンセルする。待機中ならキューから外すだけ、
-    /// 生成中なら中断し、一時停止と違い完了後もキューへ戻さない(cancelledSummaryStockIds で判別)。
+    /// 生成中なら中断し、一時停止と違い完了後もキューへ戻さない。
     @MainActor
     func cancelSummary(for stockId: Int) {
-        pendingSummaryStockIds.removeAll { $0 == stockId }
-        summaryErrors[stockId] = nil
-        guard currentlySummarizingStockId == stockId else { return }
-        cancelledSummaryStockIds.insert(stockId)
-        summaryQueueTask?.cancel()
-        summaryQueueTask = nil
+        summaryQueue.cancel(stockId: stockId)
     }
 
     /// エラーアラートを閉じた後の表示クリア用。
     @MainActor
     func clearSummaryError(for stockId: Int) {
-        summaryErrors[stockId] = nil
+        summaryQueue.clearError(for: stockId)
     }
 
     /// アプリ終了(強制終了含む)後の再起動時に、永続化された要約キューを再開する。
@@ -220,15 +203,12 @@ final class StockStore: ObservableObject {
     /// 既に要約済み/削除済みのストック ID は除外する(他端末で完了している場合があるため)。
     @MainActor
     func resumePersistedSummaryQueueIfNeeded(session: URLSession = .shared) {
-        guard pendingSummaryStockIds.isEmpty, currentlySummarizingStockId == nil else { return }
         let persistedIds = UserDefaults.standard.array(forKey: DefaultsKeys.stockSummaryQueue) as? [Int] ?? []
         let restoredIds = persistedIds.filter { id in
             guard let stock = stocks.first(where: { $0.id == id }) else { return false }
             return stock.summary == nil
         }
-        guard !restoredIds.isEmpty else { return }
-        pendingSummaryStockIds = restoredIds
-        driveSummaryQueue(session: session)
+        summaryQueue.restorePending(restoredIds, session: session)
     }
 
     /// アプリ再起動時に、永続化された要約エラー(赤いビックリマーク表示用)を復元する。
@@ -236,13 +216,14 @@ final class StockStore: ObservableObject {
     @MainActor
     func restorePersistedSummaryErrorsIfNeeded() {
         guard let stored = UserDefaults.standard.dictionary(forKey: DefaultsKeys.stockSummaryErrors) as? [String: String] else { return }
-        summaryErrors = stored.reduce(into: [Int: String]()) { result, entry in
+        let restored = stored.reduce(into: [Int: String]()) { result, entry in
             guard let id = Int(entry.key),
                   let stock = stocks.first(where: { $0.id == id }),
                   stock.summary == nil
             else { return }
             result[id] = entry.value
         }
+        summaryQueue.restoreErrors(restored)
     }
 
     /// 現在の要約キュー(生成中 + 待機中)を UserDefaults へ保存する。
@@ -262,41 +243,14 @@ final class StockStore: ObservableObject {
         UserDefaults.standard.set(stringKeyed, forKey: DefaultsKeys.stockSummaryErrors)
     }
 
-    @MainActor
-    private func driveSummaryQueue(session: URLSession) {
-        guard summaryQueueTask == nil, !isSummaryQueuePaused else { return }
-        summaryQueueTask = Task { [weak self] in
-            await self?.runSummaryQueue(session: session)
-            // pauseSummaryQueueForTranslation は自分で summaryQueueTask を同期的にクリアするため、
-            // キャンセルされて戻ってきた場合はここで触らない(新しいタスクの参照を壊さないため)。
-            if !Task.isCancelled {
-                self?.summaryQueueTask = nil
-            }
-        }
-    }
-
-    @MainActor
-    private func runSummaryQueue(session: URLSession) async {
-        while !isSummaryQueuePaused, !pendingSummaryStockIds.isEmpty {
-            let stockId = pendingSummaryStockIds.removeFirst()
-            currentlySummarizingStockId = stockId
-            do {
-                try await generateSummary(for: stockId, session: session)
-            } catch is CancellationError {
-                if cancelledSummaryStockIds.remove(stockId) != nil {
-                    // ユーザーが明示的にキャンセルした分は再投入しない
-                    currentlySummarizingStockId = nil
-                    return
-                }
-                // 翻訳優先 or ユーザーの一時停止により中断された。やり直せるようキュー先頭へ戻して終了する。
-                pendingSummaryStockIds.insert(stockId, at: 0)
-                currentlySummarizingStockId = nil
-                return
-            } catch {
-                summaryErrors[stockId] = error.localizedDescription
-            }
-            currentlySummarizingStockId = nil
-        }
+    /// SummaryQueue の状態を @Published プロパティへミラーする(onChange から呼ばれる)。
+    /// onChange クロージャは(persistSummaryQueueSnapshot 等と同様に)非 actor-isolated
+    /// コンテキストから呼ばれるため @MainActor を付けない。
+    private func syncSummaryQueueState() {
+        pendingSummaryStockIds = summaryQueue.pending
+        currentlySummarizingStockId = summaryQueue.currentlySummarizing
+        summaryErrors = summaryQueue.errors
+        isSummaryQueuePausedByUser = summaryQueue.isPausedByUser
     }
 
     @MainActor

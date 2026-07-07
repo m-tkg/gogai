@@ -90,6 +90,7 @@
 		FF00000000000000000054AB /* Stock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000054AB /* Stock.swift */; };
 		FF00000000000000000055AB /* StockRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000055AB /* StockRepository.swift */; };
 		FF00000000000000000056AB /* StockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000056AB /* StockStore.swift */; };
+		FF00000000000000000082AB /* SummaryQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007CAB /* SummaryQueue.swift */; };
 		FF00000000000000000057AB /* StockRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000057AB /* StockRepositoryTests.swift */; };
 		FF00000000000000000058AB /* StockStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000058AB /* StockStoreTests.swift */; };
 		FF00000000000000000059AB /* StockCategoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000059AB /* StockCategoryListView.swift */; };
@@ -248,6 +249,7 @@
 		DD00000000000000000054AB /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
 		DD00000000000000000055AB /* StockRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepository.swift; sourceTree = "<group>"; };
 		DD00000000000000000056AB /* StockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStore.swift; sourceTree = "<group>"; };
+		DD0000000000000000007CAB /* SummaryQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryQueue.swift; sourceTree = "<group>"; };
 		EE00000000000000000057AB /* StockRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRepositoryTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000058AB /* StockStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockStoreTests.swift; sourceTree = "<group>"; };
 		DD0000000000000000005EAB /* StockSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSummarizer.swift; sourceTree = "<group>"; };
@@ -379,6 +381,7 @@
 				DD0000000000000000003FAB /* ArticleCollection.swift */,
 				DD00000000000000000013AB /* SettingsStore.swift */,
 				DD00000000000000000056AB /* StockStore.swift */,
+				DD0000000000000000007CAB /* SummaryQueue.swift */,
 			);
 			path = Stores;
 			sourceTree = "<group>";
@@ -798,6 +801,7 @@
 				FF00000000000000000054AB /* Stock.swift in Sources */,
 				FF00000000000000000055AB /* StockRepository.swift in Sources */,
 				FF00000000000000000056AB /* StockStore.swift in Sources */,
+				FF00000000000000000082AB /* SummaryQueue.swift in Sources */,
 				FF00000000000000000059AB /* StockCategoryListView.swift in Sources */,
 				FF0000000000000000005AAB /* StockListView.swift in Sources */,
 				FF0000000000000000005BAB /* StockDetailView.swift in Sources */,
