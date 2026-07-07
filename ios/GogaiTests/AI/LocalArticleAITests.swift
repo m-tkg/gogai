@@ -1,21 +1,6 @@
 import XCTest
 @testable import Gogai
 
-/// TextGenerating のモック: 受け取った instructions / prompt を記録して固定文字列を返す
-private final class MockTextGenerator: TextGenerating, @unchecked Sendable {
-    var lastInstructions: String?
-    var lastPrompt: String?
-    var result: String = "生成結果"
-    var error: Error?
-
-    func generate(instructions: String, prompt: String) async throws -> String {
-        lastInstructions = instructions
-        lastPrompt = prompt
-        if let error { throw error }
-        return result
-    }
-}
-
 final class LocalArticleAITests: XCTestCase {
 
     // MARK: - summarize
