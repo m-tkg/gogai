@@ -144,7 +144,7 @@ struct StockDetailView: View {
             }
             Button("キャンセル", role: .cancel) {}
         }
-        .confirmationDialog("このストックを削除しますか？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+        .alert("このストックを削除しますか？", isPresented: $showDeleteConfirm) {
             Button("削除", role: .destructive) {
                 Task {
                     await actions.delete()
