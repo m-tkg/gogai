@@ -1,22 +1,26 @@
 import SwiftUI
 
 /// ストック一覧の行。長押しで元記事・翻訳・要約生成・編集・削除のコンテキストメニューを表示する
-/// (StockDetailView のフッターと同じアクションセット)。削除はスワイプからも実行できる
-/// (どちらも同じ確認ダイアログ・エラーハンドリングを共有する)。
+/// (StockDetailView のフッターと同じアクションセット)。削除はスワイプからも実行できる。
+///
+/// 削除確認ダイアログは行ではなく親(StockListView)が保持する: `.swipeActions` のボタンで
+/// 行内の `@State` を true にして同じ行に確認ダイアログを付けると、スワイプ UI が畳まれる
+/// アニメーションと競合してダイアログが一瞬表示されただけで消えてしまう(SwiftUI の既知の挙動)。
+/// 行の外側で状態を持つことでこの競合を避ける。
 struct StockRowView: View {
     let stock: Stock
+    /// 削除確認を親に委譲する(理由は上記コメント参照)。
+    let onDeleteRequest: () -> Void
 
     @EnvironmentObject private var stockStore: StockStore
 
     @State private var showBrowser = false
     @State private var showTranslation = false
     @State private var showEdit = false
-    @State private var showDeleteConfirm = false
     @State private var showSummaryErrorAlert = false
-    @State private var deleteError: Error?
 
     private var actions: StockActions {
-        StockActions(stockStore: stockStore, fallbackStock: stock, deleteError: $deleteError)
+        StockActions(stockStore: stockStore, fallbackStock: stock, deleteError: .constant(nil))
     }
 
     private var currentStock: Stock { actions.currentStock }
@@ -52,7 +56,7 @@ struct StockRowView: View {
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
-                showDeleteConfirm = true
+                onDeleteRequest()
             } label: {
                 Label("削除", systemImage: "trash")
             }
@@ -86,7 +90,7 @@ struct StockRowView: View {
                 Label("編集", systemImage: "pencil")
             }
             Button(role: .destructive) {
-                showDeleteConfirm = true
+                onDeleteRequest()
             } label: {
                 Label("削除", systemImage: "trash")
             }
@@ -101,17 +105,6 @@ struct StockRowView: View {
         }
         .sheet(isPresented: $showEdit) {
             EditStockView(stock: currentStock)
-        }
-        .confirmationDialog("このストックを削除しますか？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("削除", role: .destructive) {
-                Task { await actions.delete() }
-            }
-            Button("キャンセル", role: .cancel) {}
-        }
-        .alert("削除に失敗しました", isPresented: actions.deleteErrorBinding) {
-            Button("OK") { deleteError = nil }
-        } message: {
-            Text(deleteError?.localizedDescription ?? "")
         }
         // 一覧を見ている間に失敗した場合は即座にアラートで知らせる。
         // 前回起動時に失敗し永続化されているだけの場合(再起動直後の初回表示など)は自動表示せず、
