@@ -55,11 +55,16 @@ struct StockRowView: View {
             .foregroundStyle(.secondary)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
+            // role: .destructive にすると、確認を挟む前にタップした時点で SwiftUI が
+            // 行をリストから消すアニメーションを実行してしまう(キャンセルしても復活は
+            // 次の再読み込みまで反映されない見た目になる)。確認前に消えて見えるのを防ぐため
+            // role は付けず、見た目だけ .tint(.red) で destructive 風にする。
+            Button {
                 onDeleteRequest()
             } label: {
                 Label("削除", systemImage: "trash")
             }
+            .tint(.red)
         }
         .contextMenu {
             if URL(string: currentStock.url) != nil {
