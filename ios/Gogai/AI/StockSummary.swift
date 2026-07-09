@@ -8,13 +8,14 @@ struct StockSummary: Equatable, Sendable {
     let mainMessage: String
     let summaryLines: [String]
 
-    /// 見出しが1つでも欠けていれば nil を返す(呼び出し側は生テキスト表示にフォールバックする)
+    /// 見出しが1つでも欠けている、または中身が空(オンデバイスモデルが見出しだけ出力した場合)なら
+    /// nil を返す(呼び出し側は生テキスト表示にフォールバックする)。
     static func parse(_ text: String) -> StockSummary? {
         let sections = splitSections(text)
-        guard let topic = sections["何についての記事か"],
-              let purpose = sections["何の目的で書かれたか"],
-              let mainMessage = sections["筆者が一番伝えたいこと"],
-              let summaryBody = sections["要約"] else { return nil }
+        guard let topic = sections["何についての記事か"], !topic.isEmpty,
+              let purpose = sections["何の目的で書かれたか"], !purpose.isEmpty,
+              let mainMessage = sections["筆者が一番伝えたいこと"], !mainMessage.isEmpty,
+              let summaryBody = sections["要約"], !summaryBody.isEmpty else { return nil }
 
         let lines = summaryBody
             .components(separatedBy: "\n")
