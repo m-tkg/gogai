@@ -81,6 +81,49 @@ final class StockSummarizerTests: XCTestCase {
         XCTAssertEqual(StockSummarizer.enforceSummaryLineLimit(text), text)
     }
 
+    // MARK: - 不完全な出力のリトライ(オンデバイスモデルがセクションを空で返すことがあるため)
+
+    func test_summarize_見出しの中身が空の不完全な出力はリトライする() async throws {
+        let generator = MockTextGenerator()
+        generator.responses = [
+            "## 何についての記事か\n## 何の目的で書かれたか\n## 筆者が一番伝えたいこと\n## 要約(20行以内)\n",
+            "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD",
+        ]
+        let summarizer = StockSummarizer(generator: generator)
+
+        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+
+        XCTAssertEqual(generator.callCount, 2, "1回目が不完全なら2回目を試すこと")
+        XCTAssertEqual(StockSummary.parse(result)?.topic, "A")
+    }
+
+    func test_summarize_リトライ上限に達したら最後の出力をそのまま返す() async throws {
+        let generator = MockTextGenerator()
+        generator.responses = [
+            "不完全1",
+            "不完全2",
+            "不完全3",
+        ]
+        let summarizer = StockSummarizer(generator: generator)
+
+        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+
+        XCTAssertEqual(generator.callCount, StockSummarizer.maxGenerationRetries + 1, "初回 + リトライ上限回数だけ試すこと")
+        XCTAssertEqual(result, "不完全3", "リトライしても改善しなければ最後の結果をそのまま返すこと")
+    }
+
+    func test_summarize_1回目で完全な出力ならリトライしない() async throws {
+        let generator = MockTextGenerator()
+        generator.responses = [
+            "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD",
+        ]
+        let summarizer = StockSummarizer(generator: generator)
+
+        _ = try await summarizer.summarize(title: "タイトル", text: "本文")
+
+        XCTAssertEqual(generator.callCount, 1)
+    }
+
     // MARK: - summarize(url:title:) URL からのフェッチ
 
     func test_summarizeFromURL_ページ本文を取得してから要約する() async throws {
