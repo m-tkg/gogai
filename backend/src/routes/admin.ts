@@ -42,9 +42,16 @@ app.get('/update-check', async (c) => {
   }
 
   // git fetch でリモートの最新コミットを取得（GitHub API 不使用・既存認証情報を利用）
+  // GIT_SSH_COMMAND: known_hosts 未登録でも失敗せず、対話入力なしで動作させる（POST /restart の git pull と同様）
   let remoteSha: string
   try {
-    await execAsync(`git fetch origin ${GITHUB_BRANCH} --quiet`, { cwd: PROJECT_ROOT })
+    await execAsync(`git fetch origin ${GITHUB_BRANCH} --quiet`, {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no -o BatchMode=yes',
+      },
+    })
     const { stdout } = await execAsync(`git rev-parse origin/${GITHUB_BRANCH}`, { cwd: PROJECT_ROOT })
     remoteSha = stdout.trim()
   } catch (e: unknown) {
