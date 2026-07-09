@@ -17,6 +17,10 @@ struct StockSummarizer: Sendable {
     static let maxChunks = 8
     /// 「要約」セクションの最大行数
     static let summaryLineLimit = 20
+    /// 最終生成の出力が不完全(見出しの中身が空など)だった場合にリトライする最大回数。
+    /// オンデバイスモデルは同じプロンプトでも見出しだけ返して中身が空になることがあるため、
+    /// StockSummary.parse() で検証できる形式になるまで再試行する。
+    static let maxGenerationRetries = 2
 
     private let generator: any TextGenerating
 
@@ -41,8 +45,13 @@ struct StockSummarizer: Sendable {
             : try await condense(text: cleanText)
 
         let prompt = [cleanTitle, sourceText].filter { !$0.isEmpty }.joined(separator: "\n\n")
-        let raw = try await generator.generate(instructions: Self.finalInstructions, prompt: prompt)
-        return Self.enforceSummaryLineLimit(raw)
+        var result = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
+        var attempt = 0
+        while StockSummary.parse(result) == nil, attempt < Self.maxGenerationRetries {
+            attempt += 1
+            result = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
+        }
+        return result
     }
 
     /// 本文をチャンク分割し、各チャンクを日本語箇条書きに中間要約してから連結する

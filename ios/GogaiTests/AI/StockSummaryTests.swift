@@ -55,4 +55,32 @@ final class StockSummaryTests: XCTestCase {
     func test_parse_見出し以外のテキストならnilを返す() {
         XCTAssertNil(StockSummary.parse("見出しのないただの文章です。"))
     }
+
+    func test_parse_見出しはあっても中身が空のセクションがあればnilを返す() {
+        let text = """
+        ## 何についての記事か
+        ## 何の目的で書かれたか
+        B
+        ## 筆者が一番伝えたいこと
+        C
+        ## 要約(20行以内)
+        D
+        """
+        XCTAssertNil(StockSummary.parse(text))
+    }
+
+    func test_parse_要約セクションが空行のみならnilを返す() {
+        let text = """
+        ## 何についての記事か
+        A
+        ## 何の目的で書かれたか
+        B
+        ## 筆者が一番伝えたいこと
+        C
+        ## 要約(20行以内)
+
+
+        """
+        XCTAssertNil(StockSummary.parse(text))
+    }
 }
