@@ -79,6 +79,24 @@ describe('admin ルート（HTTP 契約）', () => {
       expect(res.status).toBe(500)
       expect((await res.json()).error).toBeTypeOf('string')
     })
+
+    it('git fetch は known_hosts 未登録でも失敗しないよう GIT_SSH_COMMAND 付きで実行する', async () => {
+      const receivedOpts: Record<string, unknown>[] = []
+      execMock.mockImplementation((cmd: string, opts: Record<string, unknown>, cb: ExecCallback) => {
+        if (cmd.includes('fetch origin')) receivedOpts.push(opts)
+        if (cmd.includes('rev-parse HEAD')) return cb(null, { stdout: 'abc123\n', stderr: '' })
+        if (cmd.includes('fetch origin')) return cb(null, { stdout: '', stderr: '' })
+        if (cmd.includes('rev-parse origin/main')) return cb(null, { stdout: 'abc123\n', stderr: '' })
+        cb(new Error(`unexpected command: ${cmd}`))
+      })
+
+      await adminRouter.request('/update-check')
+
+      expect(receivedOpts).toHaveLength(1)
+      expect(receivedOpts[0]?.env).toMatchObject({
+        GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no -o BatchMode=yes',
+      })
+    })
   })
 
   describe('POST /restart', () => {
