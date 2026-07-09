@@ -17,10 +17,15 @@ struct StockSummarizer: Sendable {
     static let maxChunks = 8
     /// 「要約」セクションの最大行数
     static let summaryLineLimit = 20
-    /// 最終生成の出力が不完全(見出しの中身が空など)だった場合にリトライする最大回数。
-    /// オンデバイスモデルは同じプロンプトでも見出しだけ返して中身が空になることがあるため、
-    /// StockSummary.parse() で検証できる形式になるまで再試行する。
+    /// セクション個別生成で空が返ったときにリトライする最大回数。
+    /// オンデバイスモデルは同じプロンプトでも中身が空になることがあるため、
+    /// 非空になるまで(この回数まで)再試行する。
     static let maxGenerationRetries = 2
+
+    /// セクション個別生成でも中身が得られなかったときに埋めるプレースホルダ。
+    /// これを入れることで4見出しすべてが非空になり StockSummary.parse() が必ず成功する
+    /// (=表示側が固定見出しレイアウト・見出しの色付けを常に行える)。
+    static let sectionPlaceholder = "（生成できませんでした）"
 
     private let generator: any TextGenerating
 
@@ -45,13 +50,73 @@ struct StockSummarizer: Sendable {
             : try await condense(text: cleanText)
 
         let prompt = [cleanTitle, sourceText].filter { !$0.isEmpty }.joined(separator: "\n\n")
-        var result = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
-        var attempt = 0
-        while StockSummary.parse(result) == nil, attempt < Self.maxGenerationRetries {
-            attempt += 1
-            result = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
+
+        // 通常経路: 1回の生成で4セクションをまとめて作らせる。parse できればそのまま採用。
+        let combined = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
+        if StockSummary.parse(combined) != nil {
+            return combined
         }
-        return result
+
+        // フォールバック: オンデバイスモデルが1回では一部セクションしか埋めないことがあるため、
+        // セクションごとに個別生成し、見出しはこちら側で固定して組み立てる。
+        // これにより各項目が確実に埋まり、parse も必ず成功する(=見出しは常に色付き表示)。
+        return try await summarizeBySection(prompt: prompt)
+    }
+
+    /// 4セクションを1項目ずつ個別生成し、固定見出しで組み立てる。
+    private func summarizeBySection(prompt: String) async throws -> String {
+        let topic = try await generateSectionLines(instructions: Self.topicInstruction, prompt: prompt)
+        let purpose = try await generateSectionLines(instructions: Self.purposeInstruction, prompt: prompt)
+        let mainMessage = try await generateSectionLines(instructions: Self.mainMessageInstruction, prompt: prompt)
+        let summary = try await generateSectionLines(instructions: Self.summaryInstruction, prompt: prompt)
+        return Self.assembleSections(
+            topic: topic.joined(separator: "\n"),
+            purpose: purpose.joined(separator: "\n"),
+            mainMessage: mainMessage.joined(separator: "\n"),
+            summaryLines: Array(summary.prefix(Self.summaryLineLimit))
+        )
+    }
+
+    /// 1セクション分を生成し、見出し行を除去した本文行の配列を返す。
+    /// 空で返ったときは maxGenerationRetries まで再生成する。
+    private func generateSectionLines(instructions: String, prompt: String) async throws -> [String] {
+        var lines = Self.sectionLines(try await generator.generate(instructions: instructions, prompt: prompt))
+        var attempt = 0
+        while lines.isEmpty, attempt < Self.maxGenerationRetries {
+            attempt += 1
+            lines = Self.sectionLines(try await generator.generate(instructions: instructions, prompt: prompt))
+        }
+        return lines
+    }
+
+    /// モデル出力から見出し行(先頭が #)と空行を除いた本文行の配列を返す。
+    /// モデルがセクション本文に見出しをエコーバックしても最終出力の構造を壊さないため。
+    static func sectionLines(_ text: String) -> [String] {
+        text
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+    }
+
+    /// 各セクション本文を固定見出しに差し込んで最終テキストを組み立てる。
+    /// 空セクションは sectionPlaceholder で埋め、4見出しすべてが非空になるようにする
+    /// (StockSummary.parse() が必ず成功する)。
+    static func assembleSections(topic: String, purpose: String, mainMessage: String, summaryLines: [String]) -> String {
+        func filled(_ body: String) -> String { body.isEmpty ? sectionPlaceholder : body }
+        let summaryBody = summaryLines.isEmpty ? sectionPlaceholder : summaryLines.joined(separator: "\n")
+        return """
+        ## 何についての記事か
+        \(filled(topic))
+
+        ## 何の目的で書かれたか
+        \(filled(purpose))
+
+        ## 筆者が一番伝えたいこと
+        \(filled(mainMessage))
+
+        ## 要約(20行以内)
+        \(summaryBody)
+        """
     }
 
     /// 本文をチャンク分割し、各チャンクを日本語箇条書きに中間要約してから連結する
@@ -101,4 +166,11 @@ struct StockSummarizer: Sendable {
     """
 
     static let intermediateInstructions = "あなたは記事要約アシスタントです。与えられた記事の一部を、日本語の要点箇条書きに変換してください。"
+
+    // MARK: - セクション個別生成用の指示(フォールバック時)
+
+    static let topicInstruction = "あなたは記事要約アシスタントです。与えられた記事が「何についての記事か」を、日本語で1〜2文で説明してください。見出しや箇条書き記号は付けず、説明文だけを出力してください。"
+    static let purposeInstruction = "あなたは記事要約アシスタントです。与えられた記事が「何の目的で書かれたか」を、日本語で1〜2文で説明してください。見出しや箇条書き記号は付けず、説明文だけを出力してください。"
+    static let mainMessageInstruction = "あなたは記事要約アシスタントです。与えられた記事で「筆者が一番伝えたいこと」を、日本語で1〜2文で説明してください。見出しや箇条書き記号は付けず、説明文だけを出力してください。"
+    static let summaryInstruction = "あなたは記事要約アシスタントです。与えられた記事を日本語で要約してください。要点を1行ずつ、20行以内で出力してください。見出しや前置きは付けないでください。"
 }
