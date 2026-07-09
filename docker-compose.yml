@@ -8,7 +8,10 @@ services:
       - PORT=3040
       - DB_PATH=/app/data/rss.db
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3040/health"]
+      # localhost だとコンテナ内で ::1(IPv6)に解決されることがあり、
+      # サーバーは 0.0.0.0(IPv4)でしか listen していないため接続拒否になる。
+      # 127.0.0.1 を明示して IPv4/IPv6 解決の揺れを避ける。
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3040/health"]
       interval: 30s
       timeout: 5s
       retries: 3

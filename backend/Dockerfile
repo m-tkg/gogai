@@ -12,6 +12,6 @@ RUN npm install -D typescript && npx tsc && npm uninstall typescript
 
 RUN mkdir -p /app/data
 
-EXPOSE 3000
+EXPOSE 3040
 
 CMD ["node", "dist/index.js"]
