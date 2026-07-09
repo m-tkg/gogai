@@ -41,7 +41,8 @@ final class ArticleContentFetcherTests: XCTestCase {
     // MARK: - extractText（<article>/<main> 優先抽出）
 
     func test_extractText_articleタグがあればナビゲーションやフッターを除外する() {
-        let articleBody = String(repeating: "これは記事本文です。", count: 20)
+        // 実テキスト長の下限(minMainContentTextLength = 200)と接しないよう十分長くする
+        let articleBody = String(repeating: "これは記事本文です。", count: 40)
         let html = """
         <html><body>
         <nav>Home About Contact Pricing Sign in Sign up Blog</nav>
@@ -75,6 +76,31 @@ final class ArticleContentFetcherTests: XCTestCase {
         let text = ArticleContentFetcher.extractText(from: html)
         XCTAssertTrue(text.contains("本文です"))
         XCTAssertFalse(text.contains("短い関連記事"))
+    }
+
+    /// 9to5mac のようにサイドバーの関連記事カードが <article> で並ぶページの再現。
+    /// カードはリンク・div のマークアップが多く HTML バイト長は大きいが、実テキストは短い。
+    /// 実テキスト長で判定しないと、本文ではなくカードが選ばれて本体本文が丸ごと消える。
+    func test_extractText_テキストが少なくマークアップが多いarticleは無視して本文にフォールバックする() {
+        // 実テキストは短い(~12文字)がマークアップで HTML バイト長は肥大したカード
+        let card = "<article>" + String(repeating: "<div class=\"card-link-wrapper\"><a href=\"https://example.com/related-post\">", count: 40) + "無関係な関連記事</a></div>" + "</article>"
+        // 実テキスト 200 文字超の本体(article/main の外にあり、フォールバックで拾われる)
+        let body = "<p>これが本来読みたい記事の本文です。" + String(repeating: "本文が続きます。", count: 30) + "</p>"
+        let html = "<html><body>\(card)\(body)</body></html>"
+        let text = ArticleContentFetcher.extractText(from: html)
+        // 現行実装ではカードが選ばれ本体本文が消える。実テキスト長で判定すれば本体が拾われる。
+        XCTAssertTrue(text.contains("これが本来読みたい記事の本文"), "実テキストの薄いカードに本体本文が奪われてはいけない")
+    }
+
+    /// 候補選択が HTML バイト長ではなく実テキスト長で行われることを確認する。
+    /// マークアップが多く HTML は長いが実テキストが少ない article と、その逆の article を並べる。
+    func test_extractText_複数article中は実テキストが最も多いものを採用する() {
+        let markupHeavy = "<article>" + String(repeating: "<span class=\"x\"><a href=\"https://example.com/aaaaaaaaaaaaaaaaaaaa\">", count: 30) + "薄いカード</a></span>" + "</article>"
+        let textHeavy = "<article><p>厚い本文。" + String(repeating: "厚い本文。", count: 40) + "</p></article>"
+        let html = "<html><body>\(markupHeavy)\(textHeavy)</body></html>"
+        let text = ArticleContentFetcher.extractText(from: html)
+        XCTAssertTrue(text.contains("厚い本文"), "実テキストが最も多い article が採用されるべき")
+        XCTAssertFalse(text.contains("薄いカード"))
     }
 
     // MARK: - fetchPlainText

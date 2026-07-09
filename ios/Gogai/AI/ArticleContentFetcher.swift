@@ -86,10 +86,19 @@ enum ArticleContentFetcher {
             || (0x100000...0x10FFFD).contains(scalar.value)
     }
 
+    /// これ未満の実テキストしか持たない <article>/<main> は本文とみなさない下限文字数。
+    private static let minMainContentTextLength = 200
+
     /// <article> または <main> で囲われた本文があればその中身を返す。
     /// ナビゲーションバーやフッターがそのまま本文に混入して要約品質が落ちるのを防ぐ。
-    /// 該当箇所が複数ある場合は最も長いものを採用し、短すぎる(=関連記事カード等の
-    /// 可能性が高い)場合は nil を返して呼び出し元にページ全体へフォールバックさせる。
+    /// 該当箇所が複数ある場合は実テキストが最も多いものを採用し、実テキストが少ない
+    /// (=関連記事カード等の可能性が高い)場合は nil を返して呼び出し元にページ全体へ
+    /// フォールバックさせる。
+    ///
+    /// 判定は HTML バイト長ではなく stripHTML 後の実テキスト長で行う。9to5mac 等では
+    /// サイドバーの関連記事カードが <article> で並び、リンク・div のマークアップで HTML は
+    /// 肥大するが実テキストは数十文字しかない。HTML 長で選ぶとこのカードが本文を奪い、
+    /// 無関係な内容の要約になる。
     private static func extractMainContent(from html: String) -> String? {
         for tag in ["article", "main"] {
             guard let regex = try? NSRegularExpression(
@@ -98,12 +107,14 @@ enum ArticleContentFetcher {
             ) else { continue }
             let ns = html as NSString
             let candidates = regex.matches(in: html, range: NSRange(location: 0, length: ns.length))
-                .compactMap { match -> String? in
+                .compactMap { match -> (html: String, textLength: Int)? in
                     guard match.numberOfRanges > 1 else { return nil }
-                    return ns.substring(with: match.range(at: 1))
+                    let inner = ns.substring(with: match.range(at: 1))
+                    return (inner, stripHTML(inner).count)
                 }
-            if let longest = candidates.max(by: { $0.count < $1.count }), longest.count > 200 {
-                return longest
+            if let best = candidates.max(by: { $0.textLength < $1.textLength }),
+               best.textLength >= minMainContentTextLength {
+                return best.html
             }
         }
         return nil
