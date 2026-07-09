@@ -110,18 +110,26 @@ final class ServerURLManager: ObservableObject {
         // 原因が分かりにくいエラーになるため、ここで scheme/host の有無を検証する。
         guard let content = gist.files.values.first?.content
                                 .trimmingCharacters(in: .whitespacesAndNewlines),
-              let resolved = URL(string: content),
-              resolved.scheme != nil, resolved.host != nil else {
+              let resolved = URL(string: content), isUsableURL(resolved) else {
             throw URLError(.cannotParseResponse)
         }
         return resolved
     }
 
+    /// scheme/host の両方を備えた、実際にリクエストを送れる URL かどうか。
+    private static func isUsableURL(_ url: URL) -> Bool {
+        url.scheme != nil && url.host != nil
+    }
+
     // MARK: - Resolved URL cache
 
     private func loadCachedResolvedURL() -> URL? {
-        guard let cached = AppGroup.defaults.string(forKey: resolvedURLKey) else { return nil }
-        return URL(string: cached)
+        // Why: この検証が入る前に保存された壊れたキャッシュ値(scheme/host を欠く)が
+        // UserDefaults に残っていることがあるため、読み込み時にも同じ検証を通す。
+        // 検証せずに resolvedURL へ採用すると、起動のたびに壊れた値を使い続けてしまう。
+        guard let cached = AppGroup.defaults.string(forKey: resolvedURLKey),
+              let url = URL(string: cached), Self.isUsableURL(url) else { return nil }
+        return url
     }
 
     private func cacheResolvedURL(_ url: URL) {
