@@ -138,7 +138,7 @@ struct StockDetailView: View {
                 ShareSheet(items: [url])
             }
         }
-        .confirmationDialog("既存の要約を上書きして再生成しますか？", isPresented: $showRegenerateSummaryConfirm, titleVisibility: .visible) {
+        .alert("既存の要約を上書きして再生成しますか？", isPresented: $showRegenerateSummaryConfirm) {
             Button("再生成", role: .destructive) {
                 stockStore.requestSummary(for: currentStock.id, force: true)
             }
