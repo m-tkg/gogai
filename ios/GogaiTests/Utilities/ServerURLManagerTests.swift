@@ -83,6 +83,23 @@ final class ServerURLManagerTests: XCTestCase {
         XCTAssertNil(manager.resolvedURL)
     }
 
+    // Why: URL(string:) は "trycloudflare.com" のような scheme/host を欠いた文字列でも
+    // nil を返さず解析してしまう(相対パスとして扱われる)。そのまま resolvedURL に入れると
+    // URLSession が実際にリクエストを送る段階で初めて URLError.badURL として失敗し、
+    // どこが壊れているか分かりにくいエラーになる。resolve() の時点で検知して弾く。
+    func test_resolve_gistContentがscheme無しの不正なURLならresolvedURLをnilのままにする() async {
+        MockURLProtocol.requestHandler = { _ in
+            let body = "{\"files\":{\"url.txt\":{\"content\":\"trycloudflare.com\"}}}"
+            return (200, Data(body.utf8))
+        }
+        let manager = ServerURLManager(session: .mock())
+        manager.setServerURL(gistURL)
+
+        await manager.resolve()
+
+        XCTAssertNil(manager.resolvedURL, "scheme/host を欠いた URL を resolvedURL に入れてはいけない")
+    }
+
     func test_resolve_nonGistURL_setsResolvedURLDirectly() async {
         let direct = URL(string: "http://localhost:3040")!
         let manager = ServerURLManager(session: .mock())
