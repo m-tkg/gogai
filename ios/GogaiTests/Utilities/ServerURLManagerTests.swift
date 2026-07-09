@@ -122,6 +122,19 @@ final class ServerURLManagerTests: XCTestCase {
         XCTAssertEqual(manager.resolvedURL?.absoluteString, tunnel)
     }
 
+    // Why: resolveURL() 自体は scheme/host を検証するようになったが、その検証追加より前に
+    // 保存された壊れたキャッシュ値(scheme/host を欠く文字列)が既に UserDefaults に残っている
+    // 場合、init() での復元時に無検証のまま resolvedURL に採用してしまうと修正の効果が出ない。
+    // 起動のたびに壊れたキャッシュを読み込み続けてしまう不具合を防ぐ。
+    func test_init_scheme無しの壊れたキャッシュ済みresolvedURLは復元しない() {
+        AppGroup.defaults.set(gistURL.absoluteString, forKey: "serverURL")
+        AppGroup.defaults.set("trycloudflare.com", forKey: "resolvedServerURL")
+
+        let manager = ServerURLManager(session: .mock())
+
+        XCTAssertNil(manager.resolvedURL, "scheme/host を欠いたキャッシュ値を復元してはいけない")
+    }
+
     func test_resolve_success_cachesResolvedURL() async {
         let tunnel = "https://newtunnel.trycloudflare.com"
         MockURLProtocol.requestHandler = { _ in
