@@ -104,9 +104,14 @@ final class ServerURLManager: ObservableObject {
         struct GistFile: Decodable { let content: String }
         struct GistResponse: Decodable { let files: [String: GistFile] }
         let gist = try JSONDecoder().decode(GistResponse.self, from: data)
+        // Why: URL(string:) は "trycloudflare.com" のような scheme/host を欠いた文字列でも
+        // nil を返さず解析してしまう(相対パスとして扱われる)。そのまま受け入れると
+        // APIClient が実際にリクエストを送る段階で初めて URLError.badURL として失敗し、
+        // 原因が分かりにくいエラーになるため、ここで scheme/host の有無を検証する。
         guard let content = gist.files.values.first?.content
                                 .trimmingCharacters(in: .whitespacesAndNewlines),
-              let resolved = URL(string: content) else {
+              let resolved = URL(string: content),
+              resolved.scheme != nil, resolved.host != nil else {
             throw URLError(.cannotParseResponse)
         }
         return resolved
