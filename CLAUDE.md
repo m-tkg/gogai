@@ -10,7 +10,7 @@ gogai/
 ├── frontend/   React 19 + Vite + Tailwind CSS v4（ポート 5173）
 ├── ios/        iOS / iPadOS / macOS(Mac Catalyst) アプリ（SwiftUI + Swift 6.0）+ 共有シート拡張
 ├── daemon/     systemd サービスファイル（Raspberry Pi 用）
-├── .github/workflows/  GitHub Actions（macOS 版のビルド・署名・公証・リリース）
+├── .github/workflows/  GitHub Actions（CI: テスト・型チェック）
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -31,7 +31,7 @@ make ios-build      # iOS シミュレータービルド
 make ios-test       # iOS ユニットテストを実行
 make ios-deploy     # iOS 実機インストール＆起動
 make mac-distribute # macOS(Mac Catalyst) 版をローカルでアーカイブ〜公証まで実行
-make release-tag    # v{MARKETING_VERSION} タグを作成して push（リリースワークフローのトリガー）
+make release-tag    # v{MARKETING_VERSION} タグを作成して push（バージョン履歴の記録用）
 ```
 
 ## バックエンド
@@ -324,26 +324,15 @@ make ios-deploy DEVICE_ID=<device-uuid>
 
 Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI の `make ios-deploy` を使う（どちらもデバッガなしで起動）。
 
-### macOS（Mac Catalyst）版のビルド・リリース（`.github/workflows/mac-release.yml`）
+### macOS（Mac Catalyst）版のビルド・リリース
 
+- **CI でのビルド・リリース配布は廃止済み**（2026-07、Mac では iPad 版アプリを使う方針のため
+  `.github/workflows/mac-release.yml` を削除し、GitHub Releases の配布バイナリも全削除した。`v*` タグは履歴として残存）
+- そのため `Update/` のアプリ内自動更新（GitHub Releases 参照）は更新を見つけられない状態になっている
+- ローカルでビルドしたい場合は `make mac-*` 系ターゲット（`mac-archive`/`mac-export`/`mac-dmg`/`mac-notarize`/
+  `mac-distribute`）が使える（自動プロビジョニング `-allowProvisioningUpdates` を使用）
 - **バージョンタグのフォーマット**: `v{MARKETING_VERSION}`（例 `v1.1.0`）。`MARKETING_VERSION` は
-  `xx.xx.xx` 形式のセマンティックバージョニング
-- **リリース手順**: (1) `ios/Gogai.xcodeproj/project.pbxproj` の `MARKETING_VERSION`・`CURRENT_PROJECT_VERSION`
-  （ビルド番号）を上げる PR を作成しマージする (2) `main` を最新化してから `make release-tag` を実行する
-  （ブランチ・作業ツリー・`origin/main` との同期状態を確認した上で `v{MARKETING_VERSION}` タグを作成し push する）。
-  タグ push が CI のトリガーになる（詳細は下記トリガー参照）
-- トリガー: `v*` タグの push、または手動実行（`workflow_dispatch` はタグを指定して実行すること。ブランチからの
-  手動実行は弾かれる）。push されたタグと `MARKETING_VERSION` から算出したタグ（`v{version}`）が一致しない場合は失敗する。
-  対応する GitHub Release が既に存在すればスキップする（ビルドをやり直さない）
-- 署名: Xcode の自動プロビジョニング管理を経由せず、`CODE_SIGNING_ALLOWED=NO` で署名なしビルドしてから
-  Developer ID 証明書で直接 `codesign` する（App Group entitlement は非サンドボックスのためプロビジョニングプロファイル不要）
-- 公証: `.app` を zip 化して 1 回だけ notarize し、`.app` 自体に staple する。dmg 自体は notarize していないため
-  **dmg への staple はできない**（`stapler staple` は "Record not found" になる）。Gatekeeper は起動時に
-  実行ファイル（`.app`）側の staple 済みチケットを見るため、dmg が未 staple でも配布・実行に支障はない
-- 配布物: `.dmg`（手動配布用、`Scripts/make-dmg.sh` で `/Applications` シンボリックリンクを同梱）と
-  `.zip`（アプリ内自動更新 `UpdateChecker` 用。stapled 済みの `.app` をそのまま zip 化）の両方をリリースに添付する
-- ローカルの `make mac-*` 系ターゲット（`mac-archive`/`mac-export`/`mac-dmg`/`mac-notarize`/`mac-distribute`）は
-  自動プロビジョニング（`-allowProvisioningUpdates`）を使う点が CI と異なる
+  `xx.xx.xx` 形式のセマンティックバージョニング。`make release-tag` でタグ作成・push できる（CI トリガーは無し）
 
 ## テスト指針
 
