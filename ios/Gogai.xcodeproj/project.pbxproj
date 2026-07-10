@@ -129,9 +129,6 @@
 		FF00000000000000000070AB /* StockRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000070AB /* StockRowView.swift */; };
 		FF00000000000000000084AB /* StockDestinations.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007EAB /* StockDestinations.swift */; };
 		FF00000000000000000083AB /* StockActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000007DAB /* StockActions.swift */; };
-		FF00000000000000000071AB /* ReleaseInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000071AB /* ReleaseInfo.swift */; };
-		FF00000000000000000072AB /* MacUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000072AB /* MacUpdater.swift */; };
-		FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000073AB /* ReleaseInfoTests.swift */; };
 		FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */; };
 		FF00000000000000000075AB /* ShareExtensionPreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000075AB /* ShareExtensionPreprocessor.js */; };
 		FF00000000000000000076AB /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000076AB /* KeychainStore.swift */; };
@@ -287,9 +284,6 @@
 		DD00000000000000000070AB /* StockRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockRowView.swift; sourceTree = "<group>"; };
 		DD0000000000000000007EAB /* StockDestinations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDestinations.swift; sourceTree = "<group>"; };
 		DD0000000000000000007DAB /* StockActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockActions.swift; sourceTree = "<group>"; };
-		DD00000000000000000071AB /* ReleaseInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfo.swift; sourceTree = "<group>"; };
-		DD00000000000000000072AB /* MacUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacUpdater.swift; sourceTree = "<group>"; };
-		EE00000000000000000073AB /* ReleaseInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseInfoTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGeneratorTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000075AB /* ShareExtensionPreprocessor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = ShareExtensionPreprocessor.js; sourceTree = "<group>"; };
 		DD00000000000000000059AB /* StockCategoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockCategoryListView.swift; sourceTree = "<group>"; };
@@ -335,7 +329,6 @@
 				CC00000000000000000007AB /* Views */,
 				CC00000000000000000016AB /* AI */,
 				CC00000000000000000009AB /* Utilities */,
-				CC00000000000000000019AB /* Update */,
 				DD00000000000000000024AB /* Assets.xcassets */,
 				DD00000000000000000025AB /* Info.plist */,
 				DD0000000000000000006BAB /* Gogai.entitlements */,
@@ -462,15 +455,6 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
-		CC00000000000000000019AB /* Update */ = {
-			isa = PBXGroup;
-			children = (
-				DD00000000000000000071AB /* ReleaseInfo.swift */,
-				DD00000000000000000072AB /* MacUpdater.swift */,
-			);
-			path = Update;
-			sourceTree = "<group>";
-		};
 		CC0000000000000000000AAB /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
@@ -540,7 +524,6 @@
 				CC00000000000000000013AB /* Models */,
 				CC00000000000000000014AB /* Utilities */,
 				CC00000000000000000015AB /* AI */,
-				CC0000000000000000001AAB /* Update */,
 			);
 			path = GogaiTests;
 			sourceTree = "<group>";
@@ -625,14 +608,6 @@
 				EE0000000000000000007CAB /* SHA256HexDigestTests.swift */,
 			);
 			path = Utilities;
-			sourceTree = "<group>";
-		};
-		CC0000000000000000001AAB /* Update */ = {
-			isa = PBXGroup;
-			children = (
-				EE00000000000000000073AB /* ReleaseInfoTests.swift */,
-			);
-			path = Update;
 			sourceTree = "<group>";
 		};
 		CC00000000000000000018AB /* GogaiShareExtension */ = {
@@ -847,8 +822,6 @@
 				FF00000000000000000070AB /* StockRowView.swift in Sources */,
 				FF00000000000000000084AB /* StockDestinations.swift in Sources */,
 				FF00000000000000000083AB /* StockActions.swift in Sources */,
-				FF00000000000000000071AB /* ReleaseInfo.swift in Sources */,
-				FF00000000000000000072AB /* MacUpdater.swift in Sources */,
 				FF00000000000000000076AB /* KeychainStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -886,7 +859,6 @@
 				FF00000000000000000060AB /* StockSummarizerTests.swift in Sources */,
 				FF00000000000000000061AB /* StockSummaryTests.swift in Sources */,
 				FF00000000000000000064AB /* FMPageTranslatorTests.swift in Sources */,
-				FF00000000000000000073AB /* ReleaseInfoTests.swift in Sources */,
 				FF00000000000000000074AB /* FoundationModelTextGeneratorTests.swift in Sources */,
 				FF0000000000000000007CAB /* LocalAIErrorTests.swift in Sources */,
 				FF00000000000000000077AB /* KeychainStoreTests.swift in Sources */,
