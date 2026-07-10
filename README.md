@@ -19,7 +19,6 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
   - 起動時・バックグラウンド復帰時・5 分ごとに記事を自動更新
   - 右スワイプで既読/未読、左スワイプでストックに追加
   - iOS/iPadOS の共有シートから任意ページをストックに追加可能
-  - macOS 版は設定画面から GitHub Releases 経由で自動更新
 - **Cloudflare Tunnel**（Raspberry Pi 用）
   - 起動時に Quick Tunnel URL を自動取得し GitHub Gist に書き込む
   - iOS アプリは Gist URL をサーバー URL として登録可能
@@ -33,7 +32,7 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
 | iOS/iPadOS/macOS | SwiftUI + Swift 6.0 + URLSession（iOS 17.0+ / Mac Catalyst） |
 | DB | SQLite（WAL モード） |
 | Test | Vitest（backend + frontend） / XCTest（iOS/iPadOS/macOS） |
-| Infra | Docker Compose + nginx / systemd（Raspberry Pi）/ GitHub Actions（macOS 版リリース） |
+| Infra | Docker Compose + nginx / systemd（Raspberry Pi）/ GitHub Actions（CI） |
 
 ## ディレクトリ構成
 
@@ -88,7 +87,7 @@ gogai/
 │   ├── cloudflare-tunnel.sh          # Tunnel 起動 + Gist 書き込みスクリプト
 │   └── setup.sh
 ├── .github/workflows/
-│   └── mac-release.yml               # macOS(Mac Catalyst) 版のビルド・署名・公証・GitHub Release作成
+│   └── ci.yml                        # CI（backend / frontend のテスト）
 ├── docker-compose.yml
 ├── Makefile
 └── README.md
@@ -304,8 +303,3 @@ stock_translations  (stock_id→stocks, segments, translated_at)
 | `make ios-build` | アイコン同期 + シミュレータービルド |
 | `make ios-test` | iOS ユニットテストを実行（iPhone 17 Pro シミュレーター） |
 | `make ios-deploy` | アイコン同期 + Release ビルド + 実機インストール + 起動 |
-| `make mac-archive` | macOS(Mac Catalyst) 版をアーカイブ |
-| `make mac-export` | アーカイブから `.app` をエクスポート |
-| `make mac-dmg` | 配布用 dmg を作成（Applications ショートカット同梱） |
-| `make mac-notarize` | dmg を公証・staple |
-| `make mac-distribute` | アーカイブ〜公証までの一連の処理を実行 |

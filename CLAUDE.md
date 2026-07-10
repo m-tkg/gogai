@@ -10,7 +10,7 @@ gogai/
 ├── frontend/   React 19 + Vite + Tailwind CSS v4（ポート 5173）
 ├── ios/        iOS / iPadOS / macOS(Mac Catalyst) アプリ（SwiftUI + Swift 6.0）+ 共有シート拡張
 ├── daemon/     systemd サービスファイル（Raspberry Pi 用）
-├── .github/workflows/  GitHub Actions（CI: テスト・型チェック）
+├── .github/workflows/  GitHub Actions（CI: backend / frontend のテスト）
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -30,8 +30,6 @@ make daemon-restart # Raspberry Pi でサービスを再起動
 make ios-build      # iOS シミュレータービルド
 make ios-test       # iOS ユニットテストを実行
 make ios-deploy     # iOS 実機インストール＆起動
-make mac-distribute # macOS(Mac Catalyst) 版をローカルでアーカイブ〜公証まで実行
-make release-tag    # v{MARKETING_VERSION} タグを作成して push（バージョン履歴の記録用）
 ```
 
 ## バックエンド
@@ -161,7 +159,6 @@ ios/
 │   │                         FMPageTranslator/FMTranslatedPageView（基盤モデルによるレイアウト保持翻訳）
 │   │                         StockSummarizer/StockSummary（ストック要約の map-reduce パイプライン）
 │   │                         ArticleContentFetcher（記事 URL から本文抽出）
-│   ├── Update/                Mac 版アプリ内自動更新（ReleaseInfo / MacUpdater、詳細は後述）
 │   └── Utilities/            ServerURLManager / DefaultsKeys / HorizontalSwipe / DateFormatter+ / AppGroup
 ├── GogaiShareExtension/       iOS/iPadOS 共有シート拡張（ShareViewController / ShareStockView）
 │                              共有された URL をストックに追加する（App Group 経由で本体アプリと通信）
@@ -266,18 +263,6 @@ make ios-deploy DEVICE_ID=<device-uuid>
     型ではなくエラー文言のキーワードで判定している（Xcode/SDK バージョンによって型が存在しないことがあるため）
 - Translation framework はシミュレーター不可（実機で確認）。Foundation Models は iOS 27 シミュレーターで動作確認可能
 
-### Mac 版アプリ内自動更新（`Update/`、Mac Catalyst のみ）
-
-- `#if targetEnvironment(macCatalyst)` でガード（Mac Catalyst は `os(macOS)` では判定できない）
-- 設定画面（SettingsView）から手動チェックのみ。起動時のサイレントチェックは無い
-- `ReleaseInfo`/`VersionComparator`: GitHub Releases API のレスポンス型とバージョン比較（純粋ロジック、XCTest 対象）
-- `UpdateChecker`/`SelfUpdater`/`UpdateService`: GitHub Release の `.zip` アセットをダウンロードし、
-  自身のバンドルと入れ替えて再起動する（副作用が大きくテスト対象外）
-  - Mac Catalyst は `Foundation.Process`（`executableURL`/`run()`/`terminationHandler`）が使用不可のため、
-    `posix_spawn`（Darwin libc）で子プロセスを起動する
-  - リリースのバージョンは `MARKETING_VERSION` の `xx.xx.xx` 形式（セマンティックバージョニング）をそのまま使う。
-    タグは `v{MARKETING_VERSION}`（例 `v1.0.0`）
-
 ### GogaiApp の自動更新
 
 - **起動時**: `resolvedURL` 確定後に `configureStores()` → `fetchArticles()`
@@ -311,7 +296,6 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | 記事ページ（BrowserView） | 右スワイプ または 右下の閉じるボタンで閉じる |
 | ストック一覧ページ（StockListView） | 行を長押し: 詳細ページのフッターと同じ操作（元記事/翻訳/要約を生成/編集/削除）をコンテキストメニューで実行 |
 | AdminView | サーバー（Raspberry Pi）のアップデート確認 + 「git pull して再起動」ボタン（再起動中はポーリングして自動再接続）|
-| SettingsView（macOS のみ） | アプリ自体のアップデート確認 + ダウンロードしてインストール（GitHub Releases 経由、詳細は「Mac 版アプリ内自動更新」参照）|
 
 ### ナビゲーション構造
 
@@ -324,15 +308,11 @@ make ios-deploy DEVICE_ID=<device-uuid>
 
 Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI の `make ios-deploy` を使う（どちらもデバッガなしで起動）。
 
-### macOS（Mac Catalyst）版のビルド・リリース
+### macOS（Mac Catalyst）版について
 
-- **CI でのビルド・リリース配布は廃止済み**（2026-07、Mac では iPad 版アプリを使う方針のため
-  `.github/workflows/mac-release.yml` を削除し、GitHub Releases の配布バイナリも全削除した。`v*` タグは履歴として残存）
-- そのため `Update/` のアプリ内自動更新（GitHub Releases 参照）は更新を見つけられない状態になっている
-- ローカルでビルドしたい場合は `make mac-*` 系ターゲット（`mac-archive`/`mac-export`/`mac-dmg`/`mac-notarize`/
-  `mac-distribute`）が使える（自動プロビジョニング `-allowProvisioningUpdates` を使用）
-- **バージョンタグのフォーマット**: `v{MARKETING_VERSION}`（例 `v1.1.0`）。`MARKETING_VERSION` は
-  `xx.xx.xx` 形式のセマンティックバージョニング。`make release-tag` でタグ作成・push できる（CI トリガーは無し）
+- **配布は廃止済み**（2026-07）。Mac では iPad 版アプリを使う方針のため、CI リリースワークフロー・
+  GitHub Releases の配布バイナリ・アプリ内自動更新（`Update/`）・`make mac-*` / `release-tag` ターゲットを削除した
+- 過去の `v*` タグ（v1.0.0〜v1.1.18）は履歴として残存。`MARKETING_VERSION` は `xx.xx.xx` 形式のまま管理を継続する
 
 ## テスト指針
 

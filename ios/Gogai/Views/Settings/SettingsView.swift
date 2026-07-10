@@ -12,9 +12,6 @@ struct SettingsView: View {
     @State private var isCacheCleared = false
     @State private var cacheSize: Int64 = 0
     @State private var translationEngine = TranslationEngine.current
-    #if targetEnvironment(macCatalyst)
-    @State private var updater = UpdateChecker.shared
-    #endif
 
     var body: some View {
         NavigationStack {
@@ -126,10 +123,6 @@ struct SettingsView: View {
                 } header: {
                     Text("アプリ情報")
                 }
-
-                #if targetEnvironment(macCatalyst)
-                updateSection
-                #endif
             }
             .navigationTitle("設定")
             .navigationBarTitleDisplayMode(.inline)
@@ -165,39 +158,6 @@ struct SettingsView: View {
         let build = info?["CFBundleVersion"] as? String ?? "—"
         return "\(version) (\(build))"
     }
-
-    #if targetEnvironment(macCatalyst)
-    @ViewBuilder
-    private var updateSection: some View {
-        Section {
-            LabeledContent("現在のバージョン", value: updater.currentVersion)
-
-            switch updater.state {
-            case .idle, .failed:
-                Button("アップデートを確認") { Task { await updater.check() } }
-            case .checking:
-                HStack { ProgressView().controlSize(.small); Text("確認中…") }
-            case .upToDate:
-                Label("最新です", systemImage: "checkmark.circle")
-                    .foregroundStyle(.green)
-                Button("再確認") { Task { await updater.check() } }
-            case .available(let release):
-                Label("新しいバージョン \(release.tagName) があります", systemImage: "arrow.down.circle")
-                Button("ダウンロードしてインストール") { Task { await updater.update(to: release) } }
-            case .downloading:
-                HStack { ProgressView().controlSize(.small); Text("ダウンロードして更新中…") }
-            }
-
-            if case .failed(let message) = updater.state {
-                Text(message).font(.caption).foregroundStyle(.red)
-            }
-        } header: {
-            Text("アップデート")
-        } footer: {
-            Text("GitHub のリリースから最新版を確認し、その場で更新します。更新後は自動で再起動します。")
-        }
-    }
-    #endif
 
     private func saveSettings() async {
         guard let days = Int(retentionDaysText) else {
