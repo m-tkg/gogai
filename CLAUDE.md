@@ -312,7 +312,8 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 
 - **配布は廃止済み**（2026-07）。Mac では iPad 版アプリを使う方針のため、CI リリースワークフロー・
   GitHub Releases の配布バイナリ・アプリ内自動更新（`Update/`）・`make mac-*` / `release-tag` ターゲットを削除した
-- 過去の `v*` タグ（v1.0.0〜v1.1.18）は履歴として残存。`MARKETING_VERSION` は `xx.xx.xx` 形式のまま管理を継続する
+- バージョンは `v*` タグのみで管理し、**GitHub Release は作成しない**（過去のタグ v1.0.0〜 も履歴として残存）。
+  `MARKETING_VERSION` は `xx.xx.xx` 形式のまま管理を継続する
 
 ## テスト指針
 
