@@ -59,7 +59,7 @@ enum LocalAI {
         switch provider {
         case .openAI, .gemini, .claude:
             guard let apiKey = provider.apiKey else { return nil }
-            return RemoteAITextGenerator(provider: provider, apiKey: apiKey)
+            return RemoteAITextGenerator(provider: provider, apiKey: apiKey, session: .remoteAI)
         case .onDevice:
             guard #available(iOS 27.0, *), isOnDeviceAvailable else { return nil }
             return FoundationModelTextGenerator()
@@ -84,6 +84,27 @@ enum LocalAI {
 }
 
 /// OpenAI / Gemini / Claude のテキスト生成 API を TextGenerating に揃える実装。
+extension URLSession {
+    static let remoteAI: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 180
+        config.timeoutIntervalForResource = 300
+        config.waitsForConnectivity = true
+        return URLSession(configuration: config)
+    }()
+}
+
+struct RemoteAITransportError: Error, LocalizedError {
+    let underlying: URLError
+
+    var errorDescription: String? {
+        if underlying.code == .timedOut {
+            return "AI API のリクエストがタイムアウトしました。時間を置いて再試行してください。"
+        }
+        return underlying.localizedDescription
+    }
+}
+
 struct RemoteAIHTTPError: Error, LocalizedError {
     let statusCode: Int
     let responseBody: String
@@ -109,15 +130,19 @@ struct RemoteAITextGenerator: TextGenerating {
     }
 
     func generate(instructions: String, prompt: String) async throws -> String {
-        switch provider {
-        case .openAI:
-            return try await generateOpenAI(instructions: instructions, prompt: prompt)
-        case .gemini:
-            return try await generateGemini(instructions: instructions, prompt: prompt)
-        case .claude:
-            return try await generateClaude(instructions: instructions, prompt: prompt)
-        case .automatic, .onDevice:
-            throw LocalAIError.aiUnavailable
+        do {
+            switch provider {
+            case .openAI:
+                return try await generateOpenAI(instructions: instructions, prompt: prompt)
+            case .gemini:
+                return try await generateGemini(instructions: instructions, prompt: prompt)
+            case .claude:
+                return try await generateClaude(instructions: instructions, prompt: prompt)
+            case .automatic, .onDevice:
+                throw LocalAIError.aiUnavailable
+            }
+        } catch let error as URLError {
+            throw RemoteAITransportError(underlying: error)
         }
     }
 

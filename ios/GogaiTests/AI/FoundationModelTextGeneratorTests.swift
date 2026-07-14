@@ -138,6 +138,20 @@ final class FoundationModelTextGeneratorTests: XCTestCase {
         }
     }
 
+    func test_remoteAITextGenerator_タイムアウトは分かるエラー文にする() async {
+        MockURLProtocol.requestHandler = { _ in
+            throw URLError(.timedOut)
+        }
+        let generator = RemoteAITextGenerator(provider: .gemini, apiKey: "gemini-key", session: .mock())
+
+        do {
+            _ = try await generator.generate(instructions: "inst", prompt: "prompt")
+            XCTFail("タイムアウトを throw するはず")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("タイムアウト"))
+        }
+    }
+
     func test_remoteAITextGenerator_ClaudeMessagesAPIを呼びtextContentを返す() async throws {
         MockURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://api.anthropic.com/v1/messages")
