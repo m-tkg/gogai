@@ -26,6 +26,10 @@ struct StockActions {
         stockStore.summaryErrors[currentStock.id]
     }
 
+    var summaryProgressLogs: [String] {
+        stockStore.summaryProgressLogs[currentStock.id] ?? []
+    }
+
     /// 翻訳を実行できる(または結果を再確認できる)条件:
     /// この端末で AI が使えるか、既に翻訳済みで結果が保存されているか
     var canShowTranslation: Bool {

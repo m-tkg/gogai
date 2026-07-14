@@ -30,6 +30,8 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
     @Published private(set) var summaryErrors: [Int: String] = [:] {
         didSet { persistSummaryErrorsSnapshot() }
     }
+    /// ストックIDごとの要約生成ログ。生成中画面で直近の処理内容を表示する。
+    @Published private(set) var summaryProgressLogs: [Int: [String]] = [:]
     /// ユーザーが一時停止ボタンで止めたかどうか(翻訳優先による一時停止とは別軸)
     @Published private(set) var isSummaryQueuePausedByUser = false
 
@@ -148,10 +150,16 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
         guard let generator = makeSummaryGenerator() else { throw LocalAIError.aiUnavailable }
         guard let url = URL(string: stock.url) else { throw LocalAIError.invalidURL }
 
-        let summarizer = StockSummarizer(generator: generator)
+        resetSummaryProgressLog(for: stockId, firstMessage: "要約処理を開始")
+        let providerLabel = LocalAI.activeProviderLabel
+        let summarizer = StockSummarizer(generator: generator, providerLabel: providerLabel) { [weak self] message in
+            self?.appendSummaryProgressLog(for: stockId, message: message)
+        }
         try await BackgroundExecution.run(name: "Stock.summarize") {
             let summary = try await summarizer.summarize(url: url, title: stock.title, session: session)
+            appendSummaryProgressLog(for: stockId, message: "生成した要約をサーバーへ保存中")
             try await saveSummary(id: stockId, summary: summary)
+            appendSummaryProgressLog(for: stockId, message: "要約の保存が完了")
         }
     }
 
@@ -162,6 +170,7 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
     @MainActor
     func requestSummary(for stockId: Int, force: Bool = false, session: URLSession = .shared) {
         guard force || stocks.first(where: { $0.id == stockId })?.summary == nil else { return }
+        resetSummaryProgressLog(for: stockId, firstMessage: "要約キューに追加")
         summaryQueue.enqueue(stockId: stockId, session: session)
     }
 
@@ -258,6 +267,18 @@ final class StockStore: ObservableObject, SummaryQueueDelegate {
         currentlySummarizingStockId = summaryQueue.currentlySummarizing
         summaryErrors = summaryQueue.errors
         isSummaryQueuePausedByUser = summaryQueue.isPausedByUser
+    }
+
+    @MainActor
+    private func resetSummaryProgressLog(for stockId: Int, firstMessage: String) {
+        summaryProgressLogs[stockId] = [firstMessage]
+    }
+
+    @MainActor
+    private func appendSummaryProgressLog(for stockId: Int, message: String) {
+        var logs = summaryProgressLogs[stockId] ?? []
+        logs.append(message)
+        summaryProgressLogs[stockId] = Array(logs.suffix(50))
     }
 
     @MainActor

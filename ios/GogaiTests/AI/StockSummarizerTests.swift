@@ -24,6 +24,22 @@ final class StockSummarizerTests: XCTestCase {
         XCTAssertTrue(result.contains("## 何についての記事か"))
     }
 
+    @MainActor
+    func test_summarize_進捗ログに整形とAIリクエストと解析結果を出す() async throws {
+        let generator = MockTextGenerator()
+        generator.responses = ["## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"]
+        var logs: [String] = []
+        let summarizer = StockSummarizer(generator: generator, providerLabel: "Gemini") { message in
+            logs.append(message)
+        }
+
+        _ = try await summarizer.summarize(title: "タイトル", text: "<p>本文</p>")
+
+        XCTAssertTrue(logs.contains("本文を要約用に整形中"))
+        XCTAssertTrue(logs.contains { $0.contains("Geminiへ要約リクエスト送信中") })
+        XCTAssertTrue(logs.contains("要約レスポンスの解析に成功"))
+    }
+
     func test_summarize_タイトルも本文も空ならemptyContentを投げる() async {
         let summarizer = StockSummarizer(generator: MockTextGenerator())
         do {

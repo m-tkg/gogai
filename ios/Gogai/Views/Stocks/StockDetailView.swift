@@ -90,6 +90,7 @@ struct StockDetailView: View {
     private var isGeneratingSummary: Bool { actions.isGeneratingSummary }
     private var isQueued: Bool { actions.isQueued }
     private var summaryError: String? { actions.summaryError }
+    private var summaryProgressLogs: [String] { actions.summaryProgressLogs }
     private var canShowTranslation: Bool { actions.canShowTranslation }
 
     var body: some View {
@@ -198,9 +199,22 @@ struct StockDetailView: View {
         if let summary = currentStock.summary {
             StockSummarySections(summary: summary)
         } else if isGeneratingSummary {
-            HStack(spacing: 8) {
-                ProgressView()
-                Text(isQueued ? "要約の順番待ちです…" : "要約を生成しています…")
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text(isQueued ? "要約の順番待ちです…" : "要約を生成しています…")
+                }
+                if !summaryProgressLogs.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(summaryProgressLogs.suffix(12).enumerated()), id: \.offset) { _, log in
+                            Label(log, systemImage: "chevron.right")
+                                .labelStyle(.titleAndIcon)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 2)
+                }
             }
             .foregroundStyle(.secondary)
         } else if let summaryError {

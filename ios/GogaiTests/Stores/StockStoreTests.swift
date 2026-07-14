@@ -175,6 +175,27 @@ final class StockStoreTests: StoreTestCase {
     }
 
     @MainActor
+    func test_generateSummary_進捗ログを保存する() async throws {
+        store.stocks = [makeStock(id: 1)]
+        let generator = MockTextGenerator()
+        generator.result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
+        store.makeSummaryGenerator = { generator }
+        MockURLProtocol.requestHandler = { request in
+            if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
+            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+        }
+
+        try await store.generateSummary(for: 1, session: .mock())
+
+        let logs = store.summaryProgressLogs[1] ?? []
+        XCTAssertTrue(logs.contains("要約処理を開始"))
+        XCTAssertTrue(logs.contains { $0.contains("記事本文を取得中") })
+        XCTAssertTrue(logs.contains { $0.contains("要約リクエスト送信中") })
+        XCTAssertTrue(logs.contains("生成した要約をサーバーへ保存中"))
+        XCTAssertTrue(logs.contains("要約の保存が完了"))
+    }
+
+    @MainActor
     func test_generateSummary_AI利用不可ならthrowする() async {
         store.stocks = [makeStock(id: 1)]
         store.makeSummaryGenerator = { nil }

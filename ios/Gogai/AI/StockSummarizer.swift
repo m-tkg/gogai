@@ -5,6 +5,8 @@ import Foundation
 /// オンデバイスモデルのトークン制限を超える本文は、チャンク分割した中間要約を
 /// 経由する map-reduce で最終要約を生成する。
 struct StockSummarizer: Sendable {
+    typealias ProgressHandler = @MainActor @Sendable (String) -> Void
+
     /// 最終段プロンプトに渡す本文の上限文字数。
     /// LocalArticleAI.maxPromptLength と同じ制約(オンデバイスモデルの入出力合計 4096 トークン)から
     /// 来る値のため、値を重複定義せず参照する。
@@ -31,26 +33,37 @@ struct StockSummarizer: Sendable {
     static let sectionPlaceholder = "（生成できませんでした）"
 
     private let generator: any TextGenerating
+    private let providerLabel: String
+    private let progress: ProgressHandler?
 
-    init(generator: any TextGenerating) {
+    init(generator: any TextGenerating, providerLabel: String = "AI", progress: ProgressHandler? = nil) {
         self.generator = generator
+        self.providerLabel = providerLabel
+        self.progress = progress
     }
 
     /// 記事 URL から本文を取得してサマリーを生成する
     func summarize(url: URL, title: String?, session: URLSession = .shared) async throws -> String {
+        await log("記事本文を取得中: \(url.host ?? url.absoluteString)")
         let text = try await ArticleContentFetcher.fetchPlainText(from: url, session: session)
+        await log("記事本文の取得完了: \(text.count)文字")
         return try await summarize(title: title, text: text)
     }
 
     /// 取得済みの本文からサマリーを生成する(テスト用に URL 取得と分離)
     func summarize(title: String?, text: String) async throws -> String {
+        await log("本文を要約用に整形中")
         let cleanTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanText = ArticleContentFetcher.stripHTML(text)
         guard !cleanTitle.isEmpty || !cleanText.isEmpty else { throw LocalAIError.emptyContent }
+        await log("整形後の本文: \(cleanText.count)文字")
 
         let sourceText: String
         if generator is RemoteAITextGenerator {
             sourceText = String(cleanText.prefix(Self.remoteMaxPromptLength))
+            if cleanText.count > sourceText.count {
+                await log("外部AI向けに本文を\(sourceText.count)文字へ短縮")
+            }
         } else {
             sourceText = cleanText.count <= Self.maxPromptLength
                 ? cleanText
@@ -60,14 +73,18 @@ struct StockSummarizer: Sendable {
         let prompt = [cleanTitle, sourceText].filter { !$0.isEmpty }.joined(separator: "\n\n")
 
         // 通常経路: 1回の生成で4セクションをまとめて作らせる。parse できればそのまま採用。
+        await log("\(providerLabel)へ要約リクエスト送信中")
         let combined = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
+        await log("\(providerLabel)から要約レスポンスを受信")
         if StockSummary.parse(combined) != nil {
+            await log("要約レスポンスの解析に成功")
             return combined
         }
 
         // 外部 AI では rate limit を避けるため、セクションごとの追加生成は行わない。
         // 1回目の出力を「要約」本文として採用し、固定見出しはこちら側で補う。
         if generator is RemoteAITextGenerator {
+            await log("レスポンス形式が不完全なため、追加リクエストなしで見出しを補完")
             return Self.assembleSections(
                 topic: Self.sectionPlaceholder,
                 purpose: Self.sectionPlaceholder,
@@ -79,15 +96,21 @@ struct StockSummarizer: Sendable {
         // フォールバック: オンデバイスモデルが1回では一部セクションしか埋めないことがあるため、
         // セクションごとに個別生成し、見出しはこちら側で固定して組み立てる。
         // これにより各項目が確実に埋まり、parse も必ず成功する(=見出しは常に色付き表示)。
+        await log("要約レスポンスの解析に失敗したため、セクション別に再生成")
         return try await summarizeBySection(prompt: prompt)
     }
 
     /// 4セクションを1項目ずつ個別生成し、固定見出しで組み立てる。
     private func summarizeBySection(prompt: String) async throws -> String {
+        await log("「何についての記事か」を生成中")
         let topic = try await generateSectionLines(instructions: Self.topicInstruction, prompt: prompt)
+        await log("「何の目的で書かれたか」を生成中")
         let purpose = try await generateSectionLines(instructions: Self.purposeInstruction, prompt: prompt)
+        await log("「筆者が一番伝えたいこと」を生成中")
         let mainMessage = try await generateSectionLines(instructions: Self.mainMessageInstruction, prompt: prompt)
+        await log("「要約」を生成中")
         let summary = try await generateSectionLines(instructions: Self.summaryInstruction, prompt: prompt)
+        await log("セクション別の生成が完了")
         return Self.assembleSections(
             topic: topic.joined(separator: "\n"),
             purpose: purpose.joined(separator: "\n"),
@@ -99,10 +122,12 @@ struct StockSummarizer: Sendable {
     /// 1セクション分を生成し、見出し行を除去した本文行の配列を返す。
     /// 空で返ったときは maxGenerationRetries まで再生成する。
     private func generateSectionLines(instructions: String, prompt: String) async throws -> [String] {
+        await log("\(providerLabel)へセクション生成リクエスト送信中")
         var lines = Self.sectionLines(try await generator.generate(instructions: instructions, prompt: prompt))
         var attempt = 0
         while lines.isEmpty, attempt < Self.maxGenerationRetries {
             attempt += 1
+            await log("空のレスポンスだったため再試行: \(attempt)/\(Self.maxGenerationRetries)")
             lines = Self.sectionLines(try await generator.generate(instructions: instructions, prompt: prompt))
         }
         return lines
@@ -141,12 +166,19 @@ struct StockSummarizer: Sendable {
     /// 本文をチャンク分割し、各チャンクを日本語箇条書きに中間要約してから連結する
     private func condense(text: String) async throws -> String {
         let chunks = Self.chunk(text, size: Self.chunkSize, maxChunks: Self.maxChunks)
+        await log("長文のため中間要約を開始: \(chunks.count)チャンク")
         var intermediates: [String] = []
-        for chunk in chunks {
+        for (index, chunk) in chunks.enumerated() {
+            await log("中間要約 \(index + 1)/\(chunks.count) を\(providerLabel)へリクエスト中")
             let result = try await generator.generate(instructions: Self.intermediateInstructions, prompt: chunk)
             intermediates.append(result)
         }
+        await log("中間要約が完了")
         return String(intermediates.joined(separator: "\n").prefix(Self.maxPromptLength))
+    }
+
+    private func log(_ message: String) async {
+        await progress?(message)
     }
 
     /// テキストを size 文字ごとに分割する(maxChunks を超える分は切り捨て)
