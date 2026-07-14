@@ -105,16 +105,15 @@ final class FoundationModelTextGeneratorTests: XCTestCase {
         XCTAssertEqual(result, "ok")
     }
 
-    func test_remoteAITextGenerator_GeminiGenerateContentAPIを呼びcandidateTextを返す() async throws {
+    func test_remoteAITextGenerator_GeminiInteractionsAPIを呼びoutputTextを返す() async throws {
         MockURLProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent")
+            XCTAssertEqual(request.url?.absoluteString, "https://generativelanguage.googleapis.com/v1beta/interactions")
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-goog-api-key"), "gemini-key")
             let json = try XCTUnwrap(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
-            let system = try XCTUnwrap(json["systemInstruction"] as? [String: Any])
-            XCTAssertTrue(String(describing: system).contains("inst"))
-            let contents = try XCTUnwrap(json["contents"] as? [[String: Any]])
-            XCTAssertTrue(String(describing: contents).contains("prompt"))
-            return (200, Data(#"{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}"#.utf8))
+            XCTAssertEqual(json["model"] as? String, "gemini-3.5-flash")
+            XCTAssertEqual(json["system_instruction"] as? String, "inst")
+            XCTAssertEqual(json["input"] as? String, "prompt")
+            return (200, Data(#"{"output_text":"ok"}"#.utf8))
         }
 
         let generator = RemoteAITextGenerator(provider: .gemini, apiKey: "gemini-key", session: .mock())
@@ -122,6 +121,21 @@ final class FoundationModelTextGeneratorTests: XCTestCase {
         let result = try await generator.generate(instructions: "inst", prompt: "prompt")
 
         XCTAssertEqual(result, "ok")
+    }
+
+    func test_remoteAITextGenerator_HTTPエラーはステータスと本文を含める() async {
+        MockURLProtocol.requestHandler = { _ in
+            (400, Data(#"{"error":{"message":"API key not valid"}}"#.utf8))
+        }
+        let generator = RemoteAITextGenerator(provider: .gemini, apiKey: "bad-key", session: .mock())
+
+        do {
+            _ = try await generator.generate(instructions: "inst", prompt: "prompt")
+            XCTFail("HTTP エラーを throw するはず")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("HTTP 400"))
+            XCTAssertTrue(error.localizedDescription.contains("API key not valid"))
+        }
     }
 
     func test_remoteAITextGenerator_ClaudeMessagesAPIを呼びtextContentを返す() async throws {

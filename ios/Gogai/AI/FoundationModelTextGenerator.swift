@@ -84,6 +84,19 @@ enum LocalAI {
 }
 
 /// OpenAI / Gemini / Claude のテキスト生成 API を TextGenerating に揃える実装。
+struct RemoteAIHTTPError: Error, LocalizedError {
+    let statusCode: Int
+    let responseBody: String
+
+    var errorDescription: String? {
+        let body = responseBody.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty else {
+            return "AI API が HTTP \(statusCode) を返しました。"
+        }
+        return "AI API が HTTP \(statusCode) を返しました: \(String(body.prefix(500)))"
+    }
+}
+
 struct RemoteAITextGenerator: TextGenerating {
     private let provider: AIProvider
     private let apiKey: String
@@ -142,25 +155,23 @@ struct RemoteAITextGenerator: TextGenerating {
 
     private func generateGemini(instructions: String, prompt: String) async throws -> String {
         struct Body: Encodable {
-            struct Content: Encodable {
-                struct Part: Encodable {
-                    let text: String
-                }
-                let role: String?
-                let parts: [Part]
-            }
-            let systemInstruction: Content
-            let contents: [Content]
+            let model: String
+            let system_instruction: String
+            let input: String
         }
         let data = try await postJSON(
-            url: URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent")!,
+            url: URL(string: "https://generativelanguage.googleapis.com/v1beta/interactions")!,
             headers: ["x-goog-api-key": apiKey],
-            body: Body(
-                systemInstruction: .init(role: nil, parts: [.init(text: instructions)]),
-                contents: [.init(role: "user", parts: [.init(text: prompt)])]
-            )
+            body: Body(model: "gemini-3.5-flash", system_instruction: instructions, input: prompt)
         )
         struct Response: Decodable {
+            struct Step: Decodable {
+                struct Content: Decodable {
+                    let type: String?
+                    let text: String?
+                }
+                let content: [Content]?
+            }
             struct Candidate: Decodable {
                 struct Content: Decodable {
                     struct Part: Decodable {
@@ -171,10 +182,16 @@ struct RemoteAITextGenerator: TextGenerating {
                 let content: Content?
             }
             let output_text: String?
+            let steps: [Step]?
             let candidates: [Candidate]?
         }
         let response = try JSONDecoder().decode(Response.self, from: data)
         if let text = response.output_text, !text.isEmpty { return text }
+        let stepText = response.steps?
+            .flatMap { $0.content ?? [] }
+            .compactMap(\.text)
+            .joined(separator: "\n") ?? ""
+        if !stepText.isEmpty { return stepText }
         let text = response.candidates?
             .compactMap(\.content)
             .flatMap { $0.parts ?? [] }
@@ -231,8 +248,14 @@ struct RemoteAITextGenerator: TextGenerating {
         }
         request.httpBody = try JSONEncoder().encode(body)
         let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+        guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw RemoteAIHTTPError(
+                statusCode: http.statusCode,
+                responseBody: String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
+            )
         }
         return data
     }
