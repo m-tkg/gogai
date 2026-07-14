@@ -15,6 +15,15 @@ enum LocalAI {
         return false
     }
 
+    /// ローカル AI が使えない理由。使える場合は nil。
+    static var unavailableReason: String? {
+        guard #available(iOS 27.0, *) else {
+            return "要約には iOS/iPadOS 27 以上とオンデバイス基盤モデルが必要です。"
+        }
+        guard !isAvailable else { return nil }
+        return "オンデバイス基盤モデルが利用できません: \(SystemLanguageModel.default.availability)"
+    }
+
     /// 利用可能なら既定のオンデバイス実装で LocalArticleAI を作る
     static func makeArticleAI() -> LocalArticleAI? {
         guard let generator = makeGenerator() else { return nil }

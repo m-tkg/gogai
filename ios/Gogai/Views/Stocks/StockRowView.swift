@@ -18,6 +18,7 @@ struct StockRowView: View {
     @State private var showTranslation = false
     @State private var showEdit = false
     @State private var showSummaryErrorAlert = false
+    @State private var showLocalAIUnavailableAlert = false
 
     private var actions: StockActions {
         StockActions(stockStore: stockStore, fallbackStock: stock, deleteError: .constant(nil))
@@ -83,11 +84,15 @@ struct StockRowView: View {
             }
             if currentStock.summary == nil {
                 Button {
+                    guard LocalAI.isAvailable else {
+                        showLocalAIUnavailableAlert = true
+                        return
+                    }
                     stockStore.requestSummary(for: currentStock.id)
                 } label: {
                     Label("要約を生成", systemImage: "sparkles")
                 }
-                .disabled(isGeneratingSummary || !LocalAI.isAvailable)
+                .disabled(isGeneratingSummary)
             }
             Button {
                 showEdit = true
@@ -123,6 +128,11 @@ struct StockRowView: View {
             Button("OK") { stockStore.clearSummaryError(for: currentStock.id) }
         } message: {
             Text(summaryError ?? "")
+        }
+        .alert("要約を生成できません", isPresented: $showLocalAIUnavailableAlert) {
+            Button("OK") { showLocalAIUnavailableAlert = false }
+        } message: {
+            Text(LocalAI.unavailableReason ?? "ローカル AI が利用できません。")
         }
     }
 }

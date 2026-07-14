@@ -17,7 +17,7 @@ if [ -z "$line" ]; then
 fi
 
 case "$line" in
-  *connected*)
+  *connected*|*available*)
     exit 0
     ;;
   *)

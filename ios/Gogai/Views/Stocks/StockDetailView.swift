@@ -79,6 +79,7 @@ struct StockDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var showShareSheet = false
     @State private var showRegenerateSummaryConfirm = false
+    @State private var showLocalAIUnavailableAlert = false
     @State private var deleteError: Error?
 
     private var actions: StockActions {
@@ -158,6 +159,11 @@ struct StockDetailView: View {
         } message: {
             Text(deleteError?.localizedDescription ?? "")
         }
+        .alert("要約を生成できません", isPresented: $showLocalAIUnavailableAlert) {
+            Button("OK") { showLocalAIUnavailableAlert = false }
+        } message: {
+            Text(LocalAI.unavailableReason ?? "ローカル AI が利用できません。")
+        }
     }
 
     /// 元記事(記事ページ)。
@@ -221,8 +227,12 @@ struct StockDetailView: View {
                 icon: "sparkles",
                 label: "要約",
                 isLoading: isGeneratingSummary,
-                isDisabled: isGeneratingSummary || !LocalAI.isAvailable
+                isDisabled: isGeneratingSummary
             ) {
+                guard LocalAI.isAvailable else {
+                    showLocalAIUnavailableAlert = true
+                    return
+                }
                 if currentStock.summary != nil {
                     showRegenerateSummaryConfirm = true
                 } else {

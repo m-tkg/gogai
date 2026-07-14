@@ -66,6 +66,7 @@ struct StockCategoryListView: View {
 
     @State private var isEditing = false
     @State private var showAddStock = false
+    @State private var showLocalAIUnavailableAlert = false
     @State private var isQueueExpanded = true
     @State private var reorderError: Error?
     /// 初回表示のみフェッチするためのガード。StockListView から戻る際は再フェッチしない
@@ -99,6 +100,10 @@ struct StockCategoryListView: View {
     }
 
     private func summarizeAllUnsummarized() {
+        guard LocalAI.isAvailable else {
+            showLocalAIUnavailableAlert = true
+            return
+        }
         for id in unsummarizedStockIds {
             stockStore.requestSummary(for: id)
         }
@@ -117,7 +122,6 @@ struct StockCategoryListView: View {
                 } label: {
                     Label("未要約のものを一括要約", systemImage: "sparkles")
                 }
-                .disabled(!LocalAI.isAvailable)
             }
             if !summaryQueueItems.isEmpty {
                 SummaryQueueSection(
@@ -199,6 +203,11 @@ struct StockCategoryListView: View {
             Button("OK") { reorderError = nil }
         } message: {
             Text(reorderError?.localizedDescription ?? "")
+        }
+        .alert("要約を生成できません", isPresented: $showLocalAIUnavailableAlert) {
+            Button("OK") { showLocalAIUnavailableAlert = false }
+        } message: {
+            Text(LocalAI.unavailableReason ?? "ローカル AI が利用できません。")
         }
     }
 }
