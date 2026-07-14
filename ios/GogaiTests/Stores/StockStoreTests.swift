@@ -2,6 +2,9 @@ import XCTest
 @testable import Gogai
 
 final class StockStoreTests: StoreTestCase {
+    private static let aiSizedText = String(repeating: "本文", count: 51)
+    private static let aiSizedHTML = Data("<html><body><p>\(aiSizedText)</p></body></html>".utf8)
+
     var store: StockStore!
 
     override func setUp() {
@@ -165,7 +168,7 @@ final class StockStoreTests: StoreTestCase {
         store.makeSummaryGenerator = { generator }
         MockURLProtocol.requestHandler = { request in
             if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
-            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+            return (200, Self.aiSizedHTML)
         }
 
         try await store.generateSummary(for: 1, session: .mock())
@@ -182,7 +185,7 @@ final class StockStoreTests: StoreTestCase {
         store.makeSummaryGenerator = { generator }
         MockURLProtocol.requestHandler = { request in
             if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
-            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+            return (200, Self.aiSizedHTML)
         }
 
         try await store.generateSummary(for: 1, session: .mock())
@@ -217,7 +220,7 @@ final class StockStoreTests: StoreTestCase {
         let generator = MockTextGenerator()
         generator.error = URLError(.badServerResponse)
         store.makeSummaryGenerator = { generator }
-        MockURLProtocol.requestHandler = { _ in (200, Data("<html><body><p>本文</p></body></html>".utf8)) }
+        MockURLProtocol.requestHandler = { _ in (200, Self.aiSizedHTML) }
 
         do {
             try await store.generateSummary(for: 1, session: .mock())
@@ -275,7 +278,7 @@ final class StockStoreTests: StoreTestCase {
 
     private func summaryRequestHandler(_ request: URLRequest) throws -> (Int, Data) {
         if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
-        return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+        return (200, Self.aiSizedHTML)
     }
 
     @MainActor
@@ -378,7 +381,7 @@ final class StockStoreTests: StoreTestCase {
             // 1件目だけ要約の保存(PUT .../1/summary)を失敗させる。
             if request.url!.path.hasSuffix("/1/summary") { return (500, Data()) }
             if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
-            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+            return (200, Self.aiSizedHTML)
         }
 
         store.requestSummary(for: 1, session: .mock())
@@ -691,7 +694,7 @@ final class StockStoreTests: StoreTestCase {
         store.makeSummaryGenerator = { generator }
         MockURLProtocol.requestHandler = { request in
             if request.url!.path.hasSuffix("/summary") { return (500, Data()) }
-            return (200, Data("<html><body><p>本文</p></body></html>".utf8))
+            return (200, Self.aiSizedHTML)
         }
 
         store.requestSummary(for: 1, session: .mock())

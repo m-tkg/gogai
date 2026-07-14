@@ -8,18 +8,37 @@ final class StockSummarizerTests: XCTestCase {
         super.tearDown()
     }
 
+    private var aiInputText: String {
+        String(repeating: "本文", count: 51)
+    }
+
     // MARK: - summarize(title:text:) 短文(1段)
 
-    func test_summarize_短い本文は1回のプロンプトで最終形式を生成する() async throws {
+    func test_summarize_100文字以下の本文はAIを呼ばずそのまま要約欄に表示する() async throws {
         let generator = MockTextGenerator()
-        generator.responses = ["## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"]
         let summarizer = StockSummarizer(generator: generator)
 
         let result = try await summarizer.summarize(title: "タイトル", text: "短い本文です。")
 
-        XCTAssertEqual(generator.receivedPrompts.count, 1, "短文は中間要約を挟まず1回で生成する")
+        XCTAssertEqual(generator.callCount, 0)
+        let summary = try XCTUnwrap(StockSummary.parse(result))
+        XCTAssertEqual(summary.summaryLines, [
+            "内容が少ないため、要約せず本文をそのまま表示します。",
+            "短い本文です。",
+        ])
+    }
+
+    func test_summarize_101文字以上の本文は1回のプロンプトで最終形式を生成する() async throws {
+        let generator = MockTextGenerator()
+        generator.responses = ["## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"]
+        let summarizer = StockSummarizer(generator: generator)
+        let text = String(repeating: "あ", count: StockSummarizer.noSummaryNeededTextLimit + 1)
+
+        let result = try await summarizer.summarize(title: "タイトル", text: text)
+
+        XCTAssertEqual(generator.receivedPrompts.count, 1, "101文字以上は中間要約を挟まず1回で生成する")
         XCTAssertTrue(generator.receivedPrompts[0].contains("タイトル"))
-        XCTAssertTrue(generator.receivedPrompts[0].contains("短い本文です。"))
+        XCTAssertTrue(generator.receivedPrompts[0].contains(text))
         XCTAssertTrue(generator.receivedInstructions[0].contains("日本語"))
         XCTAssertTrue(result.contains("## 何についての記事か"))
     }
@@ -33,7 +52,7 @@ final class StockSummarizerTests: XCTestCase {
             logs.append(message)
         }
 
-        _ = try await summarizer.summarize(title: "タイトル", text: "<p>本文</p>")
+        _ = try await summarizer.summarize(title: "タイトル", text: String(repeating: "あ", count: StockSummarizer.noSummaryNeededTextLimit + 1))
 
         XCTAssertTrue(logs.contains("本文を要約用に整形中"))
         XCTAssertTrue(logs.contains { $0.contains("Geminiへ要約リクエスト送信中") })
@@ -95,7 +114,7 @@ final class StockSummarizerTests: XCTestCase {
         }
         let summarizer = StockSummarizer(generator: generator)
 
-        let result = try await summarizer.summarize(title: "T", text: "本文")
+        let result = try await summarizer.summarize(title: "T", text: aiInputText)
 
         XCTAssertEqual(requestCount, 1)
         XCTAssertNotNil(StockSummary.parse(result))
@@ -137,7 +156,7 @@ final class StockSummarizerTests: XCTestCase {
         ]
         let summarizer = StockSummarizer(generator: generator)
 
-        _ = try await summarizer.summarize(title: "タイトル", text: "本文")
+        _ = try await summarizer.summarize(title: "タイトル", text: aiInputText)
 
         XCTAssertEqual(generator.callCount, 1, "1回で parse できるならフォールバックしない")
     }
@@ -151,7 +170,7 @@ final class StockSummarizerTests: XCTestCase {
         ]
         let summarizer = StockSummarizer(generator: generator)
 
-        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+        let result = try await summarizer.summarize(title: "タイトル", text: aiInputText)
 
         XCTAssertEqual(generator.callCount, 5, "combined 1回 + 4セクション個別生成")
         let parsed = StockSummary.parse(result)
@@ -170,7 +189,7 @@ final class StockSummarizerTests: XCTestCase {
         ]
         let summarizer = StockSummarizer(generator: generator)
 
-        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+        let result = try await summarizer.summarize(title: "タイトル", text: aiInputText)
 
         XCTAssertEqual(StockSummary.parse(result)?.topic, "トピック本文")
     }
@@ -182,7 +201,7 @@ final class StockSummarizerTests: XCTestCase {
         generator.result = "" // 常に空
         let summarizer = StockSummarizer(generator: generator)
 
-        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+        let result = try await summarizer.summarize(title: "タイトル", text: aiInputText)
 
         XCTAssertNotNil(StockSummary.parse(result), "空でも4見出しが揃い parse できること(=見出しは常に青)")
     }
@@ -195,7 +214,7 @@ final class StockSummarizerTests: XCTestCase {
         ]
         let summarizer = StockSummarizer(generator: generator)
 
-        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+        let result = try await summarizer.summarize(title: "タイトル", text: aiInputText)
 
         XCTAssertEqual(StockSummary.parse(result)?.topic, "実際のトピック", "本文に紛れた見出し行は除去する")
     }
@@ -209,7 +228,7 @@ final class StockSummarizerTests: XCTestCase {
         ]
         let summarizer = StockSummarizer(generator: generator)
 
-        let result = try await summarizer.summarize(title: "タイトル", text: "本文")
+        let result = try await summarizer.summarize(title: "タイトル", text: aiInputText)
 
         XCTAssertLessThanOrEqual(StockSummary.parse(result)?.summaryLines.count ?? 0, 20)
     }
@@ -217,8 +236,9 @@ final class StockSummarizerTests: XCTestCase {
     // MARK: - summarize(url:title:) URL からのフェッチ
 
     func test_summarizeFromURL_ページ本文を取得してから要約する() async throws {
+        let fetchedText = "Fetched body text " + String(repeating: "本文", count: 51)
         MockURLProtocol.requestHandler = { _ in
-            (200, Data("<html><body><p>Fetched body text</p></body></html>".utf8))
+            (200, Data("<html><body><p>\(fetchedText)</p></body></html>".utf8))
         }
         let generator = MockTextGenerator()
         generator.responses = ["## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"]
@@ -226,6 +246,6 @@ final class StockSummarizerTests: XCTestCase {
 
         _ = try await summarizer.summarize(url: URL(string: "https://example.com/a")!, title: "T", session: .mock())
 
-        XCTAssertTrue(generator.receivedPrompts[0].contains("Fetched body text"))
+        XCTAssertTrue(generator.receivedPrompts[0].contains(fetchedText))
     }
 }

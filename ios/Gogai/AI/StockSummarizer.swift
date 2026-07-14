@@ -22,6 +22,8 @@ struct StockSummarizer: Sendable {
     static let maxChunks = 8
     /// 「要約」セクションの最大行数
     static let summaryLineLimit = 20
+    /// 本文がこれ以下ならAI要約せず、そのまま要約欄に表示する。
+    static let noSummaryNeededTextLimit = 100
     /// セクション個別生成で空が返ったときにリトライする最大回数。
     /// オンデバイスモデルは同じプロンプトでも中身が空になることがあるため、
     /// 非空になるまで(この回数まで)再試行する。
@@ -57,6 +59,19 @@ struct StockSummarizer: Sendable {
         let cleanText = ArticleContentFetcher.stripHTML(text)
         guard !cleanTitle.isEmpty || !cleanText.isEmpty else { throw LocalAIError.emptyContent }
         await log("整形後の本文: \(cleanText.count)文字")
+        if cleanText.count <= Self.noSummaryNeededTextLimit {
+            await log("本文が\(Self.noSummaryNeededTextLimit)文字以下のため、AI要約をスキップ")
+            let body = cleanText.isEmpty ? cleanTitle : cleanText
+            return Self.assembleSections(
+                topic: Self.sectionPlaceholder,
+                purpose: Self.sectionPlaceholder,
+                mainMessage: Self.sectionPlaceholder,
+                summaryLines: [
+                    "内容が少ないため、要約せず本文をそのまま表示します。",
+                    body,
+                ]
+            )
+        }
 
         let sourceText: String
         if generator is RemoteAITextGenerator {
