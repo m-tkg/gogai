@@ -105,15 +105,16 @@ final class FoundationModelTextGeneratorTests: XCTestCase {
         XCTAssertEqual(result, "ok")
     }
 
-    func test_remoteAITextGenerator_GeminiInteractionsAPIを呼びoutputTextを返す() async throws {
+    func test_remoteAITextGenerator_GeminiGenerateContentAPIを呼びcandidateTextを返す() async throws {
         MockURLProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://generativelanguage.googleapis.com/v1beta/interactions")
+            XCTAssertEqual(request.url?.absoluteString, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent")
             XCTAssertEqual(request.value(forHTTPHeaderField: "x-goog-api-key"), "gemini-key")
             let json = try XCTUnwrap(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
-            XCTAssertEqual(json["model"] as? String, "gemini-3.5-flash")
-            XCTAssertTrue((json["input"] as? String)?.contains("inst") == true)
-            XCTAssertTrue((json["input"] as? String)?.contains("prompt") == true)
-            return (200, Data(#"{"output_text":"ok"}"#.utf8))
+            let system = try XCTUnwrap(json["systemInstruction"] as? [String: Any])
+            XCTAssertTrue(String(describing: system).contains("inst"))
+            let contents = try XCTUnwrap(json["contents"] as? [[String: Any]])
+            XCTAssertTrue(String(describing: contents).contains("prompt"))
+            return (200, Data(#"{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}"#.utf8))
         }
 
         let generator = RemoteAITextGenerator(provider: .gemini, apiKey: "gemini-key", session: .mock())

@@ -142,19 +142,45 @@ struct RemoteAITextGenerator: TextGenerating {
 
     private func generateGemini(instructions: String, prompt: String) async throws -> String {
         struct Body: Encodable {
-            let model: String
-            let input: String
+            struct Content: Encodable {
+                struct Part: Encodable {
+                    let text: String
+                }
+                let role: String?
+                let parts: [Part]
+            }
+            let systemInstruction: Content
+            let contents: [Content]
         }
         let data = try await postJSON(
-            url: URL(string: "https://generativelanguage.googleapis.com/v1beta/interactions")!,
+            url: URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent")!,
             headers: ["x-goog-api-key": apiKey],
-            body: Body(model: "gemini-3.5-flash", input: "\(instructions)\n\n\(prompt)")
+            body: Body(
+                systemInstruction: .init(role: nil, parts: [.init(text: instructions)]),
+                contents: [.init(role: "user", parts: [.init(text: prompt)])]
+            )
         )
         struct Response: Decodable {
+            struct Candidate: Decodable {
+                struct Content: Decodable {
+                    struct Part: Decodable {
+                        let text: String?
+                    }
+                    let parts: [Part]?
+                }
+                let content: Content?
+            }
             let output_text: String?
+            let candidates: [Candidate]?
         }
         let response = try JSONDecoder().decode(Response.self, from: data)
-        guard let text = response.output_text, !text.isEmpty else { throw LocalAIError.parseFailed }
+        if let text = response.output_text, !text.isEmpty { return text }
+        let text = response.candidates?
+            .compactMap(\.content)
+            .flatMap { $0.parts ?? [] }
+            .compactMap(\.text)
+            .joined(separator: "\n") ?? ""
+        guard !text.isEmpty else { throw LocalAIError.parseFailed }
         return text
     }
 
