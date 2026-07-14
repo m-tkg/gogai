@@ -32,14 +32,24 @@ final class TranslationCache {
 
     /// 原文に対するキャッシュ済みの訳文を返す（失効していれば nil）
     func target(for source: String, engine: TranslationEngine, now: Date = Date()) -> String? {
-        guard let entry = entries[Self.key(source: source, engine: engine)] else { return nil }
+        target(for: source, namespace: engine.rawValue, now: now)
+    }
+
+    /// 原文に対するキャッシュ済みの訳文を返す（失効していれば nil）
+    func target(for source: String, namespace: String, now: Date = Date()) -> String? {
+        guard let entry = entries[Self.key(source: source, namespace: namespace)] else { return nil }
         guard now.timeIntervalSince(entry.cachedAt) < Self.timeToLive else { return nil }
         return entry.target
     }
 
     /// 訳文をキャッシュに登録する（persist を呼ぶまでメモリのみ）
     func store(source: String, target: String, engine: TranslationEngine, now: Date = Date()) {
-        entries[Self.key(source: source, engine: engine)] = Entry(target: target, cachedAt: now)
+        store(source: source, target: target, namespace: engine.rawValue, now: now)
+    }
+
+    /// 訳文をキャッシュに登録する（persist を呼ぶまでメモリのみ）
+    func store(source: String, target: String, namespace: String, now: Date = Date()) {
+        entries[Self.key(source: source, namespace: namespace)] = Entry(target: target, cachedAt: now)
     }
 
     /// 失効エントリを破棄してディスクへ保存する
@@ -51,6 +61,10 @@ final class TranslationCache {
     }
 
     private static func key(source: String, engine: TranslationEngine) -> String {
-        "\(engine.rawValue)\u{0}\(source)".sha256HexDigest
+        key(source: source, namespace: engine.rawValue)
+    }
+
+    private static func key(source: String, namespace: String) -> String {
+        "\(namespace)\u{0}\(source)".sha256HexDigest
     }
 }

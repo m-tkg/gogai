@@ -3,6 +3,9 @@ import Foundation
 /// 管理者シークレットなど、UserDefaults に平文で置きたくない値を保存する薄い Keychain ラッパー。
 enum KeychainStore {
     static let adminSecretKey = "adminSecret"
+    static let openAIAPIKey = "openAIAPIKey"
+    static let geminiAPIKey = "geminiAPIKey"
+    static let claudeAPIKey = "claudeAPIKey"
 
     private static let service = "com.mtkg.gogai"
 

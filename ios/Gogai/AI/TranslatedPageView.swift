@@ -4,7 +4,7 @@ import Translation
 
 /// 翻訳ボタンの遷移先（設定とリンク有無で決まる）
 enum TranslationDestination: Equatable {
-    /// 訳文テキストを sheet 表示（基盤モデル、またはリンクなしのフォールバック）
+    /// 訳文テキストを sheet 表示（設定画面で選んだ AI、またはリンクなしのフォールバック）
     case textSheet
     /// レイアウト保持のページ内翻訳（システム翻訳 + リンクあり）
     case translatedPage(URL)

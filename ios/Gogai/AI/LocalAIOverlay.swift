@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// ローカル AI ボタン群（要約・翻訳）+ 任意の閉じるボタンのフローティング表示。
+/// AI ボタン群（要約・翻訳）+ 任意の閉じるボタンのフローティング表示。
 /// AI ボタンは LocalAI.isAvailable のときのみ、閉じるボタンは onClose 指定時のみ表示する。
 struct LocalAIButtons: View {
     let onSelect: (LocalAIResultSheet.Mode) -> Void
@@ -25,7 +25,7 @@ struct LocalAIButtons: View {
     }
 }
 
-/// 記事ページ（ブラウザ）の右下にローカル AI ボタン（+ 閉じるボタン）を重ね、結果を表示する modifier。
+/// 記事ページ（ブラウザ）の右下に AI ボタン（+ 閉じるボタン）を重ね、結果を表示する modifier。
 /// 翻訳はシステム翻訳選択時、レイアウト保持のページ内翻訳（TranslatedPageView）を開く。
 private struct LocalAIOverlayModifier: ViewModifier {
     let article: Article
@@ -62,7 +62,7 @@ private struct LocalAIOverlayModifier: ViewModifier {
 }
 
 extension View {
-    /// 画面右下にローカル AI（日本語要約・翻訳）ボタンを重ねる。
+    /// 画面右下に AI（日本語要約・翻訳）ボタンを重ねる。
     /// onClose を渡すと翻訳ボタンの下に閉じるボタンも表示する。
     func localAIOverlay(for article: Article, bottomPadding: CGFloat = 16, onClose: (() -> Void)? = nil) -> some View {
         modifier(LocalAIOverlayModifier(article: article, bottomPadding: bottomPadding, onClose: onClose))

@@ -9,7 +9,7 @@ protocol TextGenerating: Sendable {
 
 /// 日本語翻訳に使うエンジンの選択（設定画面で切り替え、UserDefaults で永続化）
 enum TranslationEngine: String, CaseIterable, Identifiable {
-    /// オンデバイス基盤モデル（Foundation Models framework）に翻訳させる
+    /// 設定画面で選んだ AI（外部 AI またはオンデバイス）に翻訳させる
     case foundationModel
     /// システムの翻訳専用モデル（Translation framework）を使う
     case translationFramework
@@ -18,7 +18,7 @@ enum TranslationEngine: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .foundationModel: return "ローカル AI（基盤モデル）"
+        case .foundationModel: return "選択中の AI"
         case .translationFramework: return "システム翻訳"
         }
     }
@@ -30,6 +30,52 @@ enum TranslationEngine: String, CaseIterable, Identifiable {
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: DefaultsKeys.translationEngine)
+        }
+    }
+}
+
+/// 要約・基盤モデル翻訳に使う AI プロバイダ。
+enum AIProvider: String, CaseIterable, Identifiable {
+    case automatic
+    case onDevice
+    case openAI
+    case gemini
+    case claude
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .automatic: return "自動"
+        case .onDevice: return "オンデバイス"
+        case .openAI: return "OpenAI"
+        case .gemini: return "Gemini"
+        case .claude: return "Claude"
+        }
+    }
+
+    var keychainKey: String? {
+        switch self {
+        case .automatic, .onDevice: return nil
+        case .openAI: return KeychainStore.openAIAPIKey
+        case .gemini: return KeychainStore.geminiAPIKey
+        case .claude: return KeychainStore.claudeAPIKey
+        }
+    }
+
+    var apiKey: String? {
+        guard let keychainKey else { return nil }
+        let value = KeychainStore.get(forKey: keychainKey)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return value.isEmpty ? nil : value
+    }
+
+    static var current: AIProvider {
+        get {
+            let saved = UserDefaults.standard.string(forKey: DefaultsKeys.aiProvider) ?? ""
+            return AIProvider(rawValue: saved) ?? .automatic
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: DefaultsKeys.aiProvider)
         }
     }
 }

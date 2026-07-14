@@ -12,6 +12,10 @@ struct SettingsView: View {
     @State private var isCacheCleared = false
     @State private var cacheSize: Int64 = 0
     @State private var translationEngine = TranslationEngine.current
+    @State private var aiProvider = AIProvider.current
+    @State private var openAIAPIKeyText = ""
+    @State private var geminiAPIKeyText = ""
+    @State private var claudeAPIKeyText = ""
 
     var body: some View {
         NavigationStack {
@@ -73,21 +77,30 @@ struct SettingsView: View {
                     Text("指定した日数より古い記事は自動的に削除されます。ローカルキャッシュを削除すると、次回起動時にサーバーから再取得します。")
                 }
 
-                if LocalAI.isAvailable {
-                    Section {
-                        Picker("翻訳エンジン", selection: $translationEngine) {
-                            ForEach(TranslationEngine.allCases) { engine in
-                                Text(engine.label).tag(engine)
-                            }
+                Section {
+                    Picker("使用するAI", selection: $aiProvider) {
+                        ForEach(AIProvider.allCases) { provider in
+                            Text(provider.label).tag(provider)
                         }
-                        .onChange(of: translationEngine) { _, newValue in
-                            TranslationEngine.current = newValue
-                        }
-                    } header: {
-                        Text("ローカル AI")
-                    } footer: {
-                        Text("「システム翻訳」はレイアウトを保ったまま記事ページ内の文字だけを翻訳します（翻訳専用モデル使用、初回は言語パックのダウンロードあり）。「ローカル AI」は訳文をテキストで表示します。要約は常にローカル AI を使用します。")
                     }
+                    SecureField("OpenAI APIキー", text: $openAIAPIKeyText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    SecureField("Gemini APIキー", text: $geminiAPIKeyText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    SecureField("Claude APIキー", text: $claudeAPIKeyText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Picker("ページ翻訳", selection: $translationEngine) {
+                        ForEach(TranslationEngine.allCases) { engine in
+                            Text(engine.label).tag(engine)
+                        }
+                    }
+                } header: {
+                    Text("AI")
+                } footer: {
+                    Text("自動は OpenAI、Gemini、Claude の順に API キーがある外部 AI を使い、未設定ならオンデバイスを使います。ページ翻訳で「システム翻訳」を選ぶと、記事ページ内の文字だけを翻訳します。要約はここで選んだ AI を使用します。")
                 }
 
                 if let saveError {
@@ -141,6 +154,11 @@ struct SettingsView: View {
                 await settingsStore.fetchSettings()
                 retentionDaysText = String(settingsStore.settings?.retention_days ?? 180)
                 adminSecretText = KeychainStore.get(forKey: KeychainStore.adminSecretKey) ?? ""
+                aiProvider = AIProvider.current
+                translationEngine = TranslationEngine.current
+                openAIAPIKeyText = KeychainStore.get(forKey: KeychainStore.openAIAPIKey) ?? ""
+                geminiAPIKeyText = KeychainStore.get(forKey: KeychainStore.geminiAPIKey) ?? ""
+                claudeAPIKeyText = KeychainStore.get(forKey: KeychainStore.claudeAPIKey) ?? ""
                 cacheSize = AppCache.shared.totalSize
             }
         }
@@ -167,13 +185,23 @@ struct SettingsView: View {
         isSaving = true
         saveError = nil
         defer { isSaving = false }
+        let trimmedSecret = adminSecretText.trimmingCharacters(in: .whitespaces)
+        KeychainStore.set(trimmedSecret.isEmpty ? nil : trimmedSecret, forKey: KeychainStore.adminSecretKey)
+        AIProvider.current = aiProvider
+        TranslationEngine.current = translationEngine
+        saveAPIKey(openAIAPIKeyText, forKey: KeychainStore.openAIAPIKey)
+        saveAPIKey(geminiAPIKeyText, forKey: KeychainStore.geminiAPIKey)
+        saveAPIKey(claudeAPIKeyText, forKey: KeychainStore.claudeAPIKey)
         do {
             try await settingsStore.updateRetentionDays(days)
-            let trimmedSecret = adminSecretText.trimmingCharacters(in: .whitespaces)
-            KeychainStore.set(trimmedSecret.isEmpty ? nil : trimmedSecret, forKey: KeychainStore.adminSecretKey)
             dismiss()
         } catch {
             saveError = error
         }
+    }
+
+    private func saveAPIKey(_ value: String, forKey key: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        KeychainStore.set(trimmed.isEmpty ? nil : trimmed, forKey: key)
     }
 }

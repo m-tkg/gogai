@@ -46,7 +46,7 @@ struct LocalAIResultSheet: View {
                     } else {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text("オンデバイス AI が生成しています…")
+                            Text("\(LocalAI.activeProviderLabel) が生成しています…")
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -94,12 +94,12 @@ struct LocalAIResultSheet: View {
                 result = try await ai.summarize(title: nil, content: text)
             case .translateToJapanese:
                 // 同じ本文の訳は1週間ローカルキャッシュから返す
-                if let cached = TranslationCache.shared.target(for: text, engine: .foundationModel) {
+                if let cached = TranslationCache.shared.target(for: text, namespace: LocalAI.cacheIdentifier) {
                     result = cached
                     return
                 }
                 let translated = try await ai.translateToJapanese(title: nil, content: text)
-                TranslationCache.shared.store(source: text, target: translated, engine: .foundationModel)
+                TranslationCache.shared.store(source: text, target: translated, namespace: LocalAI.cacheIdentifier)
                 TranslationCache.shared.persist()
                 result = translated
             }

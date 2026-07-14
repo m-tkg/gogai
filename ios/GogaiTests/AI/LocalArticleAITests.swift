@@ -2,6 +2,14 @@ import XCTest
 @testable import Gogai
 
 final class LocalArticleAITests: XCTestCase {
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.translationEngine)
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.aiProvider)
+        KeychainStore.set(nil, forKey: KeychainStore.openAIAPIKey)
+        KeychainStore.set(nil, forKey: KeychainStore.geminiAPIKey)
+        KeychainStore.set(nil, forKey: KeychainStore.claudeAPIKey)
+        super.tearDown()
+    }
 
     // MARK: - summarize
 
@@ -124,6 +132,29 @@ final class LocalArticleAITests: XCTestCase {
         UserDefaults.standard.set("bogus", forKey: DefaultsKeys.translationEngine)
         XCTAssertEqual(TranslationEngine.current, .foundationModel)
         UserDefaults.standard.removeObject(forKey: DefaultsKeys.translationEngine)
+    }
+
+    // MARK: - AIProvider（生成 AI 選択）
+
+    func test_aiProvider_デフォルトは自動() {
+        UserDefaults.standard.removeObject(forKey: DefaultsKeys.aiProvider)
+        XCTAssertEqual(AIProvider.current, .automatic)
+    }
+
+    func test_aiProvider_選択がUserDefaultsに永続化される() {
+        AIProvider.current = .claude
+
+        XCTAssertEqual(AIProvider.current, .claude)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: DefaultsKeys.aiProvider), AIProvider.claude.rawValue)
+    }
+
+    func test_localAI_OpenAIキーがあればオンデバイス不可でも利用可能() {
+        AIProvider.current = .openAI
+        KeychainStore.set("sk-test", forKey: KeychainStore.openAIAPIKey)
+
+        XCTAssertTrue(LocalAI.isAvailable)
+        XCTAssertNotNil(LocalAI.makeArticleAI())
+        XCTAssertEqual(LocalAI.activeProviderLabel, "OpenAI")
     }
 
     // MARK: - LocalAI.isAvailable（OS ゲート）
