@@ -9,6 +9,9 @@ struct StockSummarizer: Sendable {
     /// LocalArticleAI.maxPromptLength と同じ制約(オンデバイスモデルの入出力合計 4096 トークン)から
     /// 来る値のため、値を重複定義せず参照する。
     static let maxPromptLength = LocalArticleAI.maxPromptLength
+    /// 外部 AI はオンデバイスよりコンテキストが大きく、API rate limit の方が問題になりやすい。
+    /// map-reduce で複数リクエストに分割せず、1回の要約に寄せるための上限。
+    static let remoteMaxPromptLength = 20_000
     /// 中間要約 1 チャンクあたりの文字数。
     /// maxPromptLength より小さい値を意図的に使う: 中間要約プロンプトには
     /// 「チャンク本文 + 指示文」が乗るため、最終段より余裕を持たせる必要がある。
@@ -45,9 +48,14 @@ struct StockSummarizer: Sendable {
         let cleanText = ArticleContentFetcher.stripHTML(text)
         guard !cleanTitle.isEmpty || !cleanText.isEmpty else { throw LocalAIError.emptyContent }
 
-        let sourceText = cleanText.count <= Self.maxPromptLength
-            ? cleanText
-            : try await condense(text: cleanText)
+        let sourceText: String
+        if generator is RemoteAITextGenerator {
+            sourceText = String(cleanText.prefix(Self.remoteMaxPromptLength))
+        } else {
+            sourceText = cleanText.count <= Self.maxPromptLength
+                ? cleanText
+                : try await condense(text: cleanText)
+        }
 
         let prompt = [cleanTitle, sourceText].filter { !$0.isEmpty }.joined(separator: "\n\n")
 
@@ -55,6 +63,17 @@ struct StockSummarizer: Sendable {
         let combined = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
         if StockSummary.parse(combined) != nil {
             return combined
+        }
+
+        // 外部 AI では rate limit を避けるため、セクションごとの追加生成は行わない。
+        // 1回目の出力を「要約」本文として採用し、固定見出しはこちら側で補う。
+        if generator is RemoteAITextGenerator {
+            return Self.assembleSections(
+                topic: Self.sectionPlaceholder,
+                purpose: Self.sectionPlaceholder,
+                mainMessage: Self.sectionPlaceholder,
+                summaryLines: Array(Self.sectionLines(combined).prefix(Self.summaryLineLimit))
+            )
         }
 
         // フォールバック: オンデバイスモデルが1回では一部セクションしか埋めないことがあるため、

@@ -56,6 +56,36 @@ final class StockSummarizerTests: XCTestCase {
         XCTAssertTrue(generator.receivedPrompts[3].contains("中間要約1"))
     }
 
+    func test_summarize_外部AIでは長い本文でも1回のリクエストに抑える() async throws {
+        let generator = RemoteAITextGenerator(provider: .gemini, apiKey: "key", session: .mock())
+        let longText = String(repeating: "あ", count: StockSummarizer.chunkSize * 3)
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://generativelanguage.googleapis.com/v1beta/interactions")
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any])
+            XCTAssertLessThanOrEqual((json["input"] as? String)?.count ?? 0, StockSummarizer.remoteMaxPromptLength + 100)
+            return (200, Data(###"{"output_text":"## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"}"###.utf8))
+        }
+        let summarizer = StockSummarizer(generator: generator)
+
+        _ = try await summarizer.summarize(title: "T", text: longText)
+    }
+
+    func test_summarize_外部AIの形式崩れでは追加リクエストせず見出しを補う() async throws {
+        var requestCount = 0
+        let generator = RemoteAITextGenerator(provider: .gemini, apiKey: "key", session: .mock())
+        MockURLProtocol.requestHandler = { _ in
+            requestCount += 1
+            return (200, Data(#"{"output_text":"形式が崩れた要約"}"#.utf8))
+        }
+        let summarizer = StockSummarizer(generator: generator)
+
+        let result = try await summarizer.summarize(title: "T", text: "本文")
+
+        XCTAssertEqual(requestCount, 1)
+        XCTAssertNotNil(StockSummary.parse(result))
+        XCTAssertTrue(result.contains("形式が崩れた要約"))
+    }
+
     func test_summarize_チャンク数はmaxChunksで打ち切る() {
         let text = String(repeating: "a", count: StockSummarizer.chunkSize * (StockSummarizer.maxChunks + 5))
         let chunks = StockSummarizer.chunk(text, size: StockSummarizer.chunkSize, maxChunks: StockSummarizer.maxChunks)
