@@ -158,6 +158,12 @@ sudo systemctl start gogai-cloudflare
   - 例: `https://gist.github.com/<your-username>/<your-gist-id>`
   - 起動するたびに Gist から最新 URL を取得するため、Pi 再起動後も自動で繋がる
 
+### iOS / iPadOS / macOS アプリ
+
+自分の Apple アカウントでビルドする場合は、署名設定（Team ID / Bundle ID）を
+`ios/Config/Local.xcconfig` で上書きする必要がある。詳細は
+[`ios/README.md`](ios/README.md#自分のアカウントでビルドする) を参照。
+
 ### Docker
 
 ```bash

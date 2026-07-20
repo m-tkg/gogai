@@ -2,6 +2,10 @@
 
 gogai RSS リーダーの iOS クライアントアプリ。
 
+> **自分のアカウントでビルドする場合**は、先に `ios/Config/Local.xcconfig` を作って
+> Team ID と Bundle ID を自分の値に差し替える必要がある。
+> 手順は[こちら](#自分のアカウントでビルドする)。
+
 ## 要件
 
 - Xcode 26 beta 以上（`/Applications/Xcode-beta.app`）
@@ -11,6 +15,30 @@ gogai RSS リーダーの iOS クライアントアプリ。
 ---
 
 ## ビルド
+
+### 自分のアカウントでビルドする
+
+`ios/Config/Signing.xcconfig` は編集せず、`ios/Config/Local.xcconfig` を作って上書きする。
+
+    cp ios/Config/Local.xcconfig.sample ios/Config/Local.xcconfig
+    # DEVELOPMENT_TEAM と APP_BUNDLE_ID を自分の値に書き換える
+
+`ios/Config/Local.xcconfig` は `.gitignore` 済みなので、追跡ファイルの差分は出ない。
+Bundle ID（`APP_BUNDLE_ID`）は必ず変更すること（元の Bundle ID は他アカウントでは使えない）。
+`GogaiTests` / `GogaiShareExtension` の Bundle ID は `APP_BUNDLE_ID` から自動的に派生する
+（`.Tests` / `.ShareExtension` を付与）ため、個別に指定する必要はない。
+
+`make ios-deploy` は `BUNDLE_ID=` でも一時的に上書きできる（`DEVICE_ID` と同様のコマンド起動時オーバーライド）：
+
+```bash
+make ios-deploy BUNDLE_ID=com.example.gogai
+```
+
+共有シート拡張（`GogaiShareExtension`）は App Group（`group.com.mtkg.gogai`、
+`Gogai.entitlements` / `GogaiShareExtension.entitlements` / `AppGroup.swift` で参照）経由で
+本体アプリと通信する。App Group ID 自体は `Local.xcconfig` の対象外のため、
+自分のアカウントでこの機能を使う場合は上記 3 箇所を手動で書き換える必要がある
+（無料の Personal Team では App Groups capability が使えないため、この機能はプロビジョニングできない）。
 
 ### Makefile（推奨）
 

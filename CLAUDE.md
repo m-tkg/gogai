@@ -122,6 +122,7 @@ API クライアントの `BASE_URL` は空文字（相対パス）にするこ�
 ## iOS アプリ
 
 - **Xcode プロジェクト**: `ios/Gogai.xcodeproj`
+- **署名設定**: 既定値は `ios/Config/Signing.xcconfig`（コミット対象）。自分のアカウントで上書きする場合は `ios/Config/Local.xcconfig`（git 管理外）を作る
 - **最低 OS**: iOS 17.0 / Swift 6.0
 - **アーキテクチャ**: View → Store → Repository → APIClient → URLSession
 - **状態管理**: `ObservableObject` + `@EnvironmentObject`（Store パターン）
