@@ -295,17 +295,27 @@
 		EE00000000000000000077AB /* KeychainStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStoreTests.swift; sourceTree = "<group>"; };
 		EE0000000000000000007CAB /* SHA256HexDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA256HexDigestTests.swift; sourceTree = "<group>"; };
 		EE00000000000000000078AB /* SettingsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepositoryTests.swift; sourceTree = "<group>"; };
+		DD00000000000000000083AB /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		AA00000000000000000002AB = {
 			isa = PBXGroup;
 			children = (
+				CC00000000000000000019AB /* Config */,
 				CC00000000000000000001AB /* Gogai */,
 				CC0000000000000000000FAB /* GogaiTests */,
 				CC00000000000000000018AB /* GogaiShareExtension */,
 				AA00000000000000000003AB /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		CC00000000000000000019AB /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				DD00000000000000000083AB /* Signing.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		AA00000000000000000003AB /* Products */ = {
@@ -903,6 +913,7 @@
 /* Begin XCBuildConfiguration section */
 		AA00000000000000000004AB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DD00000000000000000083AB /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -969,6 +980,7 @@
 		};
 		AA00000000000000000005AB /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = DD00000000000000000083AB /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -1033,7 +1045,6 @@
 				CODE_SIGN_ENTITLEMENTS = Gogai/Gogai.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 31;
-				DEVELOPMENT_TEAM = G72M73C546;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Gogai/Info.plist;
@@ -1043,7 +1054,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1.27;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mtkg.gogai;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1060,7 +1071,6 @@
 				CODE_SIGN_ENTITLEMENTS = Gogai/Gogai.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 31;
-				DEVELOPMENT_TEAM = G72M73C546;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Gogai/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1069,7 +1079,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1.27;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mtkg.gogai;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1087,7 +1097,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.1.27;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gogai.ios.GogaiTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 6.0;
@@ -1105,7 +1115,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.1.27;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gogai.ios.GogaiTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 6.0;
@@ -1120,7 +1130,6 @@
 				CODE_SIGN_ENTITLEMENTS = GogaiShareExtension/GogaiShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 31;
-				DEVELOPMENT_TEAM = G72M73C546;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = GogaiShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1130,7 +1139,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.1.27;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mtkg.gogai.ShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1145,7 +1154,6 @@
 				CODE_SIGN_ENTITLEMENTS = GogaiShareExtension/GogaiShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 31;
-				DEVELOPMENT_TEAM = G72M73C546;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = GogaiShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1155,7 +1163,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.1.27;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mtkg.gogai.ShareExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).ShareExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
