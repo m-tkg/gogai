@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// サマリーの4セクション(何についての記事か/何の目的で書かれたか/
-/// 筆者が一番伝えたいこと/要約)を表示する。パース失敗時は生テキストにフォールバックする。
+/// サマリーの各セクション(何についての記事か/何の目的で書かれたか/
+/// 筆者が一番伝えたいこと/要約/この記事から得られる学び)を表示する。
+/// 学びは既存保存済みデータにないことがあるため、nil なら見出しごと非表示にする。
+/// パース失敗時は生テキストにフォールバックする。
 private struct StockSummarySections: View {
     let summary: String
 
@@ -15,6 +17,14 @@ private struct StockSummarySections: View {
                     sectionTitle("要約")
                     ForEach(Array(parsed.summaryLines.enumerated()), id: \.offset) { _, line in
                         Text(line)
+                    }
+                }
+                if let learningLines = parsed.learningLines {
+                    VStack(alignment: .leading, spacing: 4) {
+                        sectionTitle("この記事から得られる学び")
+                        ForEach(Array(learningLines.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                        }
                     }
                 }
             }

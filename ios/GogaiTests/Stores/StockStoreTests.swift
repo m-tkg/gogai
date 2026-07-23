@@ -164,7 +164,7 @@ final class StockStoreTests: StoreTestCase {
     func test_generateSummary_指定したストックにサマリーを保存する() async throws {
         store.stocks = [makeStock(id: 1)]
         let generator = MockTextGenerator()
-        generator.result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
+        generator.result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD\n## この記事から得られる学び\nE"
         store.makeSummaryGenerator = { generator }
         MockURLProtocol.requestHandler = { request in
             if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
@@ -181,7 +181,7 @@ final class StockStoreTests: StoreTestCase {
     func test_generateSummary_進捗ログを保存する() async throws {
         store.stocks = [makeStock(id: 1)]
         let generator = MockTextGenerator()
-        generator.result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
+        generator.result = "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD\n## この記事から得られる学び\nE"
         store.makeSummaryGenerator = { generator }
         MockURLProtocol.requestHandler = { request in
             if request.url!.path.hasSuffix("/summary") { return (204, Data()) }
@@ -267,7 +267,7 @@ final class StockStoreTests: StoreTestCase {
             if Task.isCancelled {
                 throw CancellationError()
             }
-            return "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD"
+            return "## 何についての記事か\nA\n## 何の目的で書かれたか\nB\n## 筆者が一番伝えたいこと\nC\n## 要約(20行以内)\nD\n## この記事から得られる学び\nE"
         }
 
         func release() {

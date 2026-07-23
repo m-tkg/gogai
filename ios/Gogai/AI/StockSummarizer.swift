@@ -1,7 +1,7 @@
 import Foundation
 
-/// ストックした記事を4セクション構成(何についての記事か/何の目的で書かれたか/
-/// 筆者が一番伝えたいこと/20行以内の要約)で日本語要約する。
+/// ストックした記事を5セクション構成(何についての記事か/何の目的で書かれたか/
+/// 筆者が一番伝えたいこと/20行以内の要約/この記事から得られる学び)で日本語要約する。
 /// オンデバイスモデルのトークン制限を超える本文は、チャンク分割した中間要約を
 /// 経由する map-reduce で最終要約を生成する。
 struct StockSummarizer: Sendable {
@@ -30,7 +30,7 @@ struct StockSummarizer: Sendable {
     static let maxGenerationRetries = 2
 
     /// セクション個別生成でも中身が得られなかったときに埋めるプレースホルダ。
-    /// これを入れることで4見出しすべてが非空になり StockSummary.parse() が必ず成功する
+    /// これを入れることで4見出し(学びを除く)すべてが非空になり StockSummary.parse() が必ず成功する
     /// (=表示側が固定見出しレイアウト・見出しの色付けを常に行える)。
     static let sectionPlaceholder = "（生成できませんでした）"
 
@@ -69,7 +69,8 @@ struct StockSummarizer: Sendable {
                 summaryLines: [
                     "内容が少ないため、要約せず本文をそのまま表示します。",
                     body,
-                ]
+                ],
+                learningLines: []
             )
         }
 
@@ -91,9 +92,22 @@ struct StockSummarizer: Sendable {
         await log("\(providerLabel)へ要約リクエスト送信中")
         let combined = Self.enforceSummaryLineLimit(try await generator.generate(instructions: Self.finalInstructions, prompt: prompt))
         await log("\(providerLabel)から要約レスポンスを受信")
-        if StockSummary.parse(combined) != nil {
+        if let parsed = StockSummary.parse(combined) {
             await log("要約レスポンスの解析に成功")
-            return combined
+            // 外部 AI では rate limit を避けるため、学びが欠けていても追加リクエストしない。
+            if parsed.learningLines != nil || generator is RemoteAITextGenerator {
+                return combined
+            }
+            // オンデバイスで学びだけ欠けた場合は、学びのみ追加生成して組み立て直す。
+            await log("「この記事から得られる学び」を生成中")
+            let learnings = try await generateSectionLines(instructions: Self.learningsInstruction, prompt: prompt)
+            return Self.assembleSections(
+                topic: parsed.topic,
+                purpose: parsed.purpose,
+                mainMessage: parsed.mainMessage,
+                summaryLines: parsed.summaryLines,
+                learningLines: learnings
+            )
         }
 
         // 外部 AI では rate limit を避けるため、セクションごとの追加生成は行わない。
@@ -104,7 +118,8 @@ struct StockSummarizer: Sendable {
                 topic: Self.sectionPlaceholder,
                 purpose: Self.sectionPlaceholder,
                 mainMessage: Self.sectionPlaceholder,
-                summaryLines: Array(Self.sectionLines(combined).prefix(Self.summaryLineLimit))
+                summaryLines: Array(Self.sectionLines(combined).prefix(Self.summaryLineLimit)),
+                learningLines: []
             )
         }
 
@@ -115,7 +130,7 @@ struct StockSummarizer: Sendable {
         return try await summarizeBySection(prompt: prompt)
     }
 
-    /// 4セクションを1項目ずつ個別生成し、固定見出しで組み立てる。
+    /// 5セクションを1項目ずつ個別生成し、固定見出しで組み立てる。
     private func summarizeBySection(prompt: String) async throws -> String {
         await log("「何についての記事か」を生成中")
         let topic = try await generateSectionLines(instructions: Self.topicInstruction, prompt: prompt)
@@ -125,12 +140,15 @@ struct StockSummarizer: Sendable {
         let mainMessage = try await generateSectionLines(instructions: Self.mainMessageInstruction, prompt: prompt)
         await log("「要約」を生成中")
         let summary = try await generateSectionLines(instructions: Self.summaryInstruction, prompt: prompt)
+        await log("「この記事から得られる学び」を生成中")
+        let learnings = try await generateSectionLines(instructions: Self.learningsInstruction, prompt: prompt)
         await log("セクション別の生成が完了")
         return Self.assembleSections(
             topic: topic.joined(separator: "\n"),
             purpose: purpose.joined(separator: "\n"),
             mainMessage: mainMessage.joined(separator: "\n"),
-            summaryLines: Array(summary.prefix(Self.summaryLineLimit))
+            summaryLines: Array(summary.prefix(Self.summaryLineLimit)),
+            learningLines: learnings
         )
     }
 
@@ -158,11 +176,13 @@ struct StockSummarizer: Sendable {
     }
 
     /// 各セクション本文を固定見出しに差し込んで最終テキストを組み立てる。
-    /// 空セクションは sectionPlaceholder で埋め、4見出しすべてが非空になるようにする
-    /// (StockSummary.parse() が必ず成功する)。
-    static func assembleSections(topic: String, purpose: String, mainMessage: String, summaryLines: [String]) -> String {
+    /// 空セクションは sectionPlaceholder で埋め、4見出し(学びを除く)すべてが非空になるようにする
+    /// (StockSummary.parse() が必ず成功する)。学びは生成できなければプレースホルダで埋める
+    /// (捏造を避けるため、短文スキップ・外部AIフォールバック時は空配列を渡す想定)。
+    static func assembleSections(topic: String, purpose: String, mainMessage: String, summaryLines: [String], learningLines: [String]) -> String {
         func filled(_ body: String) -> String { body.isEmpty ? sectionPlaceholder : body }
         let summaryBody = summaryLines.isEmpty ? sectionPlaceholder : summaryLines.joined(separator: "\n")
+        let learningBody = learningLines.isEmpty ? sectionPlaceholder : learningLines.joined(separator: "\n")
         return """
         ## 何についての記事か
         \(filled(topic))
@@ -175,6 +195,9 @@ struct StockSummarizer: Sendable {
 
         ## 要約(20行以内)
         \(summaryBody)
+
+        ## この記事から得られる学び
+        \(learningBody)
         """
     }
 
@@ -210,15 +233,17 @@ struct StockSummarizer: Sendable {
 
     /// 「## 要約」セクションの本文を summaryLineLimit 行までに機械的に切り詰める。
     /// プロンプト指示だけでは 20 行を超える出力がありうるためハードに保証する。
+    /// 要約の後に続くセクション(学びなど、次の "##" 見出し以降)は切り詰め対象外として保持する。
     static func enforceSummaryLineLimit(_ text: String, limit: Int = summaryLineLimit) -> String {
         guard let headingRange = text.range(of: "## 要約") else { return text }
         let head = String(text[..<headingRange.lowerBound])
-        let tail = text[headingRange.lowerBound...]
-        var lines = tail.components(separatedBy: "\n")
+        var lines = text[headingRange.lowerBound...].components(separatedBy: "\n")
         guard !lines.isEmpty else { return text }
         let heading = lines.removeFirst()
-        let limitedBody = lines.prefix(limit)
-        return head + ([heading] + limitedBody).joined(separator: "\n")
+        let nextHeadingIndex = lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("##") }
+        let body = nextHeadingIndex.map { Array(lines[..<$0]) } ?? lines
+        let rest = nextHeadingIndex.map { Array(lines[$0...]) } ?? []
+        return head + ([heading] + body.prefix(limit) + rest).joined(separator: "\n")
     }
 
     static let finalInstructions = """
@@ -229,6 +254,7 @@ struct StockSummarizer: Sendable {
     ## 何の目的で書かれたか
     ## 筆者が一番伝えたいこと
     ## 要約(20行以内)
+    ## この記事から得られる学び
     """
 
     static let intermediateInstructions = "あなたは記事要約アシスタントです。与えられた記事の一部を、日本語の要点箇条書きに変換してください。"
@@ -239,4 +265,5 @@ struct StockSummarizer: Sendable {
     static let purposeInstruction = "あなたは記事要約アシスタントです。与えられた記事が「何の目的で書かれたか」を、日本語で1〜2文で説明してください。見出しや箇条書き記号は付けず、説明文だけを出力してください。"
     static let mainMessageInstruction = "あなたは記事要約アシスタントです。与えられた記事で「筆者が一番伝えたいこと」を、日本語で1〜2文で説明してください。見出しや箇条書き記号は付けず、説明文だけを出力してください。"
     static let summaryInstruction = "あなたは記事要約アシスタントです。与えられた記事を日本語で要約してください。要点を1行ずつ、20行以内で出力してください。見出しや前置きは付けないでください。"
+    static let learningsInstruction = "あなたは記事要約アシスタントです。読者が「この記事を読んで得られる学び」を、日本語で1行1項目、3〜5行で出力してください。見出しや前置きは付けないでください。"
 }

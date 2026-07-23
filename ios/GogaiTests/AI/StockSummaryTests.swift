@@ -69,6 +69,82 @@ final class StockSummaryTests: XCTestCase {
         XCTAssertNil(StockSummary.parse(text))
     }
 
+    func test_parse_学びセクションを含む5セクションを分割する() {
+        let text = """
+        ## 何についての記事か
+        A
+        ## 何の目的で書かれたか
+        B
+        ## 筆者が一番伝えたいこと
+        C
+        ## 要約(20行以内)
+        D
+        ## この記事から得られる学び
+        学び1
+        学び2
+        """
+
+        let summary = StockSummary.parse(text)
+
+        XCTAssertEqual(summary?.learningLines, ["学び1", "学び2"])
+        XCTAssertEqual(summary?.summaryLines, ["D"], "学びセクションは要約に混入しない")
+    }
+
+    func test_parse_学びセクションがない旧形式でも成功しlearningLinesはnil() {
+        let text = """
+        ## 何についての記事か
+        A
+        ## 何の目的で書かれたか
+        B
+        ## 筆者が一番伝えたいこと
+        C
+        ## 要約(20行以内)
+        D
+        """
+
+        let summary = StockSummary.parse(text)
+
+        XCTAssertNotNil(summary, "既存保存済みの4セクション形式は構造化表示を維持する")
+        XCTAssertNil(summary?.learningLines)
+    }
+
+    func test_parse_学び見出しはあるが本文が空ならlearningLinesはnilで成功する() {
+        let text = """
+        ## 何についての記事か
+        A
+        ## 何の目的で書かれたか
+        B
+        ## 筆者が一番伝えたいこと
+        C
+        ## 要約(20行以内)
+        D
+        ## この記事から得られる学び
+
+        """
+
+        let summary = StockSummary.parse(text)
+
+        XCTAssertNotNil(summary)
+        XCTAssertNil(summary?.learningLines)
+    }
+
+    func test_parse_学びを含む見出しの表記ゆれを学びキーに正規化する() {
+        let text = """
+        ## 何についての記事か
+        A
+        ## 何の目的で書かれたか
+        B
+        ## 筆者が一番伝えたいこと
+        C
+        ## 要約(20行以内)
+        D
+        ## 学び
+        学び1
+        """
+
+        XCTAssertEqual(StockSummary.parse(text)?.learningLines, ["学び1"])
+    }
+
     func test_parse_要約セクションが空行のみならnilを返す() {
         let text = """
         ## 何についての記事か
