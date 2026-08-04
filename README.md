@@ -1,6 +1,6 @@
 # Gogai
 
-Web + iOS の RSS リーダー。REST API を共有する Web フロントエンドと iOS ネイティブアプリ。
+Web + iOS + Android の RSS リーダー。REST API を共有する Web フロントエンドとモバイルネイティブアプリ。
 
 ## 機能
 
@@ -19,6 +19,11 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
   - 起動時・バックグラウンド復帰時・5 分ごとに記事を自動更新
   - 右スワイプで既読/未読、左スワイプでストックに追加
   - iOS/iPadOS の共有シートから任意ページをストックに追加可能
+- **Android アプリ**（Kotlin + Jetpack Compose、iOS 版と同じ使い勝手の移植）
+  - フィード/グループ/記事/ストック/設定/Admin まで iOS 版と同等の機能
+  - 要約・翻訳はリモート AI（OpenAI / Gemini / Claude、API キー設定時のみ）
+  - 記事ページは Chrome Custom Tabs、他アプリの共有からストック追加可能
+  - タブレットは 3 ペイン表示（iPad 相当）
 - **Cloudflare Tunnel**（Raspberry Pi 用）
   - 起動時に Quick Tunnel URL を自動取得し GitHub Gist に書き込む
   - iOS アプリは Gist URL をサーバー URL として登録可能
@@ -30,8 +35,9 @@ Web + iOS の RSS リーダー。REST API を共有する Web フロントエン
 | Backend | Node.js + Hono + TypeScript + better-sqlite3 |
 | Frontend | React 19 + Vite + TanStack Query + Tailwind CSS v4 |
 | iOS/iPadOS/macOS | SwiftUI + Swift 6.0 + URLSession（iOS 17.0+ / Mac Catalyst） |
+| Android | Kotlin 2.1 + Jetpack Compose + OkHttp（Android 13+） |
 | DB | SQLite（WAL モード） |
-| Test | Vitest（backend + frontend） / XCTest（iOS/iPadOS/macOS） |
+| Test | Vitest（backend + frontend） / XCTest（iOS/iPadOS/macOS） / JUnit4（Android） |
 | Infra | Docker Compose + nginx / systemd（Raspberry Pi）/ GitHub Actions（CI） |
 
 ## ディレクトリ構成
@@ -80,6 +86,8 @@ gogai/
 │   ├── Gogai/                        # アプリ本体（詳細は CLAUDE.md 参照）
 │   ├── GogaiShareExtension/          # 共有シート拡張（URL をストックに追加）
 │   └── GogaiTests/                   # XCTest ユニットテスト
+├── android/                          # Android アプリ（Gradle プロジェクト）
+│   └── app/src/main/kotlin/com/mtkg/gogai/   # 本体（詳細は CLAUDE.md 参照）
 ├── daemon/                           # systemd サービスファイル（Raspberry Pi 用）
 │   ├── gogai-backend.service
 │   ├── gogai-frontend.service
@@ -87,7 +95,7 @@ gogai/
 │   ├── cloudflare-tunnel.sh          # Tunnel 起動 + Gist 書き込みスクリプト
 │   └── setup.sh
 ├── .github/workflows/
-│   └── ci.yml                        # CI（backend / frontend のテスト）
+│   └── ci.yml                        # CI（backend / frontend / android のテスト）
 ├── docker-compose.yml
 ├── Makefile
 └── README.md

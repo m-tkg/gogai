@@ -2,15 +2,16 @@
 
 ## プロジェクト構成
 
-モノレポ構成。`backend/` と `frontend/` は独立した npm プロジェクト。`ios/` は Xcode プロジェクト。
+モノレポ構成。`backend/` と `frontend/` は独立した npm プロジェクト。`ios/` は Xcode プロジェクト。`android/` は Gradle プロジェクト。
 
 ```
 gogai/
 ├── backend/    Node.js + Hono + TypeScript（ポート 3040）
 ├── frontend/   React 19 + Vite + Tailwind CSS v4（ポート 5173）
 ├── ios/        iOS / iPadOS / macOS(Mac Catalyst) アプリ（SwiftUI + Swift 6.0）+ 共有シート拡張
+├── android/    Android アプリ（Kotlin + Jetpack Compose、iOS 版の移植）+ 共有ターゲット
 ├── daemon/     systemd サービスファイル（Raspberry Pi 用）
-├── .github/workflows/  GitHub Actions（CI: backend / frontend のテスト）
+├── .github/workflows/  GitHub Actions（CI: backend / frontend / android のテスト）
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -30,6 +31,10 @@ make daemon-restart # Raspberry Pi でサービスを再起動
 make ios-build      # iOS シミュレータービルド
 make ios-test       # iOS ユニットテストを実行
 make ios-deploy     # iOS 実機インストール＆起動
+make android-build  # Android デバッグビルド
+make android-release # Android リリースビルド（debug 署名流用の APK）
+make android-test   # Android ユニットテストを実行
+make android-deploy # Android 実機/エミュレータにインストール＆起動
 ```
 
 ## バックエンド
@@ -316,6 +321,40 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 - バージョンは `v*` タグのみで管理し、**GitHub Release は作成しない**（過去のタグ v1.0.0〜 も履歴として残存）。
   `MARKETING_VERSION` は `xx.xx.xx` 形式のまま管理を継続する
 
+## Android アプリ
+
+iOS 版と同じ使い勝手を目標にした移植（View → Store → Repository → APIClient の同型アーキテクチャ）。
+パッケージ構成は `ios/Gogai/{Network,Stores,Repositories,Models,AI,Utilities,Views}` と 1:1 対応させており、
+両プラットフォームへ同じ変更を入れる際は対応ファイルを機械的に探せる。
+
+- **プロジェクト**: `android/`（Gradle 8.13 / AGP 8.9 / Kotlin 2.1 / Compose BOM 2025.06 / minSdk 33）
+- **ビルド用 JDK**: Homebrew `openjdk@17`（Makefile の `ANDROID_JAVA_HOME` が `brew --prefix openjdk@17` を解決）
+- **applicationId**: `com.mtkg.gogai`（iOS の bundle id と同一）
+- **DI**: 手動（`di/AppContainer.kt`）。Store はアプリ生存期間のプレーンクラス + StateFlow（iOS の `@Published` 相当）
+- **メインスレッド閉じ込め**: Store は `Dispatchers.Main.immediate`（iOS の `@MainActor` 相当、内部状態ロックなし）
+- **HTTP**: OkHttp 素書き（`network/ApiClient.kt`）。**レスポンス body の読み取りは必ず
+  `fetchStringResponse` / `isSuccessfulResponse` ヘルパ経由**（生の `Call.await()` + `.string()` は
+  メインスレッドのソケット読み込みで `NetworkOnMainThreadException` になる）
+- **エラー契約**: 接続系 = `IOException` をそのまま伝播（iOS の URLError 相当、pending キュー行き）、
+  非 2xx = `ApiException.Http`（ロールバック対象）
+- **設定永続化**: SharedPreferences（`cache/KeyValueStore.kt`）。シークレットは Android Keystore AES/GCM
+  （`cache/SecretStore.kt`。EncryptedSharedPreferences は非推奨のため不使用）
+- **文言**: `res/values/strings.xml` + `strings_ai.xml`（AI 関連のみ別ファイル）。日本語のみ
+- **共有ターゲット**: `share/ShareReceiverActivity.kt`（ACTION_SEND text/plain。iOS 共有シート拡張相当、同一プロセス）
+- **テスト**: JUnit4 + coroutines-test + Turbine + MockWebServer（`make android-test`）。
+  Store テストは MockWebServer + 実 ApiClient で HTTP 契約ごと検証（iOS の MockURLProtocol 方式と同型）
+
+### iOS との意図的な差分
+
+- **AI はリモート API（OpenAI/Gemini/Claude）のみ**。Foundation Models 相当のオンデバイス選択肢なし。
+  API キー未設定時は AI ボタン非表示（`AppContainer.aiAvailable()`）
+- **記事ページは Chrome Custom Tabs**（SFSafariViewController 相当）。そのため iOS の BrowserView 右下
+  AI オーバーレイは移植せず、AI アクション（要約・翻訳）は概要ページ下部バーとストック詳細フッターに配置
+- **ストックのページ内翻訳**は アプリ内 WebView の `ui/ai/TranslatedPageScreen.kt`（iOS FMTranslatedPageView 相当、
+  `assets/translator/extract.js` は iOS の TreeWalker JS を逐語移植）
+- **並び替えは編集モードの上下ボタン**（iOS はドラッグ&ドロップ）。`sh.calvin.reorderable` は導入済みだが未結線
+- **タブレット**: WindowWidthSizeClass Expanded で 3 ペイン表示（iPad の NavigationSplitView 相当）
+
 ## テスト指針
 
 - TDD（t-wada 推奨スタイル）
@@ -324,6 +363,7 @@ Xcode の Scheme 設定で "Debug executable" のチェックを外すか、CLI 
 - backend / frontend: Vitest（ESM モード）。frontend は Testing Library を併用
 - backend のルートテストは `router.request()` + `setDb()`（in-memory SQLite）で HTTP 契約を検証する
 - iOS: XCTest（`make ios-test`）。Store / Repository / Network / Utilities をカバー
+- Android: JUnit4 + MockWebServer（`make android-test`）。Store / Repository / Network / AI / Utilities をカバー
 - `vi.mock` でクラスをモックする場合は注意（ESM では constructor mock が機能しない場合がある）
 
 ## 環境変数

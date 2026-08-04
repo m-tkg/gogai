@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 5 (AI 機能) で追加した文言専用ファイル。
+  並行作業中の res/values/strings.xml に触れず新規文言を追加するため、別ファイルに分離している
+  （Android は同一パッケージ内の複数 values ファイルを 1 つの R クラスへマージするため、
+  R.string.* での参照方法はどちらのファイルに定義されていても変わらない）。
+-->
+<resources>
+    <!-- ストック翻訳オーバーレイ（ui/ai/TranslatedPageScreen.kt） -->
+    <string name="stock_translate_status_loading">読み込み中…</string>
+    <string name="stock_translate_status_translating">翻訳中… (%1$d/%2$d)</string>
+    <string name="stock_translate_status_done">翻訳完了</string>
+    <string name="stock_translate_status_failed">翻訳に失敗しました: %1$s</string>
+    <string name="stock_translate_ai_unavailable_notice">AI が利用できないため、保存済みの訳文のみ表示します</string>
+    <string name="stock_translate_show_original_content_description">原文を表示</string>
+    <string name="stock_translate_show_translation_content_description">訳文を表示</string>
+    <string name="stock_translate_retranslate_content_description">再翻訳</string>
+    <string name="stock_translate_close_content_description">閉じる</string>
+
+    <!-- 記事概要ページの AI アクション（ui/articles/ArticleDetailScreen.kt） -->
+    <string name="article_ai_summarize_button">要約</string>
+    <string name="article_ai_translate_button">翻訳</string>
+    <string name="article_ai_summarize_title">要約</string>
+    <string name="article_ai_translate_title">翻訳</string>
+
+    <!-- AI 結果ボトムシート共通（ui/ai/AiResultSheet.kt） -->
+    <string name="article_ai_generating">生成中…</string>
+    <string name="article_ai_copy">コピーする</string>
+</resources>
