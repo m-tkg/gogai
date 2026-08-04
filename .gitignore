@@ -12,6 +12,7 @@ frontend/.env.local
 *.png
 !ios/appiconset/*.png
 !ios/Gogai/Assets.xcassets/AppIcon.appiconset/*.png
+!android/app/src/main/res/mipmap-*/*.png
 .build/
 ios/build/
 ios/Gogai.xcodeproj/project.xcworkspace/xcuserdata/
