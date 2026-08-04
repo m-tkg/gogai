@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gogai</string>
+
+    <!-- Server setup -->
+    <string name="server_setup_title">サーバー設定</string>
+    <string name="server_setup_url_label">サーバーURL</string>
+    <string name="server_setup_url_placeholder">http://192.168.1.1:3040</string>
+    <string name="server_setup_url_footer">gogaiバックエンドのURLを入力してください（例: http://192.168.1.1:3040）</string>
+    <string name="server_setup_connect">接続する</string>
+    <string name="server_setup_invalid_url">無効なURLです</string>
+    <string name="server_setup_connect_failed">サーバーに接続できませんでした</string>
+    <string name="server_setup_connect_error">接続失敗: %1$s</string>
+
+    <!-- Sidebar -->
+    <string name="sidebar_title">Feed list</string>
+    <string name="sidebar_all_articles">すべての記事</string>
+    <string name="sidebar_section_feed">フィード</string>
+    <string name="sidebar_section_ungrouped">未分類</string>
+    <string name="sidebar_edit">編集</string>
+    <string name="sidebar_done">完了</string>
+    <string name="sidebar_add_feed">フィードを追加</string>
+    <string name="sidebar_add_group">グループを追加</string>
+    <string name="sidebar_add_content_description">追加</string>
+    <string name="sidebar_settings_content_description">設定</string>
+    <string name="sidebar_settings_secret_content_description">設定（シークレット表示中）</string>
+    <string name="sidebar_refresh_content_description">更新</string>
+    <string name="error_title">エラー</string>
+    <string name="reorder_error_title">並び替えエラー</string>
+    <string name="ok">OK</string>
+    <string name="cancel">キャンセル</string>
+
+    <!-- Group -->
+    <string name="group_rename">名前を変更</string>
+    <string name="group_set_secret">シークレットに設定</string>
+    <string name="group_unset_secret">シークレットを解除</string>
+    <string name="group_delete">削除</string>
+    <string name="group_delete_confirm_title">グループを削除しますか？</string>
+    <string name="group_delete_confirm_message">このグループのフィードはグループなしになります</string>
+    <string name="group_rename_title">グループ名を変更</string>
+    <string name="group_name_label">グループ名</string>
+    <string name="change">変更</string>
+
+    <!-- Feed -->
+    <string name="feed_edit">編集</string>
+    <string name="feed_delete">削除</string>
+    <string name="feed_delete_confirm_title">フィードを削除しますか？</string>
+    <string name="add_feed_title">フィードを追加</string>
+    <string name="add_feed_url_section">フィードURL</string>
+    <string name="add_feed_url_placeholder">https://example.com/feed.xml</string>
+    <string name="add">追加</string>
+    <string name="add_group_title">グループを追加</string>
+    <string name="add_group_name_section">グループ名</string>
+    <string name="add_group_name_placeholder">グループ名を入力</string>
+    <string name="edit_feed_title">フィードを編集</string>
+    <string name="edit_feed_title_section">タイトル</string>
+    <string name="edit_feed_title_placeholder">フィード名</string>
+    <string name="save">保存</string>
+    <string name="group_picker_section">グループ（任意）</string>
+    <string name="group_picker_none">なし</string>
+
+    <!-- Filter footer -->
+    <string name="filter_all">全て</string>
+    <string name="filter_unread_only">未読のみ</string>
+    <string name="stock_content_description">ストック</string>
+    <string name="stock_not_yet_available">ストック機能は準備中です</string>
+
+    <!-- Article list -->
+    <string name="article_list_default_title">記事</string>
+    <string name="article_list_sort_section">ソート</string>
+    <string name="article_list_sort_content_description">並び替え</string>
+    <string name="article_list_mark_all_read_content_description">すべて既読にする</string>
+    <string name="article_list_mark_all_read_confirm_title">表示中の記事をすべて既読にしますか？</string>
+    <string name="article_list_mark_all_read_confirm_action">すべて既読にする</string>
+    <string name="article_list_empty">記事がありません</string>
+    <string name="article_no_title">（タイトルなし）</string>
+    <string name="article_mark_read">既読にする</string>
+    <string name="article_mark_unread">未読にする</string>
+    <string name="article_add_to_stock">ストックに入れる</string>
+
+    <!-- Article detail -->
+    <string name="article_detail_title">記事</string>
+    <string name="article_detail_no_content">本文がありません</string>
+    <string name="article_detail_previous">前の記事</string>
+    <string name="article_detail_next">次の記事</string>
+    <string name="article_detail_share_content_description">共有</string>
+    <string name="article_detail_open_browser_content_description">ブラウザで開く</string>
+
+    <!-- Common -->
+    <string name="unclassified_source">未分類</string>
+
+    <!-- Stock -->
+    <string name="stock_title">ストック</string>
+    <string name="stock_empty">ストックがありません</string>
+    <string name="stock_summarize_all_unsummarized">未要約のものを一括要約</string>
+    <string name="stock_summary_queue_title">要約キュー (%1$d)</string>
+    <string name="stock_summary_queue_paused">一時停止中</string>
+    <string name="stock_status_generating">生成中</string>
+    <string name="stock_status_queued">順番待ち</string>
+    <string name="stock_status_summary_error">要約エラー</string>
+    <string name="stock_status_summary_pending">要約待ち</string>
+    <string name="stock_open_original">元記事を開く</string>
+    <string name="stock_translate">翻訳</string>
+    <string name="stock_generate_summary">要約を生成</string>
+    <string name="stock_sort_content_description">並び替え</string>
+    <string name="stock_delete_confirm_title">このストックを削除しますか？</string>
+    <string name="stock_delete_failed_title">削除に失敗しました</string>
+    <string name="stock_summary_failed_title">要約の生成に失敗しました</string>
+    <string name="stock_detail_title">ストック</string>
+    <string name="stock_summary_button_label">要約</string>
+    <string name="stock_view">表示</string>
+    <string name="stock_regenerate_summary_confirm_title">既存の要約を上書きして再生成しますか？</string>
+    <string name="stock_regenerate_summary_confirm_action">再生成</string>
+    <string name="stock_summary_queued_message">要約の順番待ちです…</string>
+    <string name="stock_summary_generating_message">要約を生成しています…</string>
+    <string name="stock_summary_not_yet">要約はまだありません</string>
+    <string name="stock_summary_section_topic">何についての記事か</string>
+    <string name="stock_summary_section_purpose">何の目的で書かれたか</string>
+    <string name="stock_summary_section_main_message">筆者が一番伝えたいこと</string>
+    <string name="stock_summary_section_summary">要約</string>
+    <string name="stock_summary_section_learning">この記事から得られる学び</string>
+    <string name="stock_add_title">ストックを追加</string>
+    <string name="stock_add_url_placeholder">https://example.com/article</string>
+    <string name="stock_add_title_section">タイトル（任意）</string>
+    <string name="stock_add_title_placeholder">タイトル</string>
+    <string name="stock_add_source_section">ストック元（任意）</string>
+    <string name="stock_add_source_placeholder">例: Tech</string>
+    <string name="stock_add_category_section">カテゴリ（任意・初期値はストック元と同じ）</string>
+    <string name="stock_add_category_placeholder">例: あとで読む</string>
+    <string name="stock_edit_title">ストックを編集</string>
+    <string name="stock_edit_pick_existing_category">既存のカテゴリから選ぶ</string>
+    <string name="stock_edit_source_section">ストック元</string>
+
+    <!-- Share target -->
+    <string name="share_target_label">ストックに追加</string>
+    <string name="share_title">ストックに追加</string>
+    <string name="share_url_section">URL</string>
+    <string name="share_source_category_section">ストック元 / カテゴリ</string>
+    <string name="share_source_placeholder">例: 共有</string>
+    <string name="share_source_default">共有</string>
+    <string name="share_pick_category_placeholder">選択してください</string>
+    <string name="share_already_stocked">既にストックに登録されています(%1$s / %2$s)</string>
+    <string name="share_no_server_configured">サーバー URL が設定されていません。本体アプリで設定してから共有してください。</string>
+    <string name="share_save_failed">保存に失敗しました: %1$s</string>
+    <string name="share_save">保存</string>
+
+    <!-- Settings -->
+    <string name="settings_title">設定</string>
+    <string name="settings_close">閉じる</string>
+    <string name="settings_section_connection">接続</string>
+    <string name="settings_server_url_unset">未設定</string>
+    <string name="settings_server_url_resolved">解決済み: %1$s</string>
+    <string name="settings_reset_server">サーバー設定をリセット</string>
+    <string name="settings_reset_server_confirm_title">サーバー設定をリセットしますか？</string>
+    <string name="settings_reset_action">リセット</string>
+    <string name="settings_section_data">データ管理</string>
+    <string name="settings_retention_days_label">記事の保持期間</string>
+    <string name="settings_retention_days_unit">日</string>
+    <string name="settings_cache_size_label">キャッシュサイズ</string>
+    <string name="settings_cache_cleared">キャッシュを削除しました</string>
+    <string name="settings_clear_cache">ローカルキャッシュを削除</string>
+    <string name="settings_clear_cache_confirm_title">ローカルキャッシュを削除しますか？</string>
+    <string name="settings_data_footer">指定した日数より古い記事は自動的に削除されます。ローカルキャッシュを削除すると、次回起動時にサーバーから再取得します。</string>
+    <string name="settings_cache_size_bytes">%1$d バイト</string>
+    <string name="settings_section_ai">AI</string>
+    <string name="settings_ai_provider_label">使用するAI</string>
+    <string name="settings_openai_key_label">OpenAI APIキー</string>
+    <string name="settings_gemini_key_label">Gemini APIキー</string>
+    <string name="settings_claude_key_label">Claude APIキー</string>
+    <string name="settings_ai_footer">自動は OpenAI、Gemini、Claude の順に API キーがある外部 AI を使います。要約はここで選んだ AI を使用します。</string>
+    <string name="settings_invalid_value">無効な値です</string>
+    <string name="settings_section_admin_secret">管理者シークレット</string>
+    <string name="settings_admin_secret_placeholder">未設定</string>
+    <string name="settings_admin_secret_footer">「管理」画面の操作を保護します。サーバー側の ADMIN_SECRET 環境変数と同じ値を入力してください（サーバー側が未設定の場合は空のままで動作します）。</string>
+    <string name="settings_section_app_info">アプリ情報</string>
+    <string name="settings_version_label">バージョン</string>
+
+    <!-- Admin -->
+    <string name="admin_title">管理</string>
+    <string name="admin_back">戻る</string>
+    <string name="admin_section_update">アップデート</string>
+    <string name="admin_local_label">ローカル</string>
+    <string name="admin_remote_label">リモート</string>
+    <string name="admin_update_available">あり</string>
+    <string name="admin_update_latest">最新版</string>
+    <string name="admin_check_update">アップデートを確認</string>
+    <string name="admin_section_restart">再起動</string>
+    <string name="admin_restart_building">git pull・ビルド中...</string>
+    <string name="admin_restart_waiting">再起動中... (%1$d秒経過)</string>
+    <string name="admin_restart_action">git pull して再起動</string>
+    <string name="admin_restart_footer">サーバー上で git pull を実行した後、サービスを再起動します</string>
+</resources>

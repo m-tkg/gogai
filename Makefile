@@ -1,7 +1,8 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
         docker-up docker-down docker-build docker-logs docker-clean \
         daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
-        restart-daemon ios-sync-icons ios-build ios-test ios-deploy
+        restart-daemon ios-sync-icons ios-build ios-test ios-deploy \
+        android-sync-icons android-build android-release android-test android-deploy
 
 # ── ローカル開発 ──────────────────────────────────────────
 
@@ -152,4 +153,40 @@ ios-deploy: ios-sync-icons
 		xcrun devicectl device process launch \
 		--device $(DEVICE_ID) \
 		$(BUNDLE_ID)
+
+# ── Android ──────────────────────────────────────────────────
+
+# Gradle 実行用の JDK（Homebrew openjdk@17）。ANDROID_JAVA_HOME で上書き可能
+ANDROID_JAVA_HOME     ?= $(shell brew --prefix openjdk@17 2>/dev/null)
+ANDROID_APPLICATION_ID = com.mtkg.gogai
+ANDROID_GRADLE         = cd android && JAVA_HOME=$(ANDROID_JAVA_HOME) ./gradlew --console=plain
+
+# appiconset/ のアイコンを Android mipmap へ同期（1024px 原本からリサイズ）
+android-sync-icons:
+	@src=ios/appiconset/Icon-App-1024x1024@1x.png; \
+	for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do \
+		dir=android/app/src/main/res/mipmap-$${d%%:*}; size=$${d##*:}; \
+		mkdir -p $$dir; \
+		sips -z $$size $$size "$$src" --out $$dir/ic_launcher.png >/dev/null; \
+	done
+
+# Android デバッグビルド
+android-build:
+	$(ANDROID_GRADLE) :app:assembleDebug
+
+# Android リリースビルド（APK: android/app/build/outputs/apk/release/app-release.apk）
+android-release: android-sync-icons
+	$(ANDROID_GRADLE) :app:assembleRelease
+
+# Android ユニットテストを実行
+android-test:
+	$(ANDROID_GRADLE) :app:testDebugUnitTest
+
+# デバッグビルドして実機/エミュレータにインストールして起動
+# （転送先は ANDROID_DEVICE_ID=<serial> で上書き可能。未指定なら adb のデフォルト端末）
+ANDROID_ADB_FLAGS = $(if $(ANDROID_DEVICE_ID),-s $(ANDROID_DEVICE_ID),)
+android-deploy: android-sync-icons
+	$(ANDROID_GRADLE) :app:assembleDebug
+	adb $(ANDROID_ADB_FLAGS) install -r android/app/build/outputs/apk/debug/app-debug.apk
+	adb $(ANDROID_ADB_FLAGS) shell am start -n $(ANDROID_APPLICATION_ID)/.app.MainActivity
 
