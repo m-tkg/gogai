@@ -54,8 +54,10 @@ describe('articles ルート（HTTP 契約）', () => {
   })
 
   describe('GET /counts', () => {
-    it('フィードごとの {feed_id, total, unread} 配列を返す', async () => {
-      new ArticlesService(db).markAsRead(articleId)
+    it('フィードごとの {feed_id, total, unread, liked} 配列を返す', async () => {
+      const articles = new ArticlesService(db)
+      articles.markAsRead(articleId)
+      articles.like(articleId)
 
       const res = await articlesRouter.request('/counts')
       expect(res.status).toBe(200)
@@ -65,6 +67,7 @@ describe('articles ルート（HTTP 契約）', () => {
         feed_id: expect.any(Number),
         total: 2,
         unread: 1,
+        liked: 1,
       })
     })
 
@@ -105,6 +108,42 @@ describe('articles ルート（HTTP 契約）', () => {
       const article = new ArticlesService(db).findById(articleId)
       expect(article?.is_read).toBe(0)
       expect(article?.read_at).toBeNull()
+    })
+  })
+
+  describe('like', () => {
+    it('POST /:id/like は 204 を返し liked_at が入る', async () => {
+      const res = await articlesRouter.request(`/${articleId}/like`, { method: 'POST' })
+      expect(res.status).toBe(204)
+      expect(new ArticlesService(db).findById(articleId)?.liked_at).toBeTypeOf('string')
+    })
+
+    it('POST /:id/unlike は 204 を返し liked_at=null になる', async () => {
+      new ArticlesService(db).like(articleId)
+      const res = await articlesRouter.request(`/${articleId}/unlike`, { method: 'POST' })
+      expect(res.status).toBe(204)
+      expect(new ArticlesService(db).findById(articleId)?.liked_at).toBeNull()
+    })
+
+    it('like しても既読にはならない', async () => {
+      await articlesRouter.request(`/${articleId}/like`, { method: 'POST' })
+      expect(new ArticlesService(db).findById(articleId)?.is_read).toBe(0)
+    })
+
+    it('GET /?likedOnly=true は like 済みのみを返す', async () => {
+      new ArticlesService(db).like(articleId)
+      const res = await articlesRouter.request('/?likedOnly=true')
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body).toHaveLength(1)
+      expect(body[0].id).toBe(articleId)
+      expect(body[0].liked_at).toBeTypeOf('string')
+    })
+
+    it('GET / のレスポンスに liked_at が含まれる', async () => {
+      const res = await articlesRouter.request('/')
+      const body = await res.json()
+      expect(body[0]).toHaveProperty('liked_at')
     })
   })
 

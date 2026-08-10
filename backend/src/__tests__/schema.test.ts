@@ -28,7 +28,7 @@ describe('initSchema', () => {
       expect.arrayContaining(['id', 'url', 'title', 'favicon_url', 'group_id', 'last_fetched_at', 'display_order'])
     )
     expect(columnNames('articles')).toEqual(
-      expect.arrayContaining(['id', 'feed_id', 'guid', 'title', 'link', 'is_read', 'read_at'])
+      expect.arrayContaining(['id', 'feed_id', 'guid', 'title', 'link', 'is_read', 'read_at', 'liked_at'])
     )
     expect(columnNames('settings')).toEqual(expect.arrayContaining(['key', 'value']))
   })
@@ -99,6 +99,7 @@ describe('initSchema', () => {
     expect(cols).not.toContain('ai_audio_url')
     expect(cols).not.toContain('is_favorite')
     expect(cols).toContain('read_at')
+    expect(cols).toContain('liked_at')
     // 既存データは保持される
     expect(db.prepare('SELECT title FROM articles WHERE guid = ?').get('g1')).toEqual({ title: 'Hello' })
   })

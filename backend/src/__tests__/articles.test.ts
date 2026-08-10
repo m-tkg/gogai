@@ -123,6 +123,103 @@ describe('ArticlesService', () => {
     expect(articlesService.findByFeed(feedId)).toHaveLength(1)
   })
 
+  describe('like（キュレーター向けの好みフラグ）', () => {
+    let articleId: number
+
+    beforeEach(() => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g1', title: 'A1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articleId = articlesService.findByFeed(feedId)[0].id
+    })
+
+    it('like すると liked_at が入る', () => {
+      articlesService.like(articleId)
+      expect(articlesService.findById(articleId)?.liked_at).toBeTypeOf('string')
+    })
+
+    it('unlike すると liked_at が null に戻る', () => {
+      articlesService.like(articleId)
+      articlesService.unlike(articleId)
+      expect(articlesService.findById(articleId)?.liked_at).toBeNull()
+    })
+
+    it('存在しない id を like してもエラーにならない（既読と同じ作法）', () => {
+      expect(() => articlesService.like(9999)).not.toThrow()
+      expect(() => articlesService.unlike(9999)).not.toThrow()
+    })
+
+    it('likedOnly=true で like 済みの記事のみ返す', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g2', title: 'A2', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articlesService.like(articleId)
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, likedOnly: true })
+      expect(result).toHaveLength(1)
+      expect(result[0].guid).toBe('g1')
+    })
+
+    it('likedOnly=true は sortBy を無視して liked_at 降順で返す', () => {
+      // g2 の方が配信日は古いが、like したのは後 → liked_at 降順では g2 が先に来る
+      articlesService.upsertMany(feedId, [
+        { guid: 'g2', title: 'A2', link: 'https://example.com/2', summary: '', publishedAt: '2020-01-01T00:00:00.000Z' },
+      ])
+      const g2 = articlesService.findByFeed(feedId).find((a) => a.guid === 'g2')!
+      articlesService.like(articleId, '2026-01-01T00:00:00.000Z')
+      articlesService.like(g2.id, '2026-02-01T00:00:00.000Z')
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, likedOnly: true, sortBy: 'published_at' })
+      expect(result.map((a) => a.guid)).toEqual(['g2', 'g1'])
+    })
+
+    it('like された記事は retention の削除対象から除外される', () => {
+      const now = new Date()
+      const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000) // 200日前
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'old-liked', title: 'Old Liked', link: 'https://example.com/old-liked', summary: '', publishedAt: old.toISOString() },
+        { guid: 'old-plain', title: 'Old Plain', link: 'https://example.com/old-plain', summary: '', publishedAt: old.toISOString() },
+      ])
+      const oldLiked = articlesService.findByFeed(feedId).find((a) => a.guid === 'old-liked')!
+      articlesService.like(oldLiked.id)
+
+      const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000)
+      const deleted = articlesService.deleteOlderThan(threshold)
+
+      expect(deleted).toBe(1)
+      const remaining = articlesService.findByFeed(feedId).map((a) => a.guid)
+      expect(remaining).toContain('old-liked')
+      expect(remaining).not.toContain('old-plain')
+    })
+
+    it('unlike した記事は再び retention の削除対象になる', () => {
+      const now = new Date()
+      const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000)
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'old-1', title: 'Old', link: 'https://example.com/old', summary: '', publishedAt: old.toISOString() },
+      ])
+      const oldArticle = articlesService.findByFeed(feedId).find((a) => a.guid === 'old-1')!
+      articlesService.like(oldArticle.id)
+      articlesService.unlike(oldArticle.id)
+
+      const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000)
+      expect(articlesService.deleteOlderThan(threshold)).toBe(1)
+    })
+
+    it('countsByFeed が liked 件数を返す', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g2', title: 'A2', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articlesService.like(articleId)
+
+      const counts = articlesService.countsByFeed()
+      expect(counts).toHaveLength(1)
+      expect(counts[0]).toEqual({ feed_id: feedId, total: 2, unread: 2, liked: 1 })
+    })
+  })
+
   describe('ソート機能', () => {
     it('配信日順（デフォルト）でソートできる', () => {
       const now = new Date()
