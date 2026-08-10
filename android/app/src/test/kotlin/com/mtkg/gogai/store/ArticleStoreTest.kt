@@ -54,6 +54,7 @@ class ArticleStoreTest {
         publishedAt: String? = null,
         readAt: String? = null,
         likedAt: String? = null,
+        dislikedAt: String? = null,
     ) = Article(
         id = id,
         feed_id = feedId,
@@ -64,6 +65,7 @@ class ArticleStoreTest {
         created_at = "2024-01-01T00:00:00Z",
         read_at = readAt,
         liked_at = likedAt,
+        disliked_at = dislikedAt,
     )
 
     private fun newStore(cache: AppCache = AppCache(tempFolder.newFolder())): ArticleStore {
@@ -472,7 +474,7 @@ class ArticleStoreTest {
     fun `refreshCounts は feedCounts を更新する`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0))),
             ),
         )
 
@@ -485,7 +487,7 @@ class ArticleStoreTest {
     fun `refreshCounts は失敗時に前回値を維持する`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -502,7 +504,7 @@ class ArticleStoreTest {
             MockResponse().setResponseCode(200).setBody(
                 Json.encodeToString(
                     ListSerializer(FeedCount.serializer()),
-                    listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0), FeedCount(feed_id = 2, total = 2, unread = 0, liked = 0)),
+                    listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0), FeedCount(feed_id = 2, total = 2, unread = 0, liked = 0, disliked = 0)),
                 ),
             ),
         )
@@ -517,7 +519,7 @@ class ArticleStoreTest {
     fun `markAsRead は feedCounts の unread を1減らす`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -535,7 +537,7 @@ class ArticleStoreTest {
     fun `markAsRead はロールバック時に feedCounts を戻す`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -553,7 +555,7 @@ class ArticleStoreTest {
     fun `unreadCount は0未満にならない`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 0, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 0, liked = 0, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -579,7 +581,7 @@ class ArticleStoreTest {
 
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -595,7 +597,7 @@ class ArticleStoreTest {
         enqueueArticles(emptyList())
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 1, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 1, liked = 0, disliked = 0))),
             ),
         )
         store.refresh()
@@ -635,7 +637,7 @@ class ArticleStoreTest {
 
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0, disliked = 0))),
             ),
         )
         storeWithCache.refreshCounts()
@@ -750,7 +752,7 @@ class ArticleStoreTest {
         store.setFilter(ArticleFilter.Liked)
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -764,7 +766,7 @@ class ArticleStoreTest {
         store.fetchArticles()
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2, disliked = 0))),
             ),
         )
         store.refreshCounts()
@@ -798,6 +800,144 @@ class ArticleStoreTest {
         store.refresh()
 
         assertTrue(store.articles.value.any { it.id == 1 })
+    }
+
+    // MARK: - dislike（負のシグナル。like とは排他）
+
+    @Test
+    fun `toggleDislike は未 dislike なら dislike する`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1)))
+        store.fetchArticles()
+        server.takeRequest()
+
+        enqueueEmptyOk()
+        store.toggleDislike(store.articles.value[0])
+
+        assertEquals("/api/articles/1/dislike", server.takeRequest().path)
+        assertTrue(store.articles.value[0].isDisliked)
+    }
+
+    @Test
+    fun `toggleDislike は dislike 済みなら外す`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, dislikedAt = "2026-01-01T00:00:00Z")))
+        store.fetchArticles()
+        server.takeRequest()
+
+        enqueueEmptyOk()
+        store.toggleDislike(store.articles.value[0])
+
+        assertEquals("/api/articles/1/undislike", server.takeRequest().path)
+        assertFalse(store.articles.value[0].isDisliked)
+    }
+
+    @Test
+    fun `dislike は like を外す`() = runTest(testDispatcher) {
+        // サーバーが排他にするので、楽観更新も同じ規則で見た目を合わせる
+        enqueueArticles(listOf(makeArticle(id = 1, likedAt = "2026-01-01T00:00:00Z")))
+        store.fetchArticles()
+
+        enqueueEmptyOk()
+        store.dislike(1)
+
+        assertTrue(store.articles.value[0].isDisliked)
+        assertFalse(store.articles.value[0].isLiked)
+    }
+
+    @Test
+    fun `like は dislike を外す`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, dislikedAt = "2026-01-01T00:00:00Z")))
+        store.fetchArticles()
+
+        enqueueEmptyOk()
+        store.like(1)
+
+        assertTrue(store.articles.value[0].isLiked)
+        assertFalse(store.articles.value[0].isDisliked)
+    }
+
+    @Test
+    fun `dislike は HTTP 失敗でロールバックする`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, likedAt = "2026-01-01T00:00:00Z")))
+        store.fetchArticles()
+
+        server.enqueue(MockResponse().setResponseCode(500).setBody(""))
+        store.dislike(1)
+
+        assertFalse(store.articles.value[0].isDisliked)
+        assertTrue("失敗したら元の like 状態に戻る", store.articles.value[0].isLiked)
+        assertNotNull(store.error.value)
+    }
+
+    @Test
+    fun `dislike は IOException でもロールバックする`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1)))
+        store.fetchArticles()
+
+        store.configure(unreachableClient)
+        store.dislike(1)
+        store.configure(goodClient())
+
+        assertFalse(store.articles.value[0].isDisliked)
+    }
+
+    @Test
+    fun `dislike は feedCounts の disliked を増減する`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, feedId = 1)))
+        store.fetchArticles()
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                Json.encodeToString(
+                    ListSerializer(FeedCount.serializer()),
+                    listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2, disliked = 1)),
+                ),
+            ),
+        )
+        store.refreshCounts()
+
+        enqueueEmptyOk()
+        store.dislike(1)
+        assertEquals(2, store.feedCounts.value[1]?.disliked)
+
+        enqueueEmptyOk()
+        store.undislike(1)
+        assertEquals(1, store.feedCounts.value[1]?.disliked)
+    }
+
+    @Test
+    fun `like 済みを dislike すると liked が減り disliked が増える`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, feedId = 1, likedAt = "2026-01-01T00:00:00Z")))
+        store.fetchArticles()
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                Json.encodeToString(
+                    ListSerializer(FeedCount.serializer()),
+                    listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2, disliked = 1)),
+                ),
+            ),
+        )
+        store.refreshCounts()
+
+        enqueueEmptyOk()
+        store.dislike(1)
+
+        assertEquals(1, store.feedCounts.value[1]?.liked)
+        assertEquals(2, store.feedCounts.value[1]?.disliked)
+    }
+
+    @Test
+    fun `disliked フィルターのバッジは disliked 件数を返す`() = runTest(testDispatcher) {
+        store.setFilter(ArticleFilter.Disliked)
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                Json.encodeToString(
+                    ListSerializer(FeedCount.serializer()),
+                    listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2, disliked = 3)),
+                ),
+            ),
+        )
+        store.refreshCounts()
+
+        assertEquals(3, store.badgeCount(1))
     }
 
     // MARK: - filter / sortOrder の永続化

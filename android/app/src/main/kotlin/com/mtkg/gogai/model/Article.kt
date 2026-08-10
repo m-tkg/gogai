@@ -19,17 +19,26 @@ data class Article(
     /// ユーザーが「好み」と表明した日時。null = 未 like。
     /// 外部のキュレーション AI へ渡すシグナルで、既読とは独立した軸。
     val liked_at: String? = null,
+    /// liked_at の対になる負のシグナル。null = 未 dislike。liked_at とは排他。
+    val disliked_at: String? = null,
 ) {
     val isRead: Boolean get() = is_read == 1
     val isLiked: Boolean get() = liked_at != null
+    val isDisliked: Boolean get() = disliked_at != null
 
     /// 指定フィールドだけ差し替えた新しい Article を返す
     fun updating(
         isRead: Int? = null,
         readAt: FieldUpdate<String> = FieldUpdate.Keep,
         likedAt: FieldUpdate<String> = FieldUpdate.Keep,
+        dislikedAt: FieldUpdate<String> = FieldUpdate.Keep,
     ): Article =
-        copy(is_read = isRead ?: is_read, read_at = readAt.applyTo(read_at), liked_at = likedAt.applyTo(liked_at))
+        copy(
+            is_read = isRead ?: is_read,
+            read_at = readAt.applyTo(read_at),
+            liked_at = likedAt.applyTo(liked_at),
+            disliked_at = dislikedAt.applyTo(disliked_at),
+        )
 
     /// 既読状態にした新しい Article を返す
     fun markingAsRead(at: String): Article {
@@ -42,7 +51,8 @@ data class Article(
 enum class ArticleFilter(val rawValue: String) {
     All("all"),
     Unread("unread"),
-    Liked("liked");
+    Liked("liked"),
+    Disliked("disliked");
 
     /// サーバーから全件を取得するフィルターかどうか。
     /// false のフィルターは部分フェッチなので、全記事キャッシュ（ArticleCollection）を上書きしない。

@@ -63,6 +63,7 @@
     <string name="filter_all">全て</string>
     <string name="filter_unread_only">未読のみ</string>
     <string name="filter_liked">like</string>
+    <string name="filter_disliked">dislike</string>
     <string name="stock_content_description">ストック</string>
     <string name="stock_not_yet_available">ストック機能は準備中です</string>
 
@@ -81,6 +82,9 @@
     <string name="article_like">like</string>
     <string name="article_unlike">like を外す</string>
     <string name="article_liked_content_description">like 済み</string>
+    <string name="article_dislike">dislike</string>
+    <string name="article_undislike">dislike を外す</string>
+    <string name="article_disliked_content_description">dislike 済み</string>
 
     <!-- Article detail -->
     <string name="article_detail_title">記事</string>

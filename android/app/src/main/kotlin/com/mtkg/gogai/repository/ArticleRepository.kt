@@ -29,8 +29,9 @@ class ArticleRepository(private val client: ApiClient) {
             when (filter) {
                 ArticleFilter.All -> Unit
                 ArticleFilter.Unread -> add("unreadOnly" to "true")
-                // likedOnly 指定時はサーバーが sortBy を無視して liked_at 降順で返す
+                // 評価フィルター指定時はサーバーが sortBy を無視して評価日時の降順で返す
                 ArticleFilter.Liked -> add("likedOnly" to "true")
+                ArticleFilter.Disliked -> add("dislikedOnly" to "true")
             }
             if (includeSecret) add("includeSecret" to "true")
         }
@@ -57,5 +58,13 @@ class ArticleRepository(private val client: ApiClient) {
 
     suspend fun unlike(id: Int) {
         client.sendVoid(Endpoint.post("/api/articles/$id/unlike"))
+    }
+
+    suspend fun dislike(id: Int) {
+        client.sendVoid(Endpoint.post("/api/articles/$id/dislike"))
+    }
+
+    suspend fun undislike(id: Int) {
+        client.sendVoid(Endpoint.post("/api/articles/$id/undislike"))
     }
 }

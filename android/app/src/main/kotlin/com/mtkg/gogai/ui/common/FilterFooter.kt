@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -23,9 +24,9 @@ import androidx.compose.ui.unit.dp
 import com.mtkg.gogai.R
 import com.mtkg.gogai.model.ArticleFilter
 
-/// 「全て / 未読のみ / like」フィルターと右端のストックボタン（iOS FilterFooterView の移植）。
+/// 「全て / 未読のみ / like / dislike」フィルターと右端のストックボタン（iOS FilterFooterView の移植）。
 /// フィードページ・記事一覧ページの下部に共通で表示する。
-/// 3 つ並ぶとラベル付きでは横幅が足りないためアイコンのみにしている。
+/// 並ぶ数が多くラベル付きでは横幅が足りないためアイコンのみにしている。
 @Composable
 fun FilterFooter(
     filter: ArticleFilter,
@@ -65,6 +66,7 @@ private val ArticleFilter.icon: ImageVector
         ArticleFilter.All -> Icons.AutoMirrored.Filled.List
         ArticleFilter.Unread -> Icons.Filled.MarkEmailUnread
         ArticleFilter.Liked -> Icons.Filled.ThumbUp
+        ArticleFilter.Disliked -> Icons.Filled.ThumbDown
     }
 
 private val ArticleFilter.labelRes: Int
@@ -72,6 +74,7 @@ private val ArticleFilter.labelRes: Int
         ArticleFilter.All -> R.string.filter_all
         ArticleFilter.Unread -> R.string.filter_unread_only
         ArticleFilter.Liked -> R.string.filter_liked
+        ArticleFilter.Disliked -> R.string.filter_disliked
     }
 
 @Composable
