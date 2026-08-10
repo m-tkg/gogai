@@ -46,7 +46,8 @@ private val ActionRevealWidth = 88.dp
 /// iOS の `.swipeActions(edge:allowsFullSwipe:)` 相当を自作した行コンテナ。
 /// - leading（右ドラッグ）: 部分リビールでアクションボタンを表示しタップで発火。
 ///   [allowsLeadingFullSwipe] が true なら、行幅の半分を超えるフルスワイプで自動確定する。
-/// - trailing（左ドラッグ）: 部分リビールのみ（フルスワイプ確定なし）。
+/// - trailing（左ドラッグ）: 部分リビールのみ（フルスワイプ確定なし）。複数指定でき、
+///   浅いスワイプでは先頭のアクションだけが見え、深く引くと後続が現れる（iOS の swipeActions と同じ挙動）。
 ///
 /// AnchoredDraggableState ではなく Animatable + pointerInput による手動実装にしている。
 /// （AnchoredDraggableState のコンストラクタ引数は Compose Foundation のバージョンによって
@@ -55,7 +56,7 @@ private val ActionRevealWidth = 88.dp
 fun SwipeActionRow(
     modifier: Modifier = Modifier,
     leading: SwipeAction? = null,
-    trailing: SwipeAction? = null,
+    trailing: List<SwipeAction> = emptyList(),
     allowsLeadingFullSwipe: Boolean = true,
     content: @Composable () -> Unit,
 ) {
@@ -83,15 +84,25 @@ fun SwipeActionRow(
                 }
             }
             Spacer(modifier = Modifier.weight(1f))
-            if (trailing != null) {
-                val revealedPx = (-offsetX.value).coerceAtLeast(0f)
-                if (revealedPx > 0f) {
-                    SwipeActionBackground(
-                        action = trailing,
-                        widthPx = revealedPx,
-                        onClick = { trailing.onClick(); animateTo(0f) },
-                    )
-                }
+            // 露出量を先頭のアクションから順に割り当てる。
+            // 浅いスワイプでは 1 個目だけが幅を持ち、深く引くと 2 個目以降が現れる。
+            val widths = mutableListOf<Float>()
+            var remainingPx = (-offsetX.value).coerceAtLeast(0f)
+            for (i in trailing.indices) {
+                val w = minOf(remainingPx, actionWidthPx)
+                widths.add(w)
+                remainingPx -= w
+                if (remainingPx <= 0f) break
+            }
+            // 先頭のアクションを最も端（右）に置く（iOS の swipeActions と同じ並び）ため逆順に描画する
+            for (i in widths.indices.reversed()) {
+                if (widths[i] <= 0f) continue
+                val action = trailing[i]
+                SwipeActionBackground(
+                    action = action,
+                    widthPx = widths[i],
+                    onClick = { action.onClick(); animateTo(0f) },
+                )
             }
         }
 
@@ -113,14 +124,19 @@ fun SwipeActionRow(
                                     }
                                 }
                                 leading != null && current >= actionWidthPx / 2f -> animateTo(actionWidthPx)
-                                trailing != null && current <= -actionWidthPx / 2f -> animateTo(-actionWidthPx)
+                                trailing.isNotEmpty() && current <= -actionWidthPx / 2f -> {
+                                    // 露出量に最も近いアクション境界へスナップする（1 個分 / 2 個分…）
+                                    val revealed = -current
+                                    val steps = (revealed / actionWidthPx + 0.5f).toInt().coerceIn(1, trailing.size)
+                                    animateTo(-actionWidthPx * steps)
+                                }
                                 else -> animateTo(0f)
                             }
                         },
                         onDragCancel = { animateTo(0f) },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            val minX = if (trailing != null) -actionWidthPx else 0f
+                            val minX = -actionWidthPx * trailing.size
                             val maxX = when {
                                 leading == null -> 0f
                                 allowsLeadingFullSwipe -> rowWidthPx.coerceAtLeast(actionWidthPx)

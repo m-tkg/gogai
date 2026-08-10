@@ -82,7 +82,7 @@ fun SidebarScreen(
     @Suppress("UNUSED_VARIABLE") val feedCounts by articleStore.feedCounts.collectAsState()
     @Suppress("UNUSED_VARIABLE") val allArticles by articleStore.allArticles.collectAsState()
     @Suppress("UNUSED_VARIABLE") val articles by articleStore.articles.collectAsState()
-    val unreadOnly by articleStore.unreadOnly.collectAsState()
+    val filter by articleStore.filter.collectAsState()
     val isArticleLoading by articleStore.isLoading.collectAsState()
 
     val isSettingsLoading by settingsStore.isLoading.collectAsState()
@@ -206,8 +206,8 @@ fun SidebarScreen(
         },
         bottomBar = {
             FilterFooter(
-                unreadOnly = unreadOnly,
-                onUnreadOnlyChange = { articleStore.setUnreadOnly(it) },
+                filter = filter,
+                onFilterChange = { articleStore.setFilter(it) },
                 onStockTap = onStockTap,
             )
         },

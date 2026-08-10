@@ -4,6 +4,7 @@ import com.mtkg.gogai.cache.AppCache
 import com.mtkg.gogai.cache.DefaultsKeys
 import com.mtkg.gogai.cache.KeyValueStore
 import com.mtkg.gogai.model.Article
+import com.mtkg.gogai.model.ArticleFilter
 import com.mtkg.gogai.model.ArticleSortOrder
 import com.mtkg.gogai.model.FeedCount
 import com.mtkg.gogai.model.FieldUpdate
@@ -50,8 +51,12 @@ class ArticleStore(
     private val _error = MutableStateFlow<Throwable?>(null)
     val error: StateFlow<Throwable?> = _error.asStateFlow()
 
-    private val _unreadOnly = MutableStateFlow(keyValueStore.getBoolean(DefaultsKeys.UNREAD_ONLY, false))
-    val unreadOnly: StateFlow<Boolean> = _unreadOnly.asStateFlow()
+    // 旧バージョンの unreadOnly（Boolean）しか無いユーザーはそこから移行する
+    private val _filter = MutableStateFlow(
+        ArticleFilter.fromRawValue(keyValueStore.getString(DefaultsKeys.ARTICLE_FILTER))
+            ?: if (keyValueStore.getBoolean(DefaultsKeys.UNREAD_ONLY, false)) ArticleFilter.Unread else ArticleFilter.All
+    )
+    val filter: StateFlow<ArticleFilter> = _filter.asStateFlow()
 
     private val _sortOrder = MutableStateFlow(
         ArticleSortOrder.fromRawValue(keyValueStore.getString(DefaultsKeys.SORT_ORDER)) ?: ArticleSortOrder.PublishedAt
@@ -69,9 +74,9 @@ class ArticleStore(
     /// - 次回 fetchArticles 成功時に applyPendingReads() で UI を復元し再送する
     private val pendingReadIds = mutableSetOf<Int>()
 
-    /// 最後の fetchArticles が unreadOnly=true で実行されたかどうか。
-    /// refresh() での既読記事保持の判定に使用する。
-    private var loadedWithUnreadOnly = false
+    /// 最後の fetchArticles を実行したときのフィルター。
+    /// refresh() での「フィルターから外れた記事」の保持判定に使用する。
+    private var loadedWithFilter = ArticleFilter.All
 
     /// 並行する fetchArticles 呼び出しで古い結果が上書きしないよう管理する世代カウンター
     private var fetchGeneration = 0
@@ -90,9 +95,9 @@ class ArticleStore(
         this.client = client
     }
 
-    fun setUnreadOnly(value: Boolean) {
-        _unreadOnly.value = value
-        keyValueStore.putBoolean(DefaultsKeys.UNREAD_ONLY, value)
+    fun setFilter(value: ArticleFilter) {
+        _filter.value = value
+        keyValueStore.putString(DefaultsKeys.ARTICLE_FILTER, value.rawValue)
     }
 
     fun setSortOrder(value: ArticleSortOrder) {
@@ -103,14 +108,14 @@ class ArticleStore(
     suspend fun fetchArticles(
         feedId: Int? = null,
         groupId: Int? = null,
-        unreadOnly: Boolean? = null,
+        filter: ArticleFilter? = null,
         includeSecret: Boolean = false,
     ) {
         val client = this.client ?: return
         currentFeedId = feedId
         currentGroupId = groupId
         currentIncludeSecret = includeSecret
-        if (unreadOnly != null) setUnreadOnly(unreadOnly)
+        if (filter != null) setFilter(filter)
         fetchGeneration += 1
         val myGeneration = fetchGeneration
         loadingTaskCount += 1
@@ -119,18 +124,18 @@ class ArticleStore(
             val fetched = ArticleRepository(client).fetchAll(
                 feedId = feedId,
                 groupId = groupId,
-                unreadOnly = _unreadOnly.value,
+                filter = _filter.value,
                 sortOrder = _sortOrder.value,
                 includeSecret = includeSecret,
             )
             // 新しいフェッチが始まっていれば古い結果は破棄する
             if (myGeneration != fetchGeneration) return
             _articles.value = fetched
-            loadedWithUnreadOnly = _unreadOnly.value
+            loadedWithFilter = _filter.value
             // コレクション（未読バッジ・サイドバー表示判定用）は全記事が必要。
-            // unreadOnly のフィルターが有効なフェッチ結果は一部の記事しか含まないため、
+            // フィルターが有効なフェッチ結果は一部の記事しか含まないため、
             // これで上書きするとキャッシュが汚染される。フィルターなしの全件フェッチ時のみ更新する。
-            if (!_unreadOnly.value) {
+            if (_filter.value.isFullFetch) {
                 collection.merge(fetched, isFullFetch = feedId == null && groupId == null)
                 _allArticles.value = collection.articles
                 cache.saveAllArticles(collection.articles)
@@ -151,11 +156,11 @@ class ArticleStore(
     }
 
     suspend fun refresh() {
-        // refresh 前に既読になっていた記事を保存する
-        // unreadOnly=true かつ前回フェッチも unreadOnly=true だった場合のみ保存する
-        // （unreadOnly=false で読み込まれた記事は既読・未読が混在しており、
-        //   「このセッションで読んだ記事」と区別できないため保持しない）
-        val previouslyReadArticles = if (loadedWithUnreadOnly) _articles.value.filter { it.isRead } else emptyList()
+        // refresh 前に「フィルターから外れた記事」を保存する
+        // （未読のみ表示中に既読にした記事 / like 表示中に like を外した記事）
+        // All で読み込まれた記事は混在しており「このセッションで操作した記事」と区別できないため保持しない
+        val previouslyVisibleArticles =
+            if (loadedWithFilter.isFullFetch) emptyList() else _articles.value.filterNot { matchesCurrentFilter(it) }
 
         // refresh 開始時の世代を記録し、fetch 中に外部から fetchArticles が呼ばれたか検知する
         val genBefore = fetchGeneration
@@ -168,28 +173,37 @@ class ArticleStore(
         // 自分の fetchArticles 以外にも呼び出しがあった場合はその結果を尊重し保持ロジックをスキップ
         // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
         if (fetchGeneration != genBefore + 1) return
-        if (previouslyReadArticles.isEmpty()) return
+        if (previouslyVisibleArticles.isEmpty()) return
 
         // API レスポンス遅延による未読状態の不一致を修正（fetch 結果に含まれている場合）
-        val localReadIds = previouslyReadArticles.map { it.id }.toSet()
-        val preserveReadState: (Article) -> Article = { a ->
-            if (localReadIds.contains(a.id) && !a.isRead) a.updating(isRead = 1) else a
-        }
-        _articles.value = _articles.value.map(preserveReadState)
-        collection.updateAll(preserveReadState)
-        _allArticles.value = collection.articles
-
-        // unreadOnly: true の場合、fetch 結果に含まれなかった既読記事をリストに保持する
-        // （このセッションで読んだ記事が自動 refresh で消えないようにするため）
-        // コレクションは未読バッジ計算用のため、既読になった記事は追加不要
-        if (_unreadOnly.value) {
-            val newIds = _articles.value.map { it.id }.toSet()
-            val toPreserve = previouslyReadArticles.filter { it.id !in newIds }
-            if (toPreserve.isNotEmpty()) {
-                _articles.value = (_articles.value + toPreserve).sortedWith(articleDateComparator(_sortOrder.value))
+        // like は解除がサーバーへ即時反映されるため、既読のみを対象にする
+        if (_filter.value == ArticleFilter.Unread) {
+            val localReadIds = previouslyVisibleArticles.filter { it.isRead }.map { it.id }.toSet()
+            val preserveReadState: (Article) -> Article = { a ->
+                if (localReadIds.contains(a.id) && !a.isRead) a.updating(isRead = 1) else a
             }
+            _articles.value = _articles.value.map(preserveReadState)
+            collection.updateAll(preserveReadState)
+            _allArticles.value = collection.articles
         }
+
+        // fetch 結果に含まれなかった記事（既読にした / like を外した）をリストに保持する
+        // （このセッションで操作した記事が自動 refresh で消えないようにするため）
+        // コレクションは未読バッジ計算用のため、フィルターから外れた記事は追加不要
+        val newIds = _articles.value.map { it.id }.toSet()
+        val toPreserve = previouslyVisibleArticles.filter { it.id !in newIds }
+        if (toPreserve.isEmpty()) return
+        _articles.value = (_articles.value + toPreserve).sortedWith(sortComparator())
     }
+
+    /// 現在のフィルター・ソート順に対応する並び替え規則
+    private fun sortComparator(): Comparator<Article> =
+        // like 一覧はサーバーが liked_at 降順で返すため、ローカル保持分も同じ規則で並べる
+        if (_filter.value == ArticleFilter.Liked) {
+            Comparator { a, b -> (b.liked_at ?: "").compareTo(a.liked_at ?: "") }
+        } else {
+            articleDateComparator(_sortOrder.value)
+        }
 
     /// 既読⇄未読を記事の現在状態に応じて切り替える（View 側の分岐重複を防ぐ）
     suspend fun toggleRead(article: Article) {
@@ -246,6 +260,34 @@ class ArticleStore(
         )
     }
 
+    // MARK: - like（キュレーター向けの好みシグナル。既読とは独立した軸）
+
+    /// like ⇄ 未 like を記事の現在状態に応じて切り替える（View 側の分岐重複を防ぐ）
+    suspend fun toggleLike(article: Article) {
+        if (article.isLiked) unlike(article.id) else like(article.id)
+    }
+
+    suspend fun like(id: Int) {
+        val client = this.client ?: return
+        val now = nowIso()
+        optimisticUpdate(
+            id = id,
+            transform = { it.updating(likedAt = FieldUpdate.Set(now)) },
+            apiCall = { ArticleRepository(client).like(id) },
+            onIOException = UrlErrorPolicy.Rollback,
+        )
+    }
+
+    suspend fun unlike(id: Int) {
+        val client = this.client ?: return
+        optimisticUpdate(
+            id = id,
+            transform = { it.updating(likedAt = FieldUpdate.Clear) },
+            apiCall = { ArticleRepository(client).unlike(id) },
+            onIOException = UrlErrorPolicy.Rollback,
+        )
+    }
+
     // MARK: - バッジ件数・表示判定（現在のフィルタに連動）
 
     /// バッジ計算・表示判定に使う記事ソース。
@@ -253,24 +295,29 @@ class ArticleStore(
     private val badgeSource: List<Article>
         get() = if (collection.isEmpty) _articles.value else collection.articles
 
-    /// 現在のフィルタ（全て / 未読のみ）に記事が合致するか
-    private fun matchesCurrentFilter(article: Article): Boolean {
-        if (_unreadOnly.value && article.isRead) return false
-        return true
+    /// 現在のフィルタ（全て / 未読のみ / like）に記事が合致するか
+    private fun matchesCurrentFilter(article: Article): Boolean = when (_filter.value) {
+        ArticleFilter.All -> true
+        ArticleFilter.Unread -> !article.isRead
+        ArticleFilter.Liked -> article.isLiked
     }
 
     /// サーバー集計をバッジ計算に使えるか。未取得（空）のときはコレクション計算にフォールバックする。
     private val canUseFeedCounts: Boolean
         get() = _feedCounts.value.isNotEmpty()
 
-    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread
-    private fun filteredCount(count: FeedCount): Int = if (_unreadOnly.value) count.unread else count.total
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「like」= liked
+    private fun filteredCount(count: FeedCount): Int = when (_filter.value) {
+        ArticleFilter.All -> count.total
+        ArticleFilter.Unread -> count.unread
+        ArticleFilter.Liked -> count.liked
+    }
 
-    /// 現在有効なフィルタ（unreadOnly）を適用したとき、
+    /// 現在有効なフィルタを適用したとき、
     /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
     /// フィルタが何も有効でない場合は常に true。
     fun hasVisibleArticle(feedId: Int): Boolean {
-        if (!_unreadOnly.value) return true
+        if (_filter.value.isFullFetch) return true
         if (canUseFeedCounts) {
             return _feedCounts.value[feedId]?.let { filteredCount(it) > 0 } ?: false
         }
@@ -335,6 +382,9 @@ class ArticleStore(
 
         /// 楽観更新を維持し、既読リトライキューから取り除く（markAsUnread）
         CancelPendingRead,
+
+        /// 楽観更新を取り消す。既読キューには触れない（like / unlike）
+        Rollback,
     }
 
     /// 楽観的更新の唯一の経路。
@@ -349,13 +399,15 @@ class ArticleStore(
 
         try {
             apiCall()
-            pendingReadIds.remove(id)
+            // like 系は既読キューと無関係なので、成功しても既読の再送予定を消さない
+            if (onIOException != UrlErrorPolicy.Rollback) pendingReadIds.remove(id)
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
             when (onIOException) {
                 UrlErrorPolicy.EnqueuePendingRead -> pendingReadIds.add(id)
                 UrlErrorPolicy.CancelPendingRead -> pendingReadIds.remove(id)
+                UrlErrorPolicy.Rollback -> mutateBoth(id) { original }
             }
         } catch (e: Exception) {
             mutateBoth(id) { original }
@@ -383,8 +435,14 @@ class ArticleStore(
     private fun applyCountsDelta(original: Article, updated: Article) {
         val count = _feedCounts.value[original.feed_id] ?: return
         val unreadDelta = (if (updated.isRead) 0 else 1) - (if (original.isRead) 0 else 1)
-        if (unreadDelta == 0) return
-        _feedCounts.value = _feedCounts.value + (original.feed_id to count.copy(unread = maxOf(0, count.unread + unreadDelta)))
+        val likedDelta = (if (updated.isLiked) 1 else 0) - (if (original.isLiked) 1 else 0)
+        if (unreadDelta == 0 && likedDelta == 0) return
+        _feedCounts.value = _feedCounts.value + (
+            original.feed_id to count.copy(
+                unread = maxOf(0, count.unread + unreadDelta),
+                liked = maxOf(0, count.liked + likedDelta),
+            )
+            )
     }
 
     /// pendingReadIds に含まれる記事をローカルで既読に上書きする（fetchArticles 後に呼ぶ）

@@ -2,7 +2,9 @@ package com.mtkg.gogai.cache
 
 /// SharedPreferences のキーを一元管理する（散在ハードコードと衝突を防ぐ、iOS DefaultsKeys の移植）
 object DefaultsKeys {
+    /// 旧・未読のみフィルター（Boolean）。ARTICLE_FILTER への移行元としてのみ読む
     const val UNREAD_ONLY = "unreadOnly"
+    const val ARTICLE_FILTER = "articleFilter"
     const val SORT_ORDER = "sortOrder"
     const val SERVER_URL = "serverURL"
     const val RESOLVED_SERVER_URL = "resolvedServerURL"

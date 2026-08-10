@@ -12,6 +12,9 @@ val AccentColor = Color(0xFF007AFF)
 val AccentColorDark = Color(0xFF0A84FF)
 val SecretOrange = Color(0xFFFF9500)
 
+// like の表現色（iOS の .pink 相当）
+val LikePink = Color(0xFFFF2D55)
+
 private val LightColors = lightColorScheme(
     primary = AccentColor,
     secondary = AccentColor,
