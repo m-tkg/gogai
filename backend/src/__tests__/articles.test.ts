@@ -361,8 +361,8 @@ describe('ArticlesService', () => {
       const counts = articlesService.countsByFeed()
       const feed1Count = counts.find(c => c.feed_id === feedId)
       const feed2Count = counts.find(c => c.feed_id === feed2.id)
-      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2 })
-      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1 })
+      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2, liked: 0 })
+      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1, liked: 0 })
     })
 
     it('シークレットグループのフィードも集計に含む', () => {
@@ -375,7 +375,7 @@ describe('ArticlesService', () => {
 
       const counts = articlesService.countsByFeed()
       const secretCount = counts.find(c => c.feed_id === secretFeed.id)
-      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1 })
+      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1, liked: 0 })
     })
 
     it('記事が 0 件のフィードは結果に含まれない', () => {

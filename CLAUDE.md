@@ -82,6 +82,18 @@ DuckDuckGo favicon は ICO を返すため使用禁止。
 サーバー起動時と 24 時間ごとに実行。
 `settings` テーブルの `retention_days`（デフォルト 180）を毎回読んで判定。
 `COALESCE(published_at, created_at)` が閾値より古い記事を削除。
+ただし **`liked_at IS NOT NULL` の記事（like 済み）は削除しない**。
+
+### like（記事の好みフラグ）
+
+外部のキュレーション AI に渡す「ユーザーの好み」シグナル。`articles.liked_at`（NULL = 未 like）で表す。
+既読の `is_read` + `read_at` と違い 1 カラムで状態と日時を兼ねる。
+
+- `POST /api/articles/:id/like` / `/unlike` — body なし・204。既読と同じく存在しない id でも 204
+- `GET /api/articles?likedOnly=true` — like 済みのみを返す。**`sortBy` を無視して `liked_at DESC` 固定**
+- `GET /api/articles/counts` の `liked` — フィードごとの like 数
+- 蓄積は自動化しない（ユーザーが明示的に付ける）。like しても既読にはしない
+- retention の削除対象外。ただしフィード削除時は CASCADE で消える
 
 ### Admin エンドポイント（`routes/admin.ts`）
 

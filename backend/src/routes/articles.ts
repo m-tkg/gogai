@@ -20,11 +20,12 @@ app.get('/', (c) => {
   const feedId = c.req.query('feedId') ? Number(c.req.query('feedId')) : undefined
   const groupId = c.req.query('groupId') ? Number(c.req.query('groupId')) : undefined
   const unreadOnly = c.req.query('unreadOnly') === 'true'
+  const likedOnly = c.req.query('likedOnly') === 'true'
   const includeSecret = c.req.query('includeSecret') === 'true'
   const sortByParam = c.req.query('sortBy')
   const sortBy: SortBy = sortByParam === 'read_at' ? 'read_at' : 'published_at'
 
-  const articles = new ArticlesService(getDb()).findAll({ limit, offset, feedId, groupId, unreadOnly, sortBy, includeSecret })
+  const articles = new ArticlesService(getDb()).findAll({ limit, offset, feedId, groupId, unreadOnly, likedOnly, sortBy, includeSecret })
   return c.json(articles)
 })
 
@@ -46,6 +47,16 @@ app.post('/:id/read', (c) => {
 
 app.post('/:id/unread', (c) => {
   new ArticlesService(getDb()).markAsUnread(Number(c.req.param('id')))
+  return c.body(null, 204)
+})
+
+app.post('/:id/like', (c) => {
+  new ArticlesService(getDb()).like(Number(c.req.param('id')))
+  return c.body(null, 204)
+})
+
+app.post('/:id/unlike', (c) => {
+  new ArticlesService(getDb()).unlike(Number(c.req.param('id')))
   return c.body(null, 204)
 })
 

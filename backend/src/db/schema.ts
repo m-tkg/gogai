@@ -192,6 +192,15 @@ const MIGRATIONS: Migration[] = [
       dropColumn(db, 'articles', 'is_favorite')
     },
   },
+  {
+    name: 'articles-add-liked-at',
+    up: (db) => {
+      // 外部のキュレーター AI に渡す「ユーザーの好み」シグナル。NULL = 未 like。
+      // like された記事は retention による自動削除の対象外になる（services/articles.ts）
+      addColumn(db, 'articles', 'liked_at TEXT')
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_liked_at ON articles(liked_at DESC)`)
+    },
+  },
 ]
 
 export function initSchema(db: Database.Database): void {
