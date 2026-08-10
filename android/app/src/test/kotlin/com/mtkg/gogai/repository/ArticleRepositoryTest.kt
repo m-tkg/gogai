@@ -1,5 +1,6 @@
 package com.mtkg.gogai.repository
 
+import com.mtkg.gogai.model.ArticleFilter
 import com.mtkg.gogai.model.ArticleSortOrder
 import com.mtkg.gogai.network.ApiClient
 import kotlinx.coroutines.test.runTest
@@ -44,7 +45,7 @@ class ArticleRepositoryTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody("[$sampleArticleJson]"))
         repository.fetchAll(
             feedId = 7,
-            unreadOnly = true,
+            filter = ArticleFilter.Unread,
             sortOrder = ArticleSortOrder.ReadAt,
             includeSecret = true,
         )
@@ -53,6 +54,32 @@ class ArticleRepositoryTest {
             "/api/articles?limit=1000&offset=0&sortBy=read_at&feedId=7&unreadOnly=true&includeSecret=true",
             recorded.path,
         )
+    }
+
+    @Test
+    fun `fetchAll は liked フィルターで likedOnly を付与する`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("[$sampleArticleJson]"))
+        repository.fetchAll(filter = ArticleFilter.Liked)
+        val recorded = server.takeRequest()
+        assertEquals("/api/articles?limit=1000&offset=0&sortBy=published_at&likedOnly=true", recorded.path)
+    }
+
+    @Test
+    fun `like は POST api articles id like を叩く`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(""))
+        repository.like(id = 5)
+        val recorded = server.takeRequest()
+        assertEquals("POST", recorded.method)
+        assertEquals("/api/articles/5/like", recorded.path)
+    }
+
+    @Test
+    fun `unlike は POST api articles id unlike を叩く`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(""))
+        repository.unlike(id = 5)
+        val recorded = server.takeRequest()
+        assertEquals("POST", recorded.method)
+        assertEquals("/api/articles/5/unlike", recorded.path)
     }
 
     @Test
@@ -74,9 +101,10 @@ class ArticleRepositoryTest {
 
     @Test
     fun `fetchCounts は GET api articles counts を叩く`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""[{"feed_id":1,"total":2,"unread":1}]"""))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""[{"feed_id":1,"total":2,"unread":1,"liked":1}]"""))
         val counts = repository.fetchCounts()
         assertEquals(1, counts.size)
+        assertEquals(1, counts[0].liked)
         val recorded = server.takeRequest()
         assertEquals("/api/articles/counts", recorded.path)
     }

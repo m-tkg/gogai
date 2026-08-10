@@ -1,6 +1,7 @@
 package com.mtkg.gogai.repository
 
 import com.mtkg.gogai.model.Article
+import com.mtkg.gogai.model.ArticleFilter
 import com.mtkg.gogai.model.ArticleSortOrder
 import com.mtkg.gogai.model.FeedCount
 import com.mtkg.gogai.network.ApiClient
@@ -13,7 +14,7 @@ class ArticleRepository(private val client: ApiClient) {
     suspend fun fetchAll(
         feedId: Int? = null,
         groupId: Int? = null,
-        unreadOnly: Boolean = false,
+        filter: ArticleFilter = ArticleFilter.All,
         sortOrder: ArticleSortOrder = ArticleSortOrder.PublishedAt,
         limit: Int = 1000,
         offset: Int = 0,
@@ -25,7 +26,12 @@ class ArticleRepository(private val client: ApiClient) {
             add("sortBy" to sortOrder.rawValue)
             feedId?.let { add("feedId" to it.toString()) }
             groupId?.let { add("groupId" to it.toString()) }
-            if (unreadOnly) add("unreadOnly" to "true")
+            when (filter) {
+                ArticleFilter.All -> Unit
+                ArticleFilter.Unread -> add("unreadOnly" to "true")
+                // likedOnly 指定時はサーバーが sortBy を無視して liked_at 降順で返す
+                ArticleFilter.Liked -> add("likedOnly" to "true")
+            }
             if (includeSecret) add("includeSecret" to "true")
         }
         return client.send(Endpoint.get("/api/articles", queryItems), ListSerializer(Article.serializer()))
@@ -43,5 +49,13 @@ class ArticleRepository(private val client: ApiClient) {
 
     suspend fun markAsUnread(id: Int) {
         client.sendVoid(Endpoint.post("/api/articles/$id/unread"))
+    }
+
+    suspend fun like(id: Int) {
+        client.sendVoid(Endpoint.post("/api/articles/$id/like"))
+    }
+
+    suspend fun unlike(id: Int) {
+        client.sendVoid(Endpoint.post("/api/articles/$id/unlike"))
     }
 }

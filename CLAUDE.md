@@ -82,6 +82,18 @@ DuckDuckGo favicon は ICO を返すため使用禁止。
 サーバー起動時と 24 時間ごとに実行。
 `settings` テーブルの `retention_days`（デフォルト 180）を毎回読んで判定。
 `COALESCE(published_at, created_at)` が閾値より古い記事を削除。
+ただし **`liked_at IS NOT NULL` の記事（like 済み）は削除しない**。
+
+### like（記事の好みフラグ）
+
+外部のキュレーション AI に渡す「ユーザーの好み」シグナル。`articles.liked_at`（NULL = 未 like）で表す。
+既読の `is_read` + `read_at` と違い 1 カラムで状態と日時を兼ねる。
+
+- `POST /api/articles/:id/like` / `/unlike` — body なし・204。既読と同じく存在しない id でも 204
+- `GET /api/articles?likedOnly=true` — like 済みのみを返す。**`sortBy` を無視して `liked_at DESC` 固定**
+- `GET /api/articles/counts` の `liked` — フィードごとの like 数
+- 蓄積は自動化しない（ユーザーが明示的に付ける）。like しても既読にはしない
+- retention の削除対象外。ただしフィード削除時は CASCADE で消える
 
 ### Admin エンドポイント（`routes/admin.ts`）
 
@@ -286,6 +298,22 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | **ストック一覧ページ** | `StockCategoryListView` / `StockListView` | カテゴリ別のストック一覧 |
 | **ストック詳細ページ** | `StockDetailView` | ストックのタイトル・要約・翻訳を表示 |
 
+### like（記事の好みフラグ）
+
+サーバーの `articles.liked_at` を読み書きする UI。iOS / Android で同じ操作感。
+
+- **記事一覧の左スワイプ**: 浅く引くと「ストック」だけ、深く引くと「like」も現れる
+  （iOS は `swipeActions` に 2 ボタンを宣言、Android は `SwipeActionRow` の `trailing: List<SwipeAction>`。
+  どちらも**先に宣言したアクションほど端に出る**）
+- **like 済みの表示**: 行にバッジ（`hand.thumbsup.fill` / `Icons.Filled.ThumbUp`）＋ スワイプボタンのラベルも切り替わる
+- **概要ページ**: 下部バーに like トグル
+- **フッター**: 「全て / 未読のみ / like」の 3 択排他フィルター。3 つ並ぶと横幅が足りないので**アイコンのみ**
+- 状態は `ArticleFilter`（all/unread/liked）で持ち、UserDefaults / SharedPreferences に永続化する
+  （旧 `unreadOnly` キーからは自動移行）
+- like フィルター中はフィード行のバッジが like 数になる（`FeedCount.liked`）
+- **like は既読にしない**。通信失敗時はロールバックする（既読の pending キューには積まない。
+  流用すると既読の再送予定を壊すため `URLErrorPolicy.rollback` / `UrlErrorPolicy.Rollback` を別に用意している）
+
 ### 画面・インタラクション仕様
 
 | ページ | 機能 |
@@ -294,10 +322,10 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | フィードページ（SidebarView） | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
 | 記事一覧ページ（ArticleListView） | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
 | 記事一覧ページ（ArticleListView） | 右スワイプ 12.5% でボタン表示、25% で確定: 既読/未読トグル |
-| 記事一覧ページ（ArticleListView） | 左スワイプ 12.5% でボタン表示、25% で確定: ストックに入れる（ストック元は所属グループ名） |
+| 記事一覧ページ（ArticleListView） | 左スワイプ: 浅く引くと「ストックに入れる」（ストック元は所属グループ名）、深く引くと「like」も出る |
 | 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
 | 概要ページ（ArticleDetailView） | 左スワイプ: 記事ページ（BrowserView）を push 遷移（右から左）で開く |
-| FilterFooterView | 「全て」「未読のみ」「ストック」ボタン（フィードページ・記事一覧ページ共通、ストックは一番右端）|
+| FilterFooterView | 「全て」「未読のみ」「like」のアイコンボタン（排他フィルター）＋ 右端にストック遷移ボタン（フィードページ・記事一覧ページ共通）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | 記事ページ（BrowserView） | 右スワイプ または 右下の閉じるボタンで閉じる |
 | ストック一覧ページ（StockListView） | 行を長押し: 詳細ページのフッターと同じ操作（元記事/翻訳/要約を生成/編集/削除）をコンテキストメニューで実行 |
@@ -354,6 +382,8 @@ iOS 版と同じ使い勝手を目標にした移植（View → Store → Reposi
   `assets/translator/extract.js` は iOS の TreeWalker JS を逐語移植）
 - **並び替えは編集モードの上下ボタン**（iOS はドラッグ&ドロップ）。`sh.calvin.reorderable` は導入済みだが未結線
 - **タブレット**: WindowWidthSizeClass Expanded で 3 ペイン表示（iPad の NavigationSplitView 相当）
+- **スワイプの閾値**は自作の `SwipeActionRow` が持つ（iOS の `swipeActions` は SwiftUI 任せで数値指定できない）。
+  trailing のアクション 1 個分は 88dp（`ActionRevealWidth`）で、離した位置に最も近い境界へスナップする
 
 ## テスト指針
 

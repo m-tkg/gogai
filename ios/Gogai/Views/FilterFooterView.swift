@@ -1,23 +1,23 @@
 import SwiftUI
 
 struct FilterFooterView: View {
-    @Binding var unreadOnly: Bool
+    @Binding var filter: ArticleFilter
     /// 指定するとストックボタンを右端に表示する(ストック一覧への遷移用。フィルターではない)
     var onStockTap: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
-            Button("全て") {
-                unreadOnly = false
+            // 3 つ並ぶとラベル付きでは横幅が足りないためアイコンのみにする
+            ForEach(ArticleFilter.allCases, id: \.self) { candidate in
+                Button {
+                    filter = candidate
+                } label: {
+                    Image(systemName: candidate.iconName)
+                }
+                .buttonStyle(.bordered)
+                .tint(filter == candidate ? .accentColor : nil)
+                .accessibilityLabel(candidate.label)
             }
-            .buttonStyle(.bordered)
-            .tint(!unreadOnly ? .accentColor : nil)
-
-            Button("未読のみ") {
-                unreadOnly = true
-            }
-            .buttonStyle(.bordered)
-            .tint(unreadOnly ? .accentColor : nil)
 
             Spacer()
 

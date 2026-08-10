@@ -32,6 +32,8 @@ data class FeedCount(
     val feed_id: Int,
     val total: Int,
     val unread: Int,
+    /// like された記事の件数（like フィルター選択時のバッジに使う）
+    val liked: Int,
 )
 
 @Serializable

@@ -12,8 +12,8 @@ final class ArticleStore: ObservableObject {
     @Published private(set) var feedCounts: [Int: FeedCount] = [:]
     @Published private(set) var isLoading = false
     @Published var error: Error?
-    @Published var unreadOnly: Bool {
-        didSet { UserDefaults.standard.set(unreadOnly, forKey: DefaultsKeys.unreadOnly) }
+    @Published var filter: ArticleFilter {
+        didSet { UserDefaults.standard.set(filter.rawValue, forKey: DefaultsKeys.articleFilter) }
     }
     @Published var sortOrder: ArticleSortOrder {
         didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: DefaultsKeys.sortOrder) }
@@ -33,10 +33,10 @@ final class ArticleStore: ObservableObject {
     ///   （本修正の目的である「アプリを開いたままサーバーが再起動」には十分）
     /// - 次回 fetchArticles 成功時に applyPendingReads() で UI を復元し再送する
     private var pendingReadIds: Set<Int> = []
-    /// 最後の fetchArticles が unreadOnly=true で実行されたかどうか
-    /// refresh() での既読記事保持の判定に使用する
-    /// unreadOnly=false で読み込まれた記事は「既読になった記事」と区別できないため保持しない
-    private var loadedWithUnreadOnly: Bool = false
+    /// 最後の fetchArticles を実行したときのフィルター
+    /// refresh() での「フィルターから外れた記事」の保持判定に使用する
+    /// .all で読み込まれた記事は「このセッションで状態が変わった記事」と区別できないため保持しない
+    private var loadedWithFilter: ArticleFilter = .all
     /// 並行する fetchArticles 呼び出しで古い結果が上書きしないよう管理する世代カウンター
     private var fetchGeneration = 0
     /// isLoading を正確に管理するための実行中タスク数
@@ -44,7 +44,13 @@ final class ArticleStore: ObservableObject {
 
     init(cache: AppCache = .shared) {
         self.cache = cache
-        self.unreadOnly = UserDefaults.standard.bool(forKey: DefaultsKeys.unreadOnly)
+        // 旧バージョンの unreadOnly（Bool）しか無いユーザーはそこから移行する
+        if let saved = UserDefaults.standard.string(forKey: DefaultsKeys.articleFilter),
+           let restored = ArticleFilter(rawValue: saved) {
+            self.filter = restored
+        } else {
+            self.filter = UserDefaults.standard.bool(forKey: DefaultsKeys.unreadOnly) ? .unread : .all
+        }
         let savedSort = UserDefaults.standard.string(forKey: DefaultsKeys.sortOrder) ?? ""
         self.sortOrder = ArticleSortOrder(rawValue: savedSort) ?? .publishedAt
         // 起動時にキャッシュから全記事を読み込み、未読カウントを即座に表示する
@@ -61,12 +67,12 @@ final class ArticleStore: ObservableObject {
     }
 
     @MainActor
-    func fetchArticles(feedId: Int? = nil, groupId: Int? = nil, unreadOnly: Bool? = nil, includeSecret: Bool = false) async {
+    func fetchArticles(feedId: Int? = nil, groupId: Int? = nil, filter: ArticleFilter? = nil, includeSecret: Bool = false) async {
         guard let client else { return }
         currentFeedId = feedId
         currentGroupId = groupId
         currentIncludeSecret = includeSecret
-        if let unreadOnly { self.unreadOnly = unreadOnly }
+        if let filter { self.filter = filter }
         fetchGeneration += 1
         let myGeneration = fetchGeneration
         loadingTaskCount += 1
@@ -79,18 +85,18 @@ final class ArticleStore: ObservableObject {
             let fetched = try await ArticleRepository(client: client).fetchAll(
                 feedId: feedId,
                 groupId: groupId,
-                unreadOnly: self.unreadOnly,
+                filter: self.filter,
                 sortOrder: self.sortOrder,
                 includeSecret: includeSecret
             )
             // 新しいフェッチが始まっていれば古い結果は破棄する
             guard myGeneration == fetchGeneration else { return }
             articles = fetched
-            loadedWithUnreadOnly = self.unreadOnly
+            loadedWithFilter = self.filter
             // コレクション（未読バッジ・サイドバー表示判定用）は全記事が必要。
-            // unreadOnly のフィルターが有効なフェッチ結果は一部の記事しか含まないため、
+            // フィルターが有効なフェッチ結果は一部の記事しか含まないため、
             // これで上書きするとキャッシュが汚染される。フィルターなしの全件フェッチ時のみ更新する。
-            if !self.unreadOnly {
+            if self.filter.isFullFetch {
                 allCollection.merge(fetched, isFullFetch: feedId == nil && groupId == nil)
                 cache.saveAllArticles(allCollection.articles)
             }
@@ -106,11 +112,10 @@ final class ArticleStore: ObservableObject {
 
     @MainActor
     func refresh() async {
-        // refresh 前に既読になっていた記事を保存する
-        // unreadOnly=true かつ前回フェッチも unreadOnly=true だった場合のみ保存する
-        // （unreadOnly=false で読み込まれた記事は既読・未読が混在しており、
-        //   「このセッションで読んだ記事」と区別できないため保持しない）
-        let previouslyReadArticles = loadedWithUnreadOnly ? articles.filter { $0.isRead } : []
+        // refresh 前に「フィルターから外れた記事」を保存する
+        // （未読のみ表示中に既読にした記事 / like 表示中に like を外した記事）
+        // .all で読み込まれた記事は混在しており「このセッションで操作した記事」と区別できないため保持しない
+        let previouslyVisibleArticles = loadedWithFilter.isFullFetch ? [] : articles.filter { !matchesCurrentFilter($0) }
 
         // refresh 開始時の世代を記録し、fetch 中に外部から fetchArticles が呼ばれたか検知する
         let genBefore = fetchGeneration
@@ -124,37 +129,40 @@ final class ArticleStore: ObservableObject {
         // （「全て→未読のみ」切り替えなど、ユーザー操作による最新フェッチを優先するため）
         guard fetchGeneration == genBefore + 1 else { return }
 
-        guard !previouslyReadArticles.isEmpty else { return }
+        guard !previouslyVisibleArticles.isEmpty else { return }
 
         // API レスポンス遅延による未読状態の不一致を修正（fetch 結果に含まれている場合）
-        let localReadIds = Set(previouslyReadArticles.map { $0.id })
-        let preserveReadState: (Article) -> Article = { a in
-            guard localReadIds.contains(a.id), !a.isRead else { return a }
-            return a.updating(isRead: 1)
-        }
-        articles = articles.map(preserveReadState)
-        allCollection.updateAll(preserveReadState)
-
-        // unreadOnly: true の場合、fetch 結果に含まれなかった既読記事をリストに保持する
-        // （このセッションで読んだ記事が自動 refresh で消えないようにするため）
-        // コレクションは未読バッジ計算用のため、既読になった記事は追加不要
-        if unreadOnly {
-            let newIds = Set(articles.map { $0.id })
-            let toPreserve = previouslyReadArticles.filter { !newIds.contains($0.id) }
-            if !toPreserve.isEmpty {
-                articles = (articles + toPreserve).sorted { a, b in
-                    switch sortOrder {
-                    case .publishedAt:
-                        let aDate = a.published_at ?? a.created_at
-                        let bDate = b.published_at ?? b.created_at
-                        return aDate > bDate
-                    case .readAt:
-                        let aDate = a.read_at ?? a.published_at ?? a.created_at
-                        let bDate = b.read_at ?? b.published_at ?? b.created_at
-                        return aDate > bDate
-                    }
-                }
+        // like は解除がサーバーへ即時反映されるため、既読のみを対象にする
+        if filter == .unread {
+            let localReadIds = Set(previouslyVisibleArticles.filter { $0.isRead }.map { $0.id })
+            let preserveReadState: (Article) -> Article = { a in
+                guard localReadIds.contains(a.id), !a.isRead else { return a }
+                return a.updating(isRead: 1)
             }
+            articles = articles.map(preserveReadState)
+            allCollection.updateAll(preserveReadState)
+        }
+
+        // fetch 結果に含まれなかった記事（既読にした / like を外した）をリストに保持する
+        // （このセッションで操作した記事が自動 refresh で消えないようにするため）
+        // コレクションは未読バッジ計算用のため、フィルターから外れた記事は追加不要
+        let newIds = Set(articles.map { $0.id })
+        let toPreserve = previouslyVisibleArticles.filter { !newIds.contains($0.id) }
+        guard !toPreserve.isEmpty else { return }
+        articles = (articles + toPreserve).sorted(by: sortComparator)
+    }
+
+    /// 現在のフィルター・ソート順に対応する並び替え規則
+    private var sortComparator: (Article, Article) -> Bool {
+        // like 一覧はサーバーが liked_at 降順で返すため、ローカル保持分も同じ規則で並べる
+        if filter == .liked {
+            return { ($0.liked_at ?? "") > ($1.liked_at ?? "") }
+        }
+        switch sortOrder {
+        case .publishedAt:
+            return { ($0.published_at ?? $0.created_at) > ($1.published_at ?? $1.created_at) }
+        case .readAt:
+            return { ($0.read_at ?? $0.published_at ?? $0.created_at) > ($1.read_at ?? $1.published_at ?? $1.created_at) }
         }
     }
 
@@ -218,6 +226,41 @@ final class ArticleStore: ObservableObject {
         )
     }
 
+    // MARK: - like（キュレーター向けの好みシグナル。既読とは独立した軸）
+
+    /// like ⇄ 未 like を記事の現在状態に応じて切り替える（View 側の分岐重複を防ぐ）
+    @MainActor
+    func toggleLike(_ article: Article) async {
+        if article.isLiked {
+            await unlike(id: article.id)
+        } else {
+            await like(id: article.id)
+        }
+    }
+
+    @MainActor
+    func like(id: Int) async {
+        guard let client else { return }
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(likedAt: .set(nowISO)) },
+            apiCall: { try await ArticleRepository(client: client).like(id: id) },
+            onURLError: .rollback
+        )
+    }
+
+    @MainActor
+    func unlike(id: Int) async {
+        guard let client else { return }
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(likedAt: .clear) },
+            apiCall: { try await ArticleRepository(client: client).unlike(id: id) },
+            onURLError: .rollback
+        )
+    }
+
     // MARK: - バッジ件数・表示判定（現在のフィルタに連動）
 
     /// バッジ計算・表示判定に使う記事ソース。
@@ -226,10 +269,13 @@ final class ArticleStore: ObservableObject {
         allCollection.isEmpty ? articles : allCollection.articles
     }
 
-    /// 現在のフィルタ（全て / 未読のみ）に記事が合致するか
+    /// 現在のフィルタ（全て / 未読のみ / like）に記事が合致するか
     private func matchesCurrentFilter(_ article: Article) -> Bool {
-        if unreadOnly && article.isRead { return false }
-        return true
+        switch filter {
+        case .all: return true
+        case .unread: return !article.isRead
+        case .liked: return article.isLiked
+        }
     }
 
     /// サーバー集計をバッジ計算に使えるか。未取得（空）のときはコレクション計算にフォールバックする。
@@ -237,24 +283,27 @@ final class ArticleStore: ObservableObject {
         !feedCounts.isEmpty
     }
 
-    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「like」= liked
     private func filteredCount(_ count: FeedCount) -> Int {
-        if unreadOnly { return count.unread }
-        return count.total
+        switch filter {
+        case .all: return count.total
+        case .unread: return count.unread
+        case .liked: return count.liked
+        }
     }
 
-    /// 現在有効なフィルタ（unreadOnly）を適用したとき、
+    /// 現在有効なフィルタを適用したとき、
     /// 指定フィードに表示対象の記事が 1 件以上あるかを返す。
     /// フィルタが何も有効でない場合は常に true。
     func hasVisibleArticle(for feedId: Int) -> Bool {
-        if !unreadOnly { return true }
+        if filter.isFullFetch { return true }
         if canUseFeedCounts {
             return feedCounts[feedId].map { filteredCount($0) > 0 } ?? false
         }
         return badgeSource.contains { $0.feed_id == feedId && matchesCurrentFilter($0) }
     }
 
-    /// フィードのバッジ件数。「全て」=全記事数、「未読のみ」=未読数、「お気に入り」=お気に入り数
+    /// フィードのバッジ件数。「全て」=全記事数、「未読のみ」=未読数、「like」=like 数
     func badgeCount(for feedId: Int?) -> Int {
         if canUseFeedCounts {
             guard let feedId else { return feedCounts.values.reduce(0) { $0 + filteredCount($1) } }
@@ -296,7 +345,8 @@ final class ArticleStore: ObservableObject {
             feedCounts[article.feed_id] = FeedCount(
                 feed_id: count.feed_id,
                 total: count.total,
-                unread: max(0, count.unread - 1)
+                unread: max(0, count.unread - 1),
+                liked: count.liked
             )
         }
         cache.saveFeedCounts(fetched)
@@ -310,6 +360,8 @@ final class ArticleStore: ObservableObject {
         case enqueuePendingRead
         /// 楽観更新を維持し、既読リトライキューから取り除く（markAsUnread）
         case cancelPendingRead
+        /// 楽観更新を取り消す。既読キューには触れない（like / unlike）
+        case rollback
     }
 
     /// 楽観的更新の唯一の経路。
@@ -325,13 +377,16 @@ final class ArticleStore: ObservableObject {
 
         do {
             try await apiCall()
-            pendingReadIds.remove(id)
+            // like 系は既読キューと無関係なので、成功しても既読の再送予定を消さない
+            if onURLError != .rollback { pendingReadIds.remove(id) }
         } catch is URLError {
             switch onURLError {
             case .enqueuePendingRead:
                 pendingReadIds.insert(id)
             case .cancelPendingRead:
                 pendingReadIds.remove(id)
+            case .rollback:
+                mutateBoth(id: id) { _ in original }
             }
         } catch {
             mutateBoth(id: id) { _ in original }
@@ -360,11 +415,13 @@ final class ArticleStore: ObservableObject {
     private func applyCountsDelta(from original: Article, to updated: Article) {
         guard let count = feedCounts[original.feed_id] else { return }
         let unreadDelta = (updated.isRead ? 0 : 1) - (original.isRead ? 0 : 1)
-        guard unreadDelta != 0 else { return }
+        let likedDelta = (updated.isLiked ? 1 : 0) - (original.isLiked ? 1 : 0)
+        guard unreadDelta != 0 || likedDelta != 0 else { return }
         feedCounts[original.feed_id] = FeedCount(
             feed_id: count.feed_id,
             total: count.total,
-            unread: max(0, count.unread + unreadDelta)
+            unread: max(0, count.unread + unreadDelta),
+            liked: max(0, count.liked + likedDelta)
         )
     }
 

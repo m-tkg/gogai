@@ -118,11 +118,13 @@ fun StockListScreen(
                         val summaryError = summaryErrors[stock.id]
 
                         SwipeActionRow(
-                            trailing = SwipeAction(
-                                icon = Icons.Filled.Delete,
-                                label = stringResource(R.string.feed_delete),
-                                color = MaterialTheme.colorScheme.error,
-                                onClick = { stockPendingDelete = stock },
+                            trailing = listOf(
+                                SwipeAction(
+                                    icon = Icons.Filled.Delete,
+                                    label = stringResource(R.string.feed_delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                    onClick = { stockPendingDelete = stock },
+                                ),
                             ),
                             allowsLeadingFullSwipe = false,
                         ) {

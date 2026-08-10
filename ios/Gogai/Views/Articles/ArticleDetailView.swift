@@ -3,12 +3,14 @@ import SwiftUI
 import WebKit
 #endif
 
-/// 既読トグルと前後記事ナビゲーションのバー
+/// 既読・like トグルと前後記事ナビゲーションのバー
 private struct ArticleDetailBottomBar: View {
     let isRead: Bool
+    let isLiked: Bool
     let previousArticle: Article?
     let nextArticle: Article?
     let onToggleRead: () async -> Void
+    let onToggleLike: () async -> Void
     let onNavigate: (Article) -> Void
 
     var body: some View {
@@ -25,6 +27,20 @@ private struct ArticleDetailBottomBar: View {
                         .font(.caption2)
                 }
             }
+
+            Spacer()
+
+            Button {
+                Task { await onToggleLike() }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: isLiked ? "hand.thumbsup.fill" : "hand.thumbsup")
+                        .font(.title3)
+                    Text(isLiked ? "like を外す" : "like")
+                        .font(.caption2)
+                }
+            }
+            .tint(isLiked ? .pink : nil)
 
             Spacer()
 
@@ -75,6 +91,10 @@ struct ArticleDetailView: View {
         articleStore.articles.first(where: { $0.id == currentArticle.id })?.isRead ?? currentArticle.isRead
     }
 
+    private var isLiked: Bool {
+        articleStore.articles.first(where: { $0.id == currentArticle.id })?.isLiked ?? currentArticle.isLiked
+    }
+
     private var navigableArticles: [Article] {
         articleStore.articles
     }
@@ -98,6 +118,7 @@ struct ArticleDetailView: View {
     private var bottomBar: some View {
         ArticleDetailBottomBar(
             isRead: isRead,
+            isLiked: isLiked,
             previousArticle: previousArticle,
             nextArticle: nextArticle,
             onToggleRead: {
@@ -107,6 +128,14 @@ struct ArticleDetailView: View {
                     await articleStore.markAsUnread(id: currentArticle.id)
                 } else {
                     await articleStore.markAsRead(id: currentArticle.id)
+                }
+            },
+            onToggleLike: {
+                // isRead と同じ理由で store 由来の isLiked を使う（toggleLike は使わない）
+                if isLiked {
+                    await articleStore.unlike(id: currentArticle.id)
+                } else {
+                    await articleStore.like(id: currentArticle.id)
                 }
             },
             onNavigate: { currentArticle = $0 }

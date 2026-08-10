@@ -62,6 +62,7 @@
     <!-- Filter footer -->
     <string name="filter_all">全て</string>
     <string name="filter_unread_only">未読のみ</string>
+    <string name="filter_liked">like</string>
     <string name="stock_content_description">ストック</string>
     <string name="stock_not_yet_available">ストック機能は準備中です</string>
 
@@ -77,6 +78,9 @@
     <string name="article_mark_read">既読にする</string>
     <string name="article_mark_unread">未読にする</string>
     <string name="article_add_to_stock">ストックに入れる</string>
+    <string name="article_like">like</string>
+    <string name="article_unlike">like を外す</string>
+    <string name="article_liked_content_description">like 済み</string>
 
     <!-- Article detail -->
     <string name="article_detail_title">記事</string>

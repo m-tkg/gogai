@@ -3,6 +3,7 @@ package com.mtkg.gogai.store
 import com.mtkg.gogai.cache.AppCache
 import com.mtkg.gogai.cache.InMemoryKeyValueStore
 import com.mtkg.gogai.model.Article
+import com.mtkg.gogai.model.ArticleFilter
 import com.mtkg.gogai.model.ArticleSortOrder
 import com.mtkg.gogai.model.FeedCount
 import com.mtkg.gogai.network.ApiClient
@@ -46,7 +47,14 @@ class ArticleStoreTest {
     private lateinit var storeScope: CoroutineScope
     private lateinit var store: ArticleStore
 
-    private fun makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, publishedAt: String? = null, readAt: String? = null) = Article(
+    private fun makeArticle(
+        id: Int = 1,
+        feedId: Int = 1,
+        isRead: Int = 0,
+        publishedAt: String? = null,
+        readAt: String? = null,
+        likedAt: String? = null,
+    ) = Article(
         id = id,
         feed_id = feedId,
         guid = "guid-$id",
@@ -55,6 +63,7 @@ class ArticleStoreTest {
         is_read = isRead,
         created_at = "2024-01-01T00:00:00Z",
         read_at = readAt,
+        liked_at = likedAt,
     )
 
     private fun newStore(cache: AppCache = AppCache(tempFolder.newFolder())): ArticleStore {
@@ -113,12 +122,12 @@ class ArticleStoreTest {
 
     @Test
     fun `fetchArticles は後の呼び出しの結果を採用する`() = runTest(testDispatcher) {
-        store.setUnreadOnly(false)
+        store.setFilter(ArticleFilter.All)
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 1), makeArticle(id = 2, isRead = 0)))
         store.fetchArticles()
 
         enqueueArticles(listOf(makeArticle(id = 2, isRead = 0)))
-        store.fetchArticles(unreadOnly = true)
+        store.fetchArticles(filter = ArticleFilter.Unread)
 
         assertEquals(1, store.articles.value.size)
         assertFalse(store.articles.value.any { it.id == 1 })
@@ -245,7 +254,7 @@ class ArticleStoreTest {
         val before = store.allArticles.value
 
         enqueueArticles(listOf(makeArticle(id = 2, feedId = 1, isRead = 0)))
-        store.fetchArticles(unreadOnly = true)
+        store.fetchArticles(filter = ArticleFilter.Unread)
 
         assertEquals(before.map { it.id }.toSet(), store.allArticles.value.map { it.id }.toSet())
     }
@@ -302,7 +311,7 @@ class ArticleStoreTest {
     fun `badgeCount は unreadOnly のとき未読数を返す`() = runTest(testDispatcher) {
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 0), makeArticle(id = 2, isRead = 1), makeArticle(id = 3, isRead = 0)))
         store.fetchArticles()
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         assertEquals(2, store.badgeCount())
     }
@@ -311,7 +320,7 @@ class ArticleStoreTest {
     fun `badgeCount は全て選択時は全記事数を返す`() = runTest(testDispatcher) {
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 0), makeArticle(id = 2, isRead = 1)))
         store.fetchArticles()
-        store.setUnreadOnly(false)
+        store.setFilter(ArticleFilter.All)
 
         assertEquals(2, store.badgeCount())
     }
@@ -327,7 +336,7 @@ class ArticleStoreTest {
             ),
         )
         store.fetchArticles()
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         assertEquals(2, store.badgeCountForGroup(listOf(10, 20)))
     }
@@ -336,7 +345,7 @@ class ArticleStoreTest {
     fun `badgeCountForGroup は空のフィード群では0を返す`() = runTest(testDispatcher) {
         enqueueArticles(listOf(makeArticle(id = 1, feedId = 10, isRead = 0)))
         store.fetchArticles()
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         assertEquals(0, store.badgeCountForGroup(emptyList()))
     }
@@ -350,7 +359,7 @@ class ArticleStoreTest {
         // articles を feed20 のみへ差し替える（allArticles は feed10 を保持したまま）
         enqueueArticles(listOf(makeArticle(id = 3, feedId = 20, isRead = 0)))
         store.fetchArticles(feedId = 20)
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         // articles には feed10 の記事は無いが、allArticles には残っているためそちらを使う
         assertEquals(1, store.badgeCountForGroup(listOf(10)))
@@ -365,7 +374,7 @@ class ArticleStoreTest {
     fun `hasVisibleArticle は未読ありのフィードでtrue`() = runTest(testDispatcher) {
         enqueueArticles(listOf(makeArticle(id = 1, feedId = 1, isRead = 0)))
         store.fetchArticles()
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         assertTrue(store.hasVisibleArticle(1))
     }
@@ -374,7 +383,7 @@ class ArticleStoreTest {
     fun `hasVisibleArticle は全既読のフィードでfalse`() = runTest(testDispatcher) {
         enqueueArticles(listOf(makeArticle(id = 1, feedId = 1, isRead = 1)))
         store.fetchArticles()
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         assertFalse(store.hasVisibleArticle(1))
     }
@@ -383,7 +392,7 @@ class ArticleStoreTest {
 
     @Test
     fun `refresh は unreadOnly のとき既読にした記事を保持する`() = runTest(testDispatcher) {
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 0), makeArticle(id = 2, isRead = 0)))
         store.fetchArticles()
 
@@ -402,7 +411,7 @@ class ArticleStoreTest {
 
     @Test
     fun `refresh は unreadOnly でなければ既読記事を保持しない`() = runTest(testDispatcher) {
-        store.setUnreadOnly(false)
+        store.setFilter(ArticleFilter.All)
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 1), makeArticle(id = 2, isRead = 0)))
         store.fetchArticles()
 
@@ -416,11 +425,11 @@ class ArticleStoreTest {
 
     @Test
     fun `refresh は loadedWithUnreadOnly がfalseなら保持しない`() = runTest(testDispatcher) {
-        store.setUnreadOnly(false)
+        store.setFilter(ArticleFilter.All)
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 1), makeArticle(id = 2, isRead = 0)))
         store.fetchArticles()
 
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
         enqueueArticles(listOf(makeArticle(id = 2, isRead = 0)))
         enqueueArticles(emptyList())
         store.refresh()
@@ -431,7 +440,7 @@ class ArticleStoreTest {
 
     @Test
     fun `refresh は保持した記事を published_at 降順でソートする`() = runTest(testDispatcher) {
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
         val newerRead = makeArticle(id = 1, isRead = 0, publishedAt = "2024-06-01T00:00:00Z")
         val olderUnread = makeArticle(id = 2, isRead = 0, publishedAt = "2024-01-01T00:00:00Z")
         enqueueArticles(listOf(newerRead, olderUnread))
@@ -450,7 +459,7 @@ class ArticleStoreTest {
 
     @Test
     fun `fetchArticles は unreadOnly のとき保持ロジックなしでサーバー結果のみ使う`() = runTest(testDispatcher) {
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
         enqueueArticles(listOf(makeArticle(id = 1, isRead = 1), makeArticle(id = 2, isRead = 0)))
         store.fetchArticles()
 
@@ -463,7 +472,7 @@ class ArticleStoreTest {
     fun `refreshCounts は feedCounts を更新する`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
             ),
         )
 
@@ -476,7 +485,7 @@ class ArticleStoreTest {
     fun `refreshCounts は失敗時に前回値を維持する`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
             ),
         )
         store.refreshCounts()
@@ -493,12 +502,12 @@ class ArticleStoreTest {
             MockResponse().setResponseCode(200).setBody(
                 Json.encodeToString(
                     ListSerializer(FeedCount.serializer()),
-                    listOf(FeedCount(feed_id = 1, total = 5, unread = 3), FeedCount(feed_id = 2, total = 2, unread = 0)),
+                    listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0), FeedCount(feed_id = 2, total = 2, unread = 0, liked = 0)),
                 ),
             ),
         )
         store.refreshCounts()
-        store.setUnreadOnly(true)
+        store.setFilter(ArticleFilter.Unread)
 
         assertEquals(3, store.badgeCount(1))
         assertEquals(3, store.badgeCountForGroup(listOf(1, 2)))
@@ -508,7 +517,7 @@ class ArticleStoreTest {
     fun `markAsRead は feedCounts の unread を1減らす`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
             ),
         )
         store.refreshCounts()
@@ -526,7 +535,7 @@ class ArticleStoreTest {
     fun `markAsRead はロールバック時に feedCounts を戻す`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
             ),
         )
         store.refreshCounts()
@@ -544,7 +553,7 @@ class ArticleStoreTest {
     fun `unreadCount は0未満にならない`() = runTest(testDispatcher) {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 0))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 0, liked = 0))),
             ),
         )
         store.refreshCounts()
@@ -570,7 +579,7 @@ class ArticleStoreTest {
 
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
             ),
         )
         store.refreshCounts()
@@ -586,7 +595,7 @@ class ArticleStoreTest {
         enqueueArticles(emptyList())
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 1))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 1, unread = 1, liked = 0))),
             ),
         )
         store.refresh()
@@ -626,7 +635,7 @@ class ArticleStoreTest {
 
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3))),
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 5, unread = 3, liked = 0))),
             ),
         )
         storeWithCache.refreshCounts()
@@ -637,12 +646,173 @@ class ArticleStoreTest {
         assertEquals(3, restoredStore.feedCounts.value[1]?.unread)
     }
 
-    // MARK: - unreadOnly / sortOrder の永続化
+    // MARK: - like（キュレーター向けの好みフラグ）
 
     @Test
-    fun `setUnreadOnly は KeyValueStore へ保存する`() {
-        store.setUnreadOnly(true)
-        assertTrue(keyValueStore.getBoolean(com.mtkg.gogai.cache.DefaultsKeys.UNREAD_ONLY, false))
+    fun `toggleLike は未 like なら like する`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1)))
+        store.fetchArticles()
+
+        enqueueEmptyOk()
+        store.toggleLike(store.articles.value[0])
+
+        val recorded = server.takeRequest()
+        assertEquals("/api/articles?limit=1000&offset=0&sortBy=published_at", recorded.path)
+        assertEquals("/api/articles/1/like", server.takeRequest().path)
+        assertTrue(store.articles.value[0].isLiked)
+    }
+
+    @Test
+    fun `toggleLike は like 済みなら外す`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, likedAt = "2026-01-01T00:00:00Z")))
+        store.fetchArticles()
+        server.takeRequest()
+
+        enqueueEmptyOk()
+        store.toggleLike(store.articles.value[0])
+
+        assertEquals("/api/articles/1/unlike", server.takeRequest().path)
+        assertFalse(store.articles.value[0].isLiked)
+    }
+
+    @Test
+    fun `like は allArticles にも反映される`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1)))
+        store.fetchArticles()
+
+        enqueueEmptyOk()
+        store.like(1)
+
+        assertTrue(store.allArticles.value[0].isLiked)
+    }
+
+    @Test
+    fun `like は HTTP 失敗でロールバックする`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1)))
+        store.fetchArticles()
+
+        server.enqueue(MockResponse().setResponseCode(500).setBody(""))
+        store.like(1)
+
+        assertFalse(store.articles.value[0].isLiked)
+        assertNotNull(store.error.value)
+    }
+
+    @Test
+    fun `like は IOException でもロールバックする`() = runTest(testDispatcher) {
+        // 既読と違い pending キューには積まず、見た目を元に戻す
+        enqueueArticles(listOf(makeArticle(id = 1)))
+        store.fetchArticles()
+
+        store.configure(unreachableClient)
+        store.like(1)
+        store.configure(goodClient())
+
+        assertFalse(store.articles.value[0].isLiked)
+    }
+
+    @Test
+    fun `like は既読状態に影響しない`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, isRead = 0)))
+        store.fetchArticles()
+
+        enqueueEmptyOk()
+        store.like(1)
+
+        assertFalse(store.articles.value[0].isRead)
+    }
+
+    @Test
+    fun `like は既読の pending キューを壊さない`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, isRead = 0)))
+        store.fetchArticles()
+
+        // markAsRead が IOException で pending に積まれる
+        store.configure(unreachableClient)
+        store.markAsRead(1)
+        store.configure(goodClient())
+        assertTrue(store.articles.value[0].isRead)
+
+        enqueueEmptyOk()
+        store.like(1)
+
+        // pending が残っていれば、次回フェッチ後に既読が復元される
+        enqueueArticles(listOf(makeArticle(id = 1, isRead = 0)))
+        enqueueEmptyOk() // pending の再送
+        store.fetchArticles()
+        advanceUntilIdle()
+
+        assertTrue(store.articles.value[0].isRead)
+    }
+
+    @Test
+    fun `liked フィルターのバッジは liked 件数を返す`() = runTest(testDispatcher) {
+        store.setFilter(ArticleFilter.Liked)
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2))),
+            ),
+        )
+        store.refreshCounts()
+
+        assertEquals(2, store.badgeCount(1))
+    }
+
+    @Test
+    fun `like は feedCounts の liked を増減する`() = runTest(testDispatcher) {
+        enqueueArticles(listOf(makeArticle(id = 1, feedId = 1)))
+        store.fetchArticles()
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                Json.encodeToString(ListSerializer(FeedCount.serializer()), listOf(FeedCount(feed_id = 1, total = 10, unread = 4, liked = 2))),
+            ),
+        )
+        store.refreshCounts()
+
+        enqueueEmptyOk()
+        store.like(1)
+        assertEquals(3, store.feedCounts.value[1]?.liked)
+
+        enqueueEmptyOk()
+        store.unlike(1)
+        assertEquals(2, store.feedCounts.value[1]?.liked)
+    }
+
+    @Test
+    fun `liked フィルター中に unlike した記事は refresh でもリストに残る`() = runTest(testDispatcher) {
+        enqueueArticles(
+            listOf(
+                makeArticle(id = 1, likedAt = "2026-01-02T00:00:00Z"),
+                makeArticle(id = 2, likedAt = "2026-01-01T00:00:00Z"),
+            ),
+        )
+        store.fetchArticles(filter = ArticleFilter.Liked)
+        assertEquals(2, store.articles.value.size)
+
+        enqueueEmptyOk()
+        store.unlike(1)
+
+        // サーバーは unlike 済みの記事を返さない
+        enqueueArticles(listOf(makeArticle(id = 2, likedAt = "2026-01-01T00:00:00Z")))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("[]"))
+        store.refresh()
+
+        assertTrue(store.articles.value.any { it.id == 1 })
+    }
+
+    // MARK: - filter / sortOrder の永続化
+
+    @Test
+    fun `setFilter は KeyValueStore へ保存する`() {
+        store.setFilter(ArticleFilter.Liked)
+        assertEquals("liked", keyValueStore.getString(com.mtkg.gogai.cache.DefaultsKeys.ARTICLE_FILTER))
+    }
+
+    @Test
+    fun `旧 unreadOnly 設定から filter へ移行する`() {
+        keyValueStore.putBoolean(com.mtkg.gogai.cache.DefaultsKeys.UNREAD_ONLY, true)
+        val migrated = ArticleStore(AppCache(tempFolder.newFolder()), keyValueStore, storeScope)
+        assertEquals(ArticleFilter.Unread, migrated.filter.value)
     }
 
     @Test

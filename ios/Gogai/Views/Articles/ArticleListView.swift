@@ -56,6 +56,8 @@ struct ArticleListView: View {
                         }
                         .tint(article.isRead ? .orange : .blue)
                     }
+                    // 先に宣言したボタンほど端に配置されるため、浅いスワイプではストックだけが見え、
+                    // 深く引くと like が現れる
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
                             addToStock(article)
@@ -63,6 +65,16 @@ struct ArticleListView: View {
                             Label("ストックに入れる", systemImage: "tray.and.arrow.down")
                         }
                         .tint(.blue)
+
+                        Button {
+                            Task { await articleStore.toggleLike(article) }
+                        } label: {
+                            Label(
+                                article.isLiked ? "like を外す" : "like",
+                                systemImage: article.isLiked ? "hand.thumbsup.slash" : "hand.thumbsup"
+                            )
+                        }
+                        .tint(article.isLiked ? .gray : .pink)
                     }
             }
         }
@@ -113,10 +125,10 @@ struct ArticleListView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            FilterFooterView(unreadOnly: $articleStore.unreadOnly, onStockTap: onStockTap)
+            FilterFooterView(filter: $articleStore.filter, onStockTap: onStockTap)
         }
-        .onChange(of: articleStore.unreadOnly) { _, newVal in
-            Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, unreadOnly: newVal, includeSecret: groupStore.showSecretGroups) }
+        .onChange(of: articleStore.filter) { _, newVal in
+            Task { await articleStore.fetchArticles(feedId: feedId, groupId: groupId, filter: newVal, includeSecret: groupStore.showSecretGroups) }
         }
         .overlay {
             if articleStore.isLoading {

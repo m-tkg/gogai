@@ -17,11 +17,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -54,6 +57,7 @@ import com.mtkg.gogai.ui.ai.AiResultSheet
 import com.mtkg.gogai.ui.ai.LocalAppContainer
 import com.mtkg.gogai.ui.common.openInCustomTabs
 import com.mtkg.gogai.ui.common.shareUrl
+import com.mtkg.gogai.ui.theme.LikePink
 import com.mtkg.gogai.util.HorizontalSwipeDirection
 import com.mtkg.gogai.util.displayDate
 import com.mtkg.gogai.util.matchHorizontalSwipe
@@ -168,6 +172,28 @@ fun ArticleDetailScreen(
                             )
                             Text(
                                 text = if (currentArticle.isRead) stringResource(R.string.article_mark_unread) else stringResource(R.string.article_mark_read),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+
+                    TextButton(onClick = {
+                        scope.launch {
+                            if (currentArticle.isLiked) {
+                                articleStore.unlike(currentArticleId)
+                            } else {
+                                articleStore.like(currentArticleId)
+                            }
+                        }
+                    }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = if (currentArticle.isLiked) Icons.Filled.ThumbDown else Icons.Filled.ThumbUp,
+                                contentDescription = null,
+                                tint = if (currentArticle.isLiked) LikePink else LocalContentColor.current,
+                            )
+                            Text(
+                                text = if (currentArticle.isLiked) stringResource(R.string.article_unlike) else stringResource(R.string.article_like),
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }

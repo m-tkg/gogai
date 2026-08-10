@@ -100,8 +100,8 @@ final class AppCacheTests: XCTestCase {
 
     func test_saveAndLoad_feedCounts() {
         let counts = [
-            FeedCount(feed_id: 1, total: 3, unread: 2),
-            FeedCount(feed_id: 2, total: 5, unread: 0),
+            FeedCount(feed_id: 1, total: 3, unread: 2, liked: 1),
+            FeedCount(feed_id: 2, total: 5, unread: 0, liked: 0),
         ]
         cache.saveFeedCounts(counts)
 
