@@ -216,7 +216,111 @@ describe('ArticlesService', () => {
 
       const counts = articlesService.countsByFeed()
       expect(counts).toHaveLength(1)
-      expect(counts[0]).toEqual({ feed_id: feedId, total: 2, unread: 2, liked: 1 })
+      expect(counts[0]).toEqual({ feed_id: feedId, total: 2, unread: 2, liked: 1, disliked: 0 })
+    })
+  })
+
+  describe('dislike（好みでないことを示す負のシグナル）', () => {
+    let articleId: number
+
+    beforeEach(() => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g1', title: 'A1', link: 'https://example.com/1', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articleId = articlesService.findByFeed(feedId)[0].id
+    })
+
+    it('dislike すると disliked_at が入る', () => {
+      articlesService.dislike(articleId)
+      expect(articlesService.findById(articleId)?.disliked_at).toBeTypeOf('string')
+    })
+
+    it('undislike すると disliked_at が null に戻る', () => {
+      articlesService.dislike(articleId)
+      articlesService.undislike(articleId)
+      expect(articlesService.findById(articleId)?.disliked_at).toBeNull()
+    })
+
+    it('存在しない id を dislike してもエラーにならない', () => {
+      expect(() => articlesService.dislike(9999)).not.toThrow()
+      expect(() => articlesService.undislike(9999)).not.toThrow()
+    })
+
+    // like と dislike は排他。同じ記事が両方の評価を持つ状態を作らせない
+    it('like 済みの記事を dislike すると like が外れる', () => {
+      articlesService.like(articleId)
+      articlesService.dislike(articleId)
+
+      const article = articlesService.findById(articleId)
+      expect(article?.disliked_at).toBeTypeOf('string')
+      expect(article?.liked_at).toBeNull()
+    })
+
+    it('dislike 済みの記事を like すると dislike が外れる', () => {
+      articlesService.dislike(articleId)
+      articlesService.like(articleId)
+
+      const article = articlesService.findById(articleId)
+      expect(article?.liked_at).toBeTypeOf('string')
+      expect(article?.disliked_at).toBeNull()
+    })
+
+    it('unlike は dislike の状態を変えない', () => {
+      articlesService.dislike(articleId)
+      articlesService.unlike(articleId)
+      expect(articlesService.findById(articleId)?.disliked_at).toBeTypeOf('string')
+    })
+
+    it('dislikedOnly=true で dislike 済みの記事のみ返す', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g2', title: 'A2', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articlesService.dislike(articleId)
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, dislikedOnly: true })
+      expect(result).toHaveLength(1)
+      expect(result[0].guid).toBe('g1')
+    })
+
+    it('dislikedOnly=true は sortBy を無視して disliked_at 降順で返す', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g2', title: 'A2', link: 'https://example.com/2', summary: '', publishedAt: '2020-01-01T00:00:00.000Z' },
+      ])
+      const g2 = articlesService.findByFeed(feedId).find((a) => a.guid === 'g2')!
+      articlesService.dislike(articleId, '2026-01-01T00:00:00.000Z')
+      articlesService.dislike(g2.id, '2026-02-01T00:00:00.000Z')
+
+      const result = articlesService.findAll({ limit: 10, offset: 0, dislikedOnly: true, sortBy: 'published_at' })
+      expect(result.map((a) => a.guid)).toEqual(['g2', 'g1'])
+    })
+
+    it('dislike された記事も retention の削除対象から除外される', () => {
+      const now = new Date()
+      const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000)
+
+      articlesService.upsertMany(feedId, [
+        { guid: 'old-disliked', title: 'Old Disliked', link: 'https://example.com/old-d', summary: '', publishedAt: old.toISOString() },
+        { guid: 'old-plain', title: 'Old Plain', link: 'https://example.com/old-p', summary: '', publishedAt: old.toISOString() },
+      ])
+      const oldDisliked = articlesService.findByFeed(feedId).find((a) => a.guid === 'old-disliked')!
+      articlesService.dislike(oldDisliked.id)
+
+      const threshold = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000)
+      expect(articlesService.deleteOlderThan(threshold)).toBe(1)
+
+      const remaining = articlesService.findByFeed(feedId).map((a) => a.guid)
+      expect(remaining).toContain('old-disliked')
+      expect(remaining).not.toContain('old-plain')
+    })
+
+    it('countsByFeed が disliked 件数を返す', () => {
+      articlesService.upsertMany(feedId, [
+        { guid: 'g2', title: 'A2', link: 'https://example.com/2', summary: '', publishedAt: new Date().toISOString() },
+      ])
+      articlesService.dislike(articleId)
+
+      const counts = articlesService.countsByFeed()
+      expect(counts[0]).toEqual({ feed_id: feedId, total: 2, unread: 2, liked: 0, disliked: 1 })
     })
   })
 
@@ -361,8 +465,8 @@ describe('ArticlesService', () => {
       const counts = articlesService.countsByFeed()
       const feed1Count = counts.find(c => c.feed_id === feedId)
       const feed2Count = counts.find(c => c.feed_id === feed2.id)
-      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2, liked: 0 })
-      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1, liked: 0 })
+      expect(feed1Count).toEqual({ feed_id: feedId, total: 3, unread: 2, liked: 0, disliked: 0 })
+      expect(feed2Count).toEqual({ feed_id: feed2.id, total: 1, unread: 1, liked: 0, disliked: 0 })
     })
 
     it('シークレットグループのフィードも集計に含む', () => {
@@ -375,7 +479,7 @@ describe('ArticlesService', () => {
 
       const counts = articlesService.countsByFeed()
       const secretCount = counts.find(c => c.feed_id === secretFeed.id)
-      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1, liked: 0 })
+      expect(secretCount).toEqual({ feed_id: secretFeed.id, total: 1, unread: 1, liked: 0, disliked: 0 })
     })
 
     it('記事が 0 件のフィードは結果に含まれない', () => {
