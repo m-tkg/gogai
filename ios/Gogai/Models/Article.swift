@@ -16,19 +16,28 @@ struct Article: Identifiable, Codable, Hashable, Sendable {
     /// 外部のキュレーション AI へ渡すシグナルで、既読とは独立した軸。
     /// 既存の Article(...) 呼び出しを壊さないようデフォルト値を持たせている。
     var liked_at: String? = nil
+    /// liked_at の対になる負のシグナル。nil = 未 dislike。liked_at とは排他。
+    var disliked_at: String? = nil
 
     var isRead: Bool { is_read == 1 }
     var isLiked: Bool { liked_at != nil }
+    var isDisliked: Bool { disliked_at != nil }
 
     /// 指定フィールドだけ差し替えた新しい Article を返す（全フィールド手動コピーの集約先）
-    func updating(isRead: Int? = nil, readAt: FieldUpdate<String> = .keep, likedAt: FieldUpdate<String> = .keep) -> Article {
+    func updating(
+        isRead: Int? = nil,
+        readAt: FieldUpdate<String> = .keep,
+        likedAt: FieldUpdate<String> = .keep,
+        dislikedAt: FieldUpdate<String> = .keep
+    ) -> Article {
         Article(id: id, feed_id: feed_id, guid: guid,
                 title: title, link: link, summary: summary,
                 content: content, published_at: published_at,
                 is_read: isRead ?? is_read,
                 created_at: created_at,
                 read_at: readAt.apply(to: read_at),
-                liked_at: likedAt.apply(to: liked_at))
+                liked_at: likedAt.apply(to: liked_at),
+                disliked_at: dislikedAt.apply(to: disliked_at))
     }
 
     /// 既読状態にした新しい Article を返す
@@ -43,12 +52,14 @@ enum ArticleFilter: String, CaseIterable, Sendable {
     case all
     case unread
     case liked
+    case disliked
 
     var label: String {
         switch self {
         case .all: return "全て"
         case .unread: return "未読のみ"
         case .liked: return "like"
+        case .disliked: return "dislike"
         }
     }
 
@@ -57,6 +68,7 @@ enum ArticleFilter: String, CaseIterable, Sendable {
         case .all: return "list.bullet"
         case .unread: return "envelope.badge"
         case .liked: return "hand.thumbsup"
+        case .disliked: return "hand.thumbsdown"
         }
     }
 

@@ -2,11 +2,11 @@ import XCTest
 @testable import Gogai
 
 final class ArticleUpdatingTests: XCTestCase {
-    private func makeArticle(isRead: Int = 0, readAt: String? = nil, likedAt: String? = nil) -> Article {
+    private func makeArticle(isRead: Int = 0, readAt: String? = nil, likedAt: String? = nil, dislikedAt: String? = nil) -> Article {
         Article(id: 1, feed_id: 2, guid: "guid", title: "Title",
                 link: "https://example.com", summary: "summary", content: "content",
                 published_at: "2026-01-01T00:00:00Z", is_read: isRead,
-                created_at: "2026-01-01T00:00:00Z", read_at: readAt, liked_at: likedAt)
+                created_at: "2026-01-01T00:00:00Z", read_at: readAt, liked_at: likedAt, disliked_at: dislikedAt)
     }
 
     func test_引数なしは同じ内容を返す() {
@@ -73,5 +73,35 @@ final class ArticleUpdatingTests: XCTestCase {
         let article = makeArticle(likedAt: "2026-01-02T00:00:00Z")
         let updated = article.updating(isRead: 1, readAt: .set("2026-06-12T00:00:00Z"))
         XCTAssertTrue(updated.isLiked)
+    }
+
+    // MARK: - dislike
+
+    func test_dislikedAtがnilならisDislikedはfalse() {
+        XCTAssertFalse(makeArticle().isDisliked)
+    }
+
+    func test_dislikedAtがあればisDislikedはtrue() {
+        XCTAssertTrue(makeArticle(dislikedAt: "2026-01-02T00:00:00Z").isDisliked)
+    }
+
+    func test_dislikedAtを設定できる() {
+        let updated = makeArticle().updating(dislikedAt: .set("2026-06-12T00:00:00Z"))
+        XCTAssertEqual(updated.disliked_at, "2026-06-12T00:00:00Z")
+        XCTAssertTrue(updated.isDisliked)
+    }
+
+    func test_dislikedAtをクリアできる() {
+        let updated = makeArticle(dislikedAt: "2026-01-02T00:00:00Z").updating(dislikedAt: .clear)
+        XCTAssertNil(updated.disliked_at)
+        XCTAssertFalse(updated.isDisliked)
+    }
+
+    func test_likeとdislikeは同時に指定して排他にできる() {
+        // Store の楽観更新はサーバーと同じ排他規則を 1 回の変換で表現する
+        let article = makeArticle(dislikedAt: "2026-01-02T00:00:00Z")
+        let updated = article.updating(likedAt: .set("2026-06-12T00:00:00Z"), dislikedAt: .clear)
+        XCTAssertTrue(updated.isLiked)
+        XCTAssertFalse(updated.isDisliked)
     }
 }
