@@ -71,6 +71,14 @@ struct ArticleRowView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(article.isRead ? "未読にする" : "既読にする")
+
+                // like 済みのときだけ表示する（行背景は未読表現で使用済みのため触らない）
+                if article.isLiked {
+                    Image(systemName: "hand.thumbsup.fill")
+                        .foregroundStyle(Color.pink)
+                        .font(.footnote)
+                        .accessibilityLabel("like 済み")
+                }
             }
             .padding(.top, 2)
         }
