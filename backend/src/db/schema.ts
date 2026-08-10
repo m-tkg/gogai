@@ -201,6 +201,15 @@ const MIGRATIONS: Migration[] = [
       db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_liked_at ON articles(liked_at DESC)`)
     },
   },
+  {
+    name: 'articles-add-disliked-at',
+    up: (db) => {
+      // liked_at の対になる負のシグナル。NULL = 未 dislike。
+      // liked_at とは排他（サービス層の like/dislike が相互に NULL 化する）
+      addColumn(db, 'articles', 'disliked_at TEXT')
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_articles_disliked_at ON articles(disliked_at DESC)`)
+    },
+  },
 ]
 
 export function initSchema(db: Database.Database): void {

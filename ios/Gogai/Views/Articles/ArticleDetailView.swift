@@ -3,14 +3,16 @@ import SwiftUI
 import WebKit
 #endif
 
-/// 既読・like トグルと前後記事ナビゲーションのバー
+/// 既読・評価トグルと前後記事ナビゲーションのバー
 private struct ArticleDetailBottomBar: View {
     let isRead: Bool
     let isLiked: Bool
+    let isDisliked: Bool
     let previousArticle: Article?
     let nextArticle: Article?
     let onToggleRead: () async -> Void
     let onToggleLike: () async -> Void
+    let onToggleDislike: () async -> Void
     let onNavigate: (Article) -> Void
 
     var body: some View {
@@ -41,6 +43,20 @@ private struct ArticleDetailBottomBar: View {
                 }
             }
             .tint(isLiked ? .pink : nil)
+
+            Spacer()
+
+            Button {
+                Task { await onToggleDislike() }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: isDisliked ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                        .font(.title3)
+                    Text(isDisliked ? "dislike を外す" : "dislike")
+                        .font(.caption2)
+                }
+            }
+            .tint(isDisliked ? .indigo : nil)
 
             Spacer()
 
@@ -95,6 +111,10 @@ struct ArticleDetailView: View {
         articleStore.articles.first(where: { $0.id == currentArticle.id })?.isLiked ?? currentArticle.isLiked
     }
 
+    private var isDisliked: Bool {
+        articleStore.articles.first(where: { $0.id == currentArticle.id })?.isDisliked ?? currentArticle.isDisliked
+    }
+
     private var navigableArticles: [Article] {
         articleStore.articles
     }
@@ -119,6 +139,7 @@ struct ArticleDetailView: View {
         ArticleDetailBottomBar(
             isRead: isRead,
             isLiked: isLiked,
+            isDisliked: isDisliked,
             previousArticle: previousArticle,
             nextArticle: nextArticle,
             onToggleRead: {
@@ -136,6 +157,13 @@ struct ArticleDetailView: View {
                     await articleStore.unlike(id: currentArticle.id)
                 } else {
                     await articleStore.like(id: currentArticle.id)
+                }
+            },
+            onToggleDislike: {
+                if isDisliked {
+                    await articleStore.undislike(id: currentArticle.id)
+                } else {
+                    await articleStore.dislike(id: currentArticle.id)
                 }
             },
             onNavigate: { currentArticle = $0 }

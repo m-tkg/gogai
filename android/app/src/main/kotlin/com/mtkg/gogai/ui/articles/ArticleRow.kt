@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.mtkg.gogai.R
 import com.mtkg.gogai.model.Article
+import com.mtkg.gogai.ui.theme.DislikeIndigo
 import com.mtkg.gogai.ui.theme.LikePink
 import com.mtkg.gogai.util.displayDate
 
@@ -129,12 +131,20 @@ fun ArticleRow(
                 )
             }
 
-            // like 済みのときだけ表示する（行背景は未読表現で使用済みのため触らない）
+            // 評価済みのときだけ表示する（行背景は未読表現で使用済みのため触らない）
+            // like と dislike は排他なので同時には出ない
             if (article.isLiked) {
                 Icon(
                     imageVector = Icons.Filled.ThumbUp,
                     contentDescription = stringResource(R.string.article_liked_content_description),
                     tint = LikePink,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else if (article.isDisliked) {
+                Icon(
+                    imageVector = Icons.Filled.ThumbDown,
+                    contentDescription = stringResource(R.string.article_disliked_content_description),
+                    tint = DislikeIndigo,
                     modifier = Modifier.size(16.dp),
                 )
             }

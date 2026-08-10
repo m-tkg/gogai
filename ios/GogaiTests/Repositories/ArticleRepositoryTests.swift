@@ -20,7 +20,7 @@ final class ArticleRepositoryTests: XCTestCase {
         Article(id: id, feed_id: 1, guid: "guid-\(id)", title: "Title \(id)",
                 link: "https://example.com/\(id)", summary: "Summary", content: nil,
                 published_at: "2024-01-01T00:00:00Z", is_read: isRead,
-                created_at: "2024-01-01T00:00:00Z", read_at: nil, liked_at: nil)
+                created_at: "2024-01-01T00:00:00Z", read_at: nil, liked_at: nil, disliked_at: nil)
     }
 
     func test_fetchAll_returnsArticles() async throws {
@@ -109,9 +109,41 @@ final class ArticleRepositoryTests: XCTestCase {
             let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
             XCTAssertNil(components.queryItems?.first(where: { $0.name == "unreadOnly" }))
             XCTAssertNil(components.queryItems?.first(where: { $0.name == "likedOnly" }))
+            XCTAssertNil(components.queryItems?.first(where: { $0.name == "dislikedOnly" }))
             return (200, Data("[]".utf8))
         }
 
         _ = try await repository.fetchAll(filter: .all)
+    }
+
+    func test_dislike_sendsPostRequest() async throws {
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertTrue(request.url?.path.hasSuffix("/api/articles/5/dislike") == true)
+            return (200, Data())
+        }
+
+        try await repository.dislike(id: 5)
+    }
+
+    func test_undislike_sendsPostRequest() async throws {
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertTrue(request.url?.path.hasSuffix("/api/articles/5/undislike") == true)
+            return (200, Data())
+        }
+
+        try await repository.undislike(id: 5)
+    }
+
+    func test_fetchAll_dislikedフィルターはdislikedOnlyクエリを送る() async throws {
+        MockURLProtocol.requestHandler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
+            XCTAssertEqual(components.queryItems?.first(where: { $0.name == "dislikedOnly" })?.value, "true")
+            XCTAssertNil(components.queryItems?.first(where: { $0.name == "likedOnly" }))
+            return (200, Data("[]".utf8))
+        }
+
+        _ = try await repository.fetchAll(filter: .disliked)
     }
 }

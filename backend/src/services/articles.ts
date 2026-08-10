@@ -13,6 +13,7 @@ export interface Article {
   created_at: string
   read_at: string | null
   liked_at: string | null
+  disliked_at: string | null
 }
 
 export interface ArticleItem {
@@ -38,6 +39,7 @@ export interface FeedCount {
   total: number
   unread: number
   liked: number
+  disliked: number
 }
 
 export interface FindAllOptions {
@@ -47,6 +49,7 @@ export interface FindAllOptions {
   groupId?: number
   unreadOnly?: boolean
   likedOnly?: boolean
+  dislikedOnly?: boolean
   sortBy?: SortBy
   includeSecret?: boolean
 }
@@ -121,6 +124,9 @@ export class ArticlesService {
     if (options.likedOnly) {
       conditions.push('a.liked_at IS NOT NULL')
     }
+    if (options.dislikedOnly) {
+      conditions.push('a.disliked_at IS NOT NULL')
+    }
     // groupId 未指定かつ includeSecret でなければシークレットグループを除外
     if (options.groupId === undefined && !options.includeSecret) {
       conditions.push('(f.group_id IS NULL OR g.is_secret = 0)')
@@ -129,8 +135,12 @@ export class ArticlesService {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     values.push(options.limit, options.offset)
 
-    // like 一覧は「いつ好みだと表明したか」順で見せたいので sortBy より優先する
-    const orderBy = options.likedOnly ? 'a.liked_at DESC' : ORDER_BY_SQL[options.sortBy ?? 'published_at']
+    // 評価の一覧は「いつ評価したか」順で見せたいので sortBy より優先する
+    const orderBy = options.likedOnly
+      ? 'a.liked_at DESC'
+      : options.dislikedOnly
+        ? 'a.disliked_at DESC'
+        : ORDER_BY_SQL[options.sortBy ?? 'published_at']
 
     return this.db.prepare(`
       SELECT a.* FROM articles a
@@ -149,7 +159,8 @@ export class ArticlesService {
       SELECT feed_id,
              COUNT(*) AS total,
              SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread,
-             SUM(CASE WHEN liked_at IS NOT NULL THEN 1 ELSE 0 END) AS liked
+             SUM(CASE WHEN liked_at IS NOT NULL THEN 1 ELSE 0 END) AS liked,
+             SUM(CASE WHEN disliked_at IS NOT NULL THEN 1 ELSE 0 END) AS disliked
       FROM articles
       GROUP BY feed_id
     `).all() as FeedCount[]
@@ -171,18 +182,31 @@ export class ArticlesService {
     this.db.prepare('UPDATE articles SET is_read = 0, read_at = NULL WHERE id = ?').run(id)
   }
 
+  // like と dislike は排他。一方を付けたらもう一方を同じ UPDATE で外し、
+  // 両方の評価を持つ状態を DB に作らせない
   like(id: number, likedAt?: string): void {
-    this.db.prepare('UPDATE articles SET liked_at = ? WHERE id = ?').run(likedAt ?? new Date().toISOString(), id)
+    this.db.prepare('UPDATE articles SET liked_at = ?, disliked_at = NULL WHERE id = ?')
+      .run(likedAt ?? new Date().toISOString(), id)
   }
 
   unlike(id: number): void {
     this.db.prepare('UPDATE articles SET liked_at = NULL WHERE id = ?').run(id)
   }
 
-  // like された記事はユーザーの好みシグナルとして蓄積するため、保持期間を過ぎても削除しない
+  dislike(id: number, dislikedAt?: string): void {
+    this.db.prepare('UPDATE articles SET disliked_at = ?, liked_at = NULL WHERE id = ?')
+      .run(dislikedAt ?? new Date().toISOString(), id)
+  }
+
+  undislike(id: number): void {
+    this.db.prepare('UPDATE articles SET disliked_at = NULL WHERE id = ?').run(id)
+  }
+
+  // 評価された記事はユーザーの好みシグナル（正例・負例）として蓄積するため、
+  // 保持期間を過ぎても削除しない
   deleteOlderThan(threshold: Date): number {
     const result = this.db.prepare(
-      "DELETE FROM articles WHERE datetime(COALESCE(published_at, created_at)) < datetime(?) AND liked_at IS NULL"
+      "DELETE FROM articles WHERE datetime(COALESCE(published_at, created_at)) < datetime(?) AND liked_at IS NULL AND disliked_at IS NULL"
     ).run(threshold.toISOString())
     return result.changes
   }

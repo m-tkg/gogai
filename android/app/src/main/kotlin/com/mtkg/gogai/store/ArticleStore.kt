@@ -198,11 +198,11 @@ class ArticleStore(
 
     /// 現在のフィルター・ソート順に対応する並び替え規則
     private fun sortComparator(): Comparator<Article> =
-        // like 一覧はサーバーが liked_at 降順で返すため、ローカル保持分も同じ規則で並べる
-        if (_filter.value == ArticleFilter.Liked) {
-            Comparator { a, b -> (b.liked_at ?: "").compareTo(a.liked_at ?: "") }
-        } else {
-            articleDateComparator(_sortOrder.value)
+        // 評価の一覧はサーバーが評価日時の降順で返すため、ローカル保持分も同じ規則で並べる
+        when (_filter.value) {
+            ArticleFilter.Liked -> Comparator { a, b -> (b.liked_at ?: "").compareTo(a.liked_at ?: "") }
+            ArticleFilter.Disliked -> Comparator { a, b -> (b.disliked_at ?: "").compareTo(a.disliked_at ?: "") }
+            else -> articleDateComparator(_sortOrder.value)
         }
 
     /// 既読⇄未読を記事の現在状態に応じて切り替える（View 側の分岐重複を防ぐ）
@@ -272,7 +272,8 @@ class ArticleStore(
         val now = nowIso()
         optimisticUpdate(
             id = id,
-            transform = { it.updating(likedAt = FieldUpdate.Set(now)) },
+            // サーバーが排他にするので楽観更新も同じ規則で dislike を落とす
+            transform = { it.updating(likedAt = FieldUpdate.Set(now), dislikedAt = FieldUpdate.Clear) },
             apiCall = { ArticleRepository(client).like(id) },
             onIOException = UrlErrorPolicy.Rollback,
         )
@@ -288,6 +289,32 @@ class ArticleStore(
         )
     }
 
+    /// dislike ⇄ 未 dislike を記事の現在状態に応じて切り替える
+    suspend fun toggleDislike(article: Article) {
+        if (article.isDisliked) undislike(article.id) else dislike(article.id)
+    }
+
+    suspend fun dislike(id: Int) {
+        val client = this.client ?: return
+        val now = nowIso()
+        optimisticUpdate(
+            id = id,
+            transform = { it.updating(likedAt = FieldUpdate.Clear, dislikedAt = FieldUpdate.Set(now)) },
+            apiCall = { ArticleRepository(client).dislike(id) },
+            onIOException = UrlErrorPolicy.Rollback,
+        )
+    }
+
+    suspend fun undislike(id: Int) {
+        val client = this.client ?: return
+        optimisticUpdate(
+            id = id,
+            transform = { it.updating(dislikedAt = FieldUpdate.Clear) },
+            apiCall = { ArticleRepository(client).undislike(id) },
+            onIOException = UrlErrorPolicy.Rollback,
+        )
+    }
+
     // MARK: - バッジ件数・表示判定（現在のフィルタに連動）
 
     /// バッジ計算・表示判定に使う記事ソース。
@@ -295,22 +322,25 @@ class ArticleStore(
     private val badgeSource: List<Article>
         get() = if (collection.isEmpty) _articles.value else collection.articles
 
-    /// 現在のフィルタ（全て / 未読のみ / like）に記事が合致するか
+    /// 現在のフィルタ（全て / 未読のみ / like / dislike）に記事が合致するか
     private fun matchesCurrentFilter(article: Article): Boolean = when (_filter.value) {
         ArticleFilter.All -> true
         ArticleFilter.Unread -> !article.isRead
         ArticleFilter.Liked -> article.isLiked
+        ArticleFilter.Disliked -> article.isDisliked
     }
 
     /// サーバー集計をバッジ計算に使えるか。未取得（空）のときはコレクション計算にフォールバックする。
     private val canUseFeedCounts: Boolean
         get() = _feedCounts.value.isNotEmpty()
 
-    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「like」= liked
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、
+    /// 「like」= liked、「dislike」= disliked
     private fun filteredCount(count: FeedCount): Int = when (_filter.value) {
         ArticleFilter.All -> count.total
         ArticleFilter.Unread -> count.unread
         ArticleFilter.Liked -> count.liked
+        ArticleFilter.Disliked -> count.disliked
     }
 
     /// 現在有効なフィルタを適用したとき、
@@ -436,11 +466,13 @@ class ArticleStore(
         val count = _feedCounts.value[original.feed_id] ?: return
         val unreadDelta = (if (updated.isRead) 0 else 1) - (if (original.isRead) 0 else 1)
         val likedDelta = (if (updated.isLiked) 1 else 0) - (if (original.isLiked) 1 else 0)
-        if (unreadDelta == 0 && likedDelta == 0) return
+        val dislikedDelta = (if (updated.isDisliked) 1 else 0) - (if (original.isDisliked) 1 else 0)
+        if (unreadDelta == 0 && likedDelta == 0 && dislikedDelta == 0) return
         _feedCounts.value = _feedCounts.value + (
             original.feed_id to count.copy(
                 unread = maxOf(0, count.unread + unreadDelta),
                 liked = maxOf(0, count.liked + likedDelta),
+                disliked = maxOf(0, count.disliked + dislikedDelta),
             )
             )
     }

@@ -18,8 +18,9 @@ struct ArticleRepository: Sendable {
         switch filter {
         case .all: break
         case .unread: queryItems.append(URLQueryItem(name: "unreadOnly", value: "true"))
-        // likedOnly 指定時はサーバーが sortBy を無視して liked_at 降順で返す
+        // 評価フィルター指定時はサーバーが sortBy を無視して評価日時の降順で返す
         case .liked: queryItems.append(URLQueryItem(name: "likedOnly", value: "true"))
+        case .disliked: queryItems.append(URLQueryItem(name: "dislikedOnly", value: "true"))
         }
         if includeSecret { queryItems.append(URLQueryItem(name: "includeSecret", value: "true")) }
         return try await client.send(.get("/api/articles", queryItems: queryItems))
@@ -47,5 +48,13 @@ struct ArticleRepository: Sendable {
 
     func unlike(id: Int) async throws {
         try await client.sendVoid(.post("/api/articles/\(id)/unlike"))
+    }
+
+    func dislike(id: Int) async throws {
+        try await client.sendVoid(.post("/api/articles/\(id)/dislike"))
+    }
+
+    func undislike(id: Int) async throws {
+        try await client.sendVoid(.post("/api/articles/\(id)/undislike"))
     }
 }

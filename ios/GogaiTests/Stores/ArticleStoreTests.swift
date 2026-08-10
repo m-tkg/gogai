@@ -16,11 +16,11 @@ final class ArticleStoreTests: StoreTestCase {
         store.configure(with: client)
     }
 
-    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, likedAt: String? = nil) -> Article {
+    private func makeArticle(id: Int = 1, feedId: Int = 1, isRead: Int = 0, likedAt: String? = nil, dislikedAt: String? = nil) -> Article {
         Article(id: id, feed_id: feedId, guid: "guid-\(id)", title: "Title \(id)",
                 link: nil, summary: nil, content: nil, published_at: nil,
                 is_read: isRead, created_at: "2024-01-01T00:00:00Z",
-                read_at: nil, liked_at: likedAt)
+                read_at: nil, liked_at: likedAt, disliked_at: dislikedAt)
     }
 
     @MainActor
@@ -630,8 +630,8 @@ final class ArticleStoreTests: StoreTestCase {
 
     // MARK: - feedCounts（サーバー集計）
 
-    private func makeCount(feedId: Int, total: Int, unread: Int, liked: Int = 0) -> FeedCount {
-        FeedCount(feed_id: feedId, total: total, unread: unread, liked: liked)
+    private func makeCount(feedId: Int, total: Int, unread: Int, liked: Int = 0, disliked: Int = 0) -> FeedCount {
+        FeedCount(feed_id: feedId, total: total, unread: unread, liked: liked, disliked: disliked)
     }
 
     @MainActor
@@ -959,7 +959,128 @@ final class ArticleStoreTests: StoreTestCase {
         XCTAssertTrue(store.articles[0].isRead, "like は既読の pending キューに影響しない")
     }
 
-    // MARK: - フィルター（全て / 未読のみ / like）
+    // MARK: - dislike（負のシグナル。like とは排他）
+
+    @MainActor
+    func test_toggleDislike_未dislikeならdislikeする() async {
+        store.articles = [makeArticle(id: 1)]
+        var requestedPath: String?
+        MockURLProtocol.requestHandler = { request in
+            requestedPath = request.url?.path
+            return (200, Data())
+        }
+
+        await store.toggleDislike(store.articles[0])
+
+        XCTAssertTrue(requestedPath?.hasSuffix("/api/articles/1/dislike") == true)
+        XCTAssertTrue(store.articles[0].isDisliked)
+    }
+
+    @MainActor
+    func test_toggleDislike_dislike済みなら外す() async {
+        store.articles = [makeArticle(id: 1, dislikedAt: "2026-01-01T00:00:00Z")]
+        var requestedPath: String?
+        MockURLProtocol.requestHandler = { request in
+            requestedPath = request.url?.path
+            return (200, Data())
+        }
+
+        await store.toggleDislike(store.articles[0])
+
+        XCTAssertTrue(requestedPath?.hasSuffix("/api/articles/1/undislike") == true)
+        XCTAssertFalse(store.articles[0].isDisliked)
+    }
+
+    @MainActor
+    func test_dislike_はlikeを外す() async {
+        // サーバーが排他にするので、楽観更新も同じ規則で見た目を合わせる
+        store.articles = [makeArticle(id: 1, likedAt: "2026-01-01T00:00:00Z")]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.dislike(id: 1)
+
+        XCTAssertTrue(store.articles[0].isDisliked)
+        XCTAssertFalse(store.articles[0].isLiked, "dislike したら like は外れる")
+    }
+
+    @MainActor
+    func test_like_はdislikeを外す() async {
+        store.articles = [makeArticle(id: 1, dislikedAt: "2026-01-01T00:00:00Z")]
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.like(id: 1)
+
+        XCTAssertTrue(store.articles[0].isLiked)
+        XCTAssertFalse(store.articles[0].isDisliked, "like したら dislike は外れる")
+    }
+
+    @MainActor
+    func test_dislike_失敗時はロールバックする() async {
+        store.articles = [makeArticle(id: 1)]
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        await store.dislike(id: 1)
+
+        XCTAssertFalse(store.articles[0].isDisliked)
+        XCTAssertNotNil(store.error)
+    }
+
+    @MainActor
+    func test_dislike_URLError時もロールバックする() async {
+        store.articles = [makeArticle(id: 1)]
+        MockURLProtocol.requestHandler = { _ in throw URLError(.notConnectedToInternet) }
+
+        await store.dislike(id: 1)
+
+        XCTAssertFalse(store.articles[0].isDisliked, "オフラインでは dislike を維持しない")
+    }
+
+    @MainActor
+    func test_dislike_はlikeのロールバックも巻き戻す() async {
+        // like 済み → dislike が失敗 → like 済みの状態に戻ること
+        store.articles = [makeArticle(id: 1, likedAt: "2026-01-01T00:00:00Z")]
+        MockURLProtocol.requestHandler = { _ in (500, Data()) }
+
+        await store.dislike(id: 1)
+
+        XCTAssertTrue(store.articles[0].isLiked, "失敗したら元の like 状態に戻る")
+        XCTAssertFalse(store.articles[0].isDisliked)
+    }
+
+    @MainActor
+    func test_dislike_はfeedCountsのdislikedを増減する() async {
+        store.articles = [makeArticle(id: 1, feedId: 1)]
+        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, liked: 2, disliked: 1)])
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.dislike(id: 1)
+        XCTAssertEqual(store.feedCounts[1]?.disliked, 2)
+
+        await store.undislike(id: 1)
+        XCTAssertEqual(store.feedCounts[1]?.disliked, 1)
+    }
+
+    @MainActor
+    func test_like済みをdislikeするとfeedCountsのlikedが減りdislikedが増える() async {
+        store.articles = [makeArticle(id: 1, feedId: 1, likedAt: "2026-01-01T00:00:00Z")]
+        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, liked: 2, disliked: 1)])
+        MockURLProtocol.requestHandler = { _ in (200, Data()) }
+
+        await store.dislike(id: 1)
+
+        XCTAssertEqual(store.feedCounts[1]?.liked, 1)
+        XCTAssertEqual(store.feedCounts[1]?.disliked, 2)
+    }
+
+    @MainActor
+    func test_badgeCount_dislikedフィルターはdisliked数を返す() async {
+        store.filter = .disliked
+        await seedCounts([makeCount(feedId: 1, total: 10, unread: 4, liked: 2, disliked: 3)])
+
+        XCTAssertEqual(store.badgeCount(for: 1), 3)
+    }
+
+    // MARK: - フィルター（全て / 未読のみ / like / dislike）
 
     @MainActor
     func test_badgeCount_likedフィルターはliked数を返す() async {

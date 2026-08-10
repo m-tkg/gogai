@@ -154,9 +154,12 @@ final class ArticleStore: ObservableObject {
 
     /// 現在のフィルター・ソート順に対応する並び替え規則
     private var sortComparator: (Article, Article) -> Bool {
-        // like 一覧はサーバーが liked_at 降順で返すため、ローカル保持分も同じ規則で並べる
+        // 評価の一覧はサーバーが評価日時の降順で返すため、ローカル保持分も同じ規則で並べる
         if filter == .liked {
             return { ($0.liked_at ?? "") > ($1.liked_at ?? "") }
+        }
+        if filter == .disliked {
+            return { ($0.disliked_at ?? "") > ($1.disliked_at ?? "") }
         }
         switch sortOrder {
         case .publishedAt:
@@ -244,7 +247,8 @@ final class ArticleStore: ObservableObject {
         let nowISO = ISO8601DateFormatter().string(from: Date())
         await optimisticUpdate(
             id: id,
-            transform: { $0.updating(likedAt: .set(nowISO)) },
+            // サーバーが排他にするので楽観更新も同じ規則で dislike を落とす
+            transform: { $0.updating(likedAt: .set(nowISO), dislikedAt: .clear) },
             apiCall: { try await ArticleRepository(client: client).like(id: id) },
             onURLError: .rollback
         )
@@ -261,6 +265,39 @@ final class ArticleStore: ObservableObject {
         )
     }
 
+    /// dislike ⇄ 未 dislike を記事の現在状態に応じて切り替える
+    @MainActor
+    func toggleDislike(_ article: Article) async {
+        if article.isDisliked {
+            await undislike(id: article.id)
+        } else {
+            await dislike(id: article.id)
+        }
+    }
+
+    @MainActor
+    func dislike(id: Int) async {
+        guard let client else { return }
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(likedAt: .clear, dislikedAt: .set(nowISO)) },
+            apiCall: { try await ArticleRepository(client: client).dislike(id: id) },
+            onURLError: .rollback
+        )
+    }
+
+    @MainActor
+    func undislike(id: Int) async {
+        guard let client else { return }
+        await optimisticUpdate(
+            id: id,
+            transform: { $0.updating(dislikedAt: .clear) },
+            apiCall: { try await ArticleRepository(client: client).undislike(id: id) },
+            onURLError: .rollback
+        )
+    }
+
     // MARK: - バッジ件数・表示判定（現在のフィルタに連動）
 
     /// バッジ計算・表示判定に使う記事ソース。
@@ -269,12 +306,13 @@ final class ArticleStore: ObservableObject {
         allCollection.isEmpty ? articles : allCollection.articles
     }
 
-    /// 現在のフィルタ（全て / 未読のみ / like）に記事が合致するか
+    /// 現在のフィルタ（全て / 未読のみ / like / dislike）に記事が合致するか
     private func matchesCurrentFilter(_ article: Article) -> Bool {
         switch filter {
         case .all: return true
         case .unread: return !article.isRead
         case .liked: return article.isLiked
+        case .disliked: return article.isDisliked
         }
     }
 
@@ -283,12 +321,14 @@ final class ArticleStore: ObservableObject {
         !feedCounts.isEmpty
     }
 
-    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、「like」= liked
+    /// 現在のフィルタに対応する集計値。「全て」= total、「未読のみ」= unread、
+    /// 「like」= liked、「dislike」= disliked
     private func filteredCount(_ count: FeedCount) -> Int {
         switch filter {
         case .all: return count.total
         case .unread: return count.unread
         case .liked: return count.liked
+        case .disliked: return count.disliked
         }
     }
 
@@ -346,7 +386,8 @@ final class ArticleStore: ObservableObject {
                 feed_id: count.feed_id,
                 total: count.total,
                 unread: max(0, count.unread - 1),
-                liked: count.liked
+                liked: count.liked,
+                disliked: count.disliked
             )
         }
         cache.saveFeedCounts(fetched)
@@ -416,12 +457,14 @@ final class ArticleStore: ObservableObject {
         guard let count = feedCounts[original.feed_id] else { return }
         let unreadDelta = (updated.isRead ? 0 : 1) - (original.isRead ? 0 : 1)
         let likedDelta = (updated.isLiked ? 1 : 0) - (original.isLiked ? 1 : 0)
-        guard unreadDelta != 0 || likedDelta != 0 else { return }
+        let dislikedDelta = (updated.isDisliked ? 1 : 0) - (original.isDisliked ? 1 : 0)
+        guard unreadDelta != 0 || likedDelta != 0 || dislikedDelta != 0 else { return }
         feedCounts[original.feed_id] = FeedCount(
             feed_id: count.feed_id,
             total: count.total,
             unread: max(0, count.unread + unreadDelta),
-            liked: max(0, count.liked + likedDelta)
+            liked: max(0, count.liked + likedDelta),
+            disliked: max(0, count.disliked + dislikedDelta)
         )
     }
 

@@ -82,17 +82,21 @@ DuckDuckGo favicon は ICO を返すため使用禁止。
 サーバー起動時と 24 時間ごとに実行。
 `settings` テーブルの `retention_days`（デフォルト 180）を毎回読んで判定。
 `COALESCE(published_at, created_at)` が閾値より古い記事を削除。
-ただし **`liked_at IS NOT NULL` の記事（like 済み）は削除しない**。
+ただし **評価済みの記事（`liked_at` または `disliked_at` が NOT NULL）は削除しない**。
 
-### like（記事の好みフラグ）
+### like / dislike（記事の評価フラグ）
 
-外部のキュレーション AI に渡す「ユーザーの好み」シグナル。`articles.liked_at`（NULL = 未 like）で表す。
-既読の `is_read` + `read_at` と違い 1 カラムで状態と日時を兼ねる。
+外部のキュレーション AI に渡す「ユーザーの好み」シグナル。`articles.liked_at` / `articles.disliked_at`
+（NULL = 未評価）で表す。既読の `is_read` + `read_at` と違い 1 カラムで状態と日時を兼ねる。
 
-- `POST /api/articles/:id/like` / `/unlike` — body なし・204。既読と同じく存在しない id でも 204
-- `GET /api/articles?likedOnly=true` — like 済みのみを返す。**`sortBy` を無視して `liked_at DESC` 固定**
-- `GET /api/articles/counts` の `liked` — フィードごとの like 数
-- 蓄積は自動化しない（ユーザーが明示的に付ける）。like しても既読にはしない
+- `POST /api/articles/:id/like` / `/unlike` / `/dislike` / `/undislike` — body なし・204。
+  既読と同じく存在しない id でも 204
+- `GET /api/articles?likedOnly=true` / `?dislikedOnly=true` — 評価済みのみを返す。
+  **`sortBy` を無視して `liked_at DESC` / `disliked_at DESC` 固定**
+- `GET /api/articles/counts` の `liked` / `disliked` — フィードごとの評価数
+- **like と dislike は排他**。`like()` は `disliked_at = NULL` を、`dislike()` は `liked_at = NULL` を
+  同じ UPDATE で行い、両方の評価を持つ行を DB に作らせない（クライアント側の楽観更新も同じ規則）
+- 蓄積は自動化しない（ユーザーが明示的に付ける）。評価しても既読にはしない
 - retention の削除対象外。ただしフィード削除時は CASCADE で消える
 
 ### Admin エンドポイント（`routes/admin.ts`）
@@ -298,21 +302,24 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | **ストック一覧ページ** | `StockCategoryListView` / `StockListView` | カテゴリ別のストック一覧 |
 | **ストック詳細ページ** | `StockDetailView` | ストックのタイトル・要約・翻訳を表示 |
 
-### like（記事の好みフラグ）
+### like / dislike（記事の評価フラグ）
 
-サーバーの `articles.liked_at` を読み書きする UI。iOS / Android で同じ操作感。
+サーバーの `articles.liked_at` / `articles.disliked_at` を読み書きする UI。iOS / Android で同じ操作感。
 
-- **記事一覧の左スワイプ**: 浅く引くと「ストック」だけ、深く引くと「like」も現れる
-  （iOS は `swipeActions` に 2 ボタンを宣言、Android は `SwipeActionRow` の `trailing: List<SwipeAction>`。
+- **記事一覧の左スワイプ**: 浅く引くと「ストック」だけ、深く引くと「like」「dislike」が順に現れる
+  （iOS は `swipeActions` に 3 ボタンを宣言、Android は `SwipeActionRow` の `trailing: List<SwipeAction>`。
   どちらも**先に宣言したアクションほど端に出る**）
-- **like 済みの表示**: 行にバッジ（`hand.thumbsup.fill` / `Icons.Filled.ThumbUp`）＋ スワイプボタンのラベルも切り替わる
-- **概要ページ**: 下部バーに like トグル
-- **フッター**: 「全て / 未読のみ / like」の 3 択排他フィルター。3 つ並ぶと横幅が足りないので**アイコンのみ**
-- 状態は `ArticleFilter`（all/unread/liked）で持ち、UserDefaults / SharedPreferences に永続化する
+- **評価済みの表示**: 行にバッジ（like = `hand.thumbsup.fill` / pink、dislike = `hand.thumbsdown.fill` / indigo）
+  ＋ スワイプボタンのラベルも切り替わる。排他なのでバッジは同時に出ない
+- **概要ページ**: 下部バーに like / dislike トグル
+- **フッター**: 「全て / 未読のみ / like / dislike」の 4 択排他フィルター。並ぶ数が多いので**アイコンのみ**
+- 状態は `ArticleFilter`（all/unread/liked/disliked）で持ち、UserDefaults / SharedPreferences に永続化する
   （旧 `unreadOnly` キーからは自動移行）
-- like フィルター中はフィード行のバッジが like 数になる（`FeedCount.liked`）
-- **like は既読にしない**。通信失敗時はロールバックする（既読の pending キューには積まない。
+- 評価フィルター中はフィード行のバッジが評価数になる（`FeedCount.liked` / `.disliked`）
+- **評価は既読にしない**。通信失敗時はロールバックする（既読の pending キューには積まない。
   流用すると既読の再送予定を壊すため `URLErrorPolicy.rollback` / `UrlErrorPolicy.Rollback` を別に用意している）
+- **like と dislike の排他はサーバーが保証する**が、楽観更新の見た目がずれないよう
+  クライアントも同じ規則で変換する（`updating(likedAt: .set(...), dislikedAt: .clear)` のように 1 回で両方）
 
 ### 画面・インタラクション仕様
 
@@ -322,10 +329,10 @@ make ios-deploy DEVICE_ID=<device-uuid>
 | フィードページ（SidebarView） | フィードのコンテキストメニュー: 編集（EditFeedView sheet）/ 削除 |
 | 記事一覧ページ（ArticleListView） | タイトル = フィード名（フィード選択時）/ "すべての記事"（全件時）|
 | 記事一覧ページ（ArticleListView） | 右スワイプ 12.5% でボタン表示、25% で確定: 既読/未読トグル |
-| 記事一覧ページ（ArticleListView） | 左スワイプ: 浅く引くと「ストックに入れる」（ストック元は所属グループ名）、深く引くと「like」も出る |
+| 記事一覧ページ（ArticleListView） | 左スワイプ: 浅く引くと「ストックに入れる」（ストック元は所属グループ名）、深く引くと「like」「dislike」も出る |
 | 概要ページ（ArticleDetailView） | 右上 Safari アイコン: デフォルトブラウザで開く |
 | 概要ページ（ArticleDetailView） | 左スワイプ: 記事ページ（BrowserView）を push 遷移（右から左）で開く |
-| FilterFooterView | 「全て」「未読のみ」「like」のアイコンボタン（排他フィルター）＋ 右端にストック遷移ボタン（フィードページ・記事一覧ページ共通）|
+| FilterFooterView | 「全て」「未読のみ」「like」「dislike」のアイコンボタン（排他フィルター）＋ 右端にストック遷移ボタン（フィードページ・記事一覧ページ共通）|
 | 記事ページ（BrowserView） | SFSafariViewController。Safari 拡張・広告ブロックが有効 |
 | 記事ページ（BrowserView） | 右スワイプ または 右下の閉じるボタンで閉じる |
 | ストック一覧ページ（StockListView） | 行を長押し: 詳細ページのフッターと同じ操作（元記事/翻訳/要約を生成/編集/削除）をコンテキストメニューで実行 |

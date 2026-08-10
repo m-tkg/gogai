@@ -68,6 +68,7 @@ describe('articles ルート（HTTP 契約）', () => {
         total: 2,
         unread: 1,
         liked: 1,
+        disliked: 0,
       })
     })
 
@@ -144,6 +145,51 @@ describe('articles ルート（HTTP 契約）', () => {
       const res = await articlesRouter.request('/')
       const body = await res.json()
       expect(body[0]).toHaveProperty('liked_at')
+    })
+  })
+
+  describe('dislike', () => {
+    it('POST /:id/dislike は 204 を返し disliked_at が入る', async () => {
+      const res = await articlesRouter.request(`/${articleId}/dislike`, { method: 'POST' })
+      expect(res.status).toBe(204)
+      expect(new ArticlesService(db).findById(articleId)?.disliked_at).toBeTypeOf('string')
+    })
+
+    it('POST /:id/undislike は 204 を返し disliked_at=null になる', async () => {
+      new ArticlesService(db).dislike(articleId)
+      const res = await articlesRouter.request(`/${articleId}/undislike`, { method: 'POST' })
+      expect(res.status).toBe(204)
+      expect(new ArticlesService(db).findById(articleId)?.disliked_at).toBeNull()
+    })
+
+    it('like 済みの記事に dislike すると like が外れる（評価は排他）', async () => {
+      await articlesRouter.request(`/${articleId}/like`, { method: 'POST' })
+      await articlesRouter.request(`/${articleId}/dislike`, { method: 'POST' })
+
+      const article = new ArticlesService(db).findById(articleId)
+      expect(article?.disliked_at).toBeTypeOf('string')
+      expect(article?.liked_at).toBeNull()
+    })
+
+    it('dislike しても既読にはならない', async () => {
+      await articlesRouter.request(`/${articleId}/dislike`, { method: 'POST' })
+      expect(new ArticlesService(db).findById(articleId)?.is_read).toBe(0)
+    })
+
+    it('GET /?dislikedOnly=true は dislike 済みのみを返す', async () => {
+      new ArticlesService(db).dislike(articleId)
+      const res = await articlesRouter.request('/?dislikedOnly=true')
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body).toHaveLength(1)
+      expect(body[0].id).toBe(articleId)
+      expect(body[0].disliked_at).toBeTypeOf('string')
+    })
+
+    it('GET / のレスポンスに disliked_at が含まれる', async () => {
+      const res = await articlesRouter.request('/')
+      const body = await res.json()
+      expect(body[0]).toHaveProperty('disliked_at')
     })
   })
 

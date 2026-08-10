@@ -83,6 +83,32 @@ class ArticleRepositoryTest {
     }
 
     @Test
+    fun `fetchAll は disliked フィルターで dislikedOnly を付与する`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("[$sampleArticleJson]"))
+        repository.fetchAll(filter = ArticleFilter.Disliked)
+        val recorded = server.takeRequest()
+        assertEquals("/api/articles?limit=1000&offset=0&sortBy=published_at&dislikedOnly=true", recorded.path)
+    }
+
+    @Test
+    fun `dislike は POST api articles id dislike を叩く`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(""))
+        repository.dislike(id = 5)
+        val recorded = server.takeRequest()
+        assertEquals("POST", recorded.method)
+        assertEquals("/api/articles/5/dislike", recorded.path)
+    }
+
+    @Test
+    fun `undislike は POST api articles id undislike を叩く`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(""))
+        repository.undislike(id = 5)
+        val recorded = server.takeRequest()
+        assertEquals("POST", recorded.method)
+        assertEquals("/api/articles/5/undislike", recorded.path)
+    }
+
+    @Test
     fun `markAsRead は POST api articles id read を叩く`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(""))
         repository.markAsRead(id = 5)
@@ -101,10 +127,11 @@ class ArticleRepositoryTest {
 
     @Test
     fun `fetchCounts は GET api articles counts を叩く`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(200).setBody("""[{"feed_id":1,"total":2,"unread":1,"liked":1}]"""))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""[{"feed_id":1,"total":2,"unread":1,"liked":1,"disliked":1}]"""))
         val counts = repository.fetchCounts()
         assertEquals(1, counts.size)
         assertEquals(1, counts[0].liked)
+        assertEquals(1, counts[0].disliked)
         val recorded = server.takeRequest()
         assertEquals("/api/articles/counts", recorded.path)
     }

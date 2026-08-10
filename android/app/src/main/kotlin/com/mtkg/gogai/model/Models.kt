@@ -34,6 +34,8 @@ data class FeedCount(
     val unread: Int,
     /// like された記事の件数（like フィルター選択時のバッジに使う）
     val liked: Int,
+    /// dislike された記事の件数（dislike フィルター選択時のバッジに使う）
+    val disliked: Int,
 )
 
 @Serializable

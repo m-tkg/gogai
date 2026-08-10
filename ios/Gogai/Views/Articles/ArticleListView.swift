@@ -75,6 +75,16 @@ struct ArticleListView: View {
                             )
                         }
                         .tint(article.isLiked ? .gray : .pink)
+
+                        Button {
+                            Task { await articleStore.toggleDislike(article) }
+                        } label: {
+                            Label(
+                                article.isDisliked ? "dislike を外す" : "dislike",
+                                systemImage: article.isDisliked ? "hand.thumbsdown.slash" : "hand.thumbsdown"
+                            )
+                        }
+                        .tint(article.isDisliked ? .gray : .indigo)
                     }
             }
         }

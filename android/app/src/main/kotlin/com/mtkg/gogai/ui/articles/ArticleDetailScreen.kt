@@ -57,6 +57,7 @@ import com.mtkg.gogai.ui.ai.AiResultSheet
 import com.mtkg.gogai.ui.ai.LocalAppContainer
 import com.mtkg.gogai.ui.common.openInCustomTabs
 import com.mtkg.gogai.ui.common.shareUrl
+import com.mtkg.gogai.ui.theme.DislikeIndigo
 import com.mtkg.gogai.ui.theme.LikePink
 import com.mtkg.gogai.util.HorizontalSwipeDirection
 import com.mtkg.gogai.util.displayDate
@@ -188,12 +189,34 @@ fun ArticleDetailScreen(
                     }) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = if (currentArticle.isLiked) Icons.Filled.ThumbDown else Icons.Filled.ThumbUp,
+                                imageVector = Icons.Filled.ThumbUp,
                                 contentDescription = null,
                                 tint = if (currentArticle.isLiked) LikePink else LocalContentColor.current,
                             )
                             Text(
                                 text = if (currentArticle.isLiked) stringResource(R.string.article_unlike) else stringResource(R.string.article_like),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+
+                    TextButton(onClick = {
+                        scope.launch {
+                            if (currentArticle.isDisliked) {
+                                articleStore.undislike(currentArticleId)
+                            } else {
+                                articleStore.dislike(currentArticleId)
+                            }
+                        }
+                    }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Filled.ThumbDown,
+                                contentDescription = null,
+                                tint = if (currentArticle.isDisliked) DislikeIndigo else LocalContentColor.current,
+                            )
+                            Text(
+                                text = if (currentArticle.isDisliked) stringResource(R.string.article_undislike) else stringResource(R.string.article_dislike),
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }

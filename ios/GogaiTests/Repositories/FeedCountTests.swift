@@ -20,8 +20,8 @@ final class FeedCountTests: XCTestCase {
         MockURLProtocol.requestHandler = { request in
             XCTAssertTrue(request.url?.path.hasSuffix("/api/articles/counts") == true)
             let json = """
-            [{"feed_id":1,"total":3,"unread":2,"liked":1},
-             {"feed_id":2,"total":5,"unread":0,"liked":0}]
+            [{"feed_id":1,"total":3,"unread":2,"liked":1,"disliked":2},
+             {"feed_id":2,"total":5,"unread":0,"liked":0,"disliked":0}]
             """
             return (200, Data(json.utf8))
         }
@@ -31,7 +31,9 @@ final class FeedCountTests: XCTestCase {
         XCTAssertEqual(counts[0].feed_id, 1)
         XCTAssertEqual(counts[0].unread, 2)
         XCTAssertEqual(counts[0].liked, 1)
+        XCTAssertEqual(counts[0].disliked, 2)
         XCTAssertEqual(counts[1].total, 5)
         XCTAssertEqual(counts[1].liked, 0)
+        XCTAssertEqual(counts[1].disliked, 0)
     }
 }

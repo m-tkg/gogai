@@ -10,8 +10,9 @@ Web + iOS + Android の RSS リーダー。REST API を共有する Web フロ�
 - ダークモード（手動切替 + localStorage 永続化）
 - 設定画面（記事の保持期間を変更可能）
 - アプリの更新（設定画面から git pull + ビルド + サービス再起動）
-- 設定した日数以上経過した記事の自動削除（デフォルト 180 日。like された記事は対象外）
-- **like**（記事に「これは好み」を手動で付けるフラグ。外部のキュレーション AI に渡すシグナル）
+- 設定した日数以上経過した記事の自動削除（デフォルト 180 日。評価した記事は対象外）
+- **like / dislike**（記事に「これは好み」「これは好みでない」を手動で付ける排他フラグ。
+  外部のキュレーション AI に正例・負例として渡すシグナル）
 - **ストック**（Instapaper 的な保存機能。旧お気に入り機能の後継）
   - サーバーに URL・タイトル・要約を保存し、カテゴリで分類・並び替え可能
   - iOS/iPadOS/macOS の Foundation Models（オンデバイス AI）で要約・翻訳を生成し結果をサーバーに保存
@@ -221,17 +222,22 @@ make docker-down
 
 | Method | Path | 説明 |
 |--------|------|------|
-| GET | `/api/articles` | 記事一覧 `?feedId=&groupId=&unreadOnly=&likedOnly=&limit=&offset=` |
-| GET | `/api/articles/counts` | フィードごとの記事数・未読数・like 数 |
+| GET | `/api/articles` | 記事一覧 `?feedId=&groupId=&unreadOnly=&likedOnly=&dislikedOnly=&limit=&offset=` |
+| GET | `/api/articles/counts` | フィードごとの記事数・未読数・like 数・dislike 数 |
 | GET | `/api/articles/:id` | 記事詳細 |
 | POST | `/api/articles/:id/read` | 既読にする |
 | POST | `/api/articles/:id/unread` | 未読にする |
 | POST | `/api/articles/:id/like` | like する（ユーザーの好みとして記録） |
 | POST | `/api/articles/:id/unlike` | like を外す |
+| POST | `/api/articles/:id/dislike` | dislike する（好みでないとして記録） |
+| POST | `/api/articles/:id/undislike` | dislike を外す |
 
-`likedOnly=true` を指定すると like 済みの記事だけを `liked_at` の降順（`sortBy` より優先）で返す。
-外部のキュレーション AI に「ユーザーが好みだと表明した記事」を渡すための取得口として使う。
-like された記事は保持期間（`retention_days`）を過ぎても自動削除されない。
+`likedOnly=true` / `dislikedOnly=true` を指定すると評価済みの記事だけを、評価した日時
+（`liked_at` / `disliked_at`）の降順（`sortBy` より優先）で返す。
+外部のキュレーション AI に正例・負例を渡すための取得口として使う。
+
+**like と dislike は排他**。一方を付けるともう一方は自動的に外れる（サーバー側で保証）。
+評価された記事は保持期間（`retention_days`）を過ぎても自動削除されない。
 
 ### Stocks
 
@@ -273,7 +279,7 @@ like された記事は保持期間（`retention_days`）を過ぎても自動�
 groups    (id, name, is_secret, display_order, created_at)
 feeds     (id, url, title, favicon_url, group_id→groups, last_fetched_at, display_order, created_at)
 articles  (id, feed_id→feeds, guid, title, link, summary, content,
-           published_at, is_read, read_at, liked_at, created_at)
+           published_at, is_read, read_at, liked_at, disliked_at, created_at)
 settings  (key, value)
 
 stock_categories   (id, name, display_order, created_at)
@@ -284,7 +290,8 @@ stock_translations  (stock_id→stocks, segments, translated_at)
 
 - `feeds.group_id` は `ON DELETE SET NULL`（グループ削除時にフィードは残る）
 - `articles.feed_id` は `ON DELETE CASCADE`（フィード削除時に記事も削除）
-- `articles.liked_at`: NULL = 未 like。like された記事は保持期間を過ぎても自動削除されない
+- `articles.liked_at` / `articles.disliked_at`: NULL = 未評価。両者は排他（一方を付けると他方が NULL になる）。
+  評価された記事は保持期間を過ぎても自動削除されない
 - `stocks.category_id` は `stock_categories` への必須参照（旧お気に入り機能をストックへ統合した後継）
 - `stock_translations.stock_id` は `ON DELETE CASCADE`（ストック削除時に翻訳も削除）
 - `settings`: key-value 形式（現在 `retention_days` のみ）

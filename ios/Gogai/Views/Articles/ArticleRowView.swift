@@ -72,12 +72,18 @@ struct ArticleRowView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(article.isRead ? "未読にする" : "既読にする")
 
-                // like 済みのときだけ表示する（行背景は未読表現で使用済みのため触らない）
+                // 評価済みのときだけ表示する（行背景は未読表現で使用済みのため触らない）
+                // like と dislike は排他なので同時には出ない
                 if article.isLiked {
                     Image(systemName: "hand.thumbsup.fill")
                         .foregroundStyle(Color.pink)
                         .font(.footnote)
                         .accessibilityLabel("like 済み")
+                } else if article.isDisliked {
+                    Image(systemName: "hand.thumbsdown.fill")
+                        .foregroundStyle(Color.indigo)
+                        .font(.footnote)
+                        .accessibilityLabel("dislike 済み")
                 }
             }
             .padding(.top, 2)

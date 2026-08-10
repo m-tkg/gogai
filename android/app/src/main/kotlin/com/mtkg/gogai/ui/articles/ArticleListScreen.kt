@@ -51,6 +51,7 @@ import com.mtkg.gogai.ui.common.FilterFooter
 import com.mtkg.gogai.ui.common.SwipeAction
 import com.mtkg.gogai.ui.common.SwipeActionRow
 import com.mtkg.gogai.ui.common.shareUrl
+import com.mtkg.gogai.ui.theme.DislikeIndigo
 import com.mtkg.gogai.ui.theme.LikePink
 import com.mtkg.gogai.ui.theme.SecretOrange
 import kotlinx.coroutines.launch
@@ -215,10 +216,16 @@ fun ArticleListScreen(
                                         onClick = { addToStock(article) },
                                     ),
                                     SwipeAction(
-                                        icon = if (article.isLiked) Icons.Filled.ThumbDown else Icons.Filled.ThumbUp,
+                                        icon = Icons.Filled.ThumbUp,
                                         label = if (article.isLiked) stringResource(R.string.article_unlike) else stringResource(R.string.article_like),
                                         color = if (article.isLiked) MaterialTheme.colorScheme.outline else LikePink,
                                         onClick = { scope.launch { articleStore.toggleLike(article) } },
+                                    ),
+                                    SwipeAction(
+                                        icon = Icons.Filled.ThumbDown,
+                                        label = if (article.isDisliked) stringResource(R.string.article_undislike) else stringResource(R.string.article_dislike),
+                                        color = if (article.isDisliked) MaterialTheme.colorScheme.outline else DislikeIndigo,
+                                        onClick = { scope.launch { articleStore.toggleDislike(article) } },
                                     ),
                                 ),
                                 allowsLeadingFullSwipe = true,
