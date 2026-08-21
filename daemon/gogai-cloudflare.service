@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=masaki
-ExecStart=/home/masaki/gogai/daemon/cloudflare-tunnel.sh
+ExecStart=/bin/bash /home/masaki/gogai/daemon/cloudflare-tunnel.sh
 Restart=always
 RestartSec=10
 
