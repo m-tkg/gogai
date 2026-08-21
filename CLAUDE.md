@@ -179,6 +179,7 @@ ios/
 │   │                         LocalAIResultSheet（結果表示）/ LocalAIOverlay（右下ボタン群）
 │   │                         TranslatedPageView+Model（システム翻訳、レイアウト保持のページ内翻訳）
 │   │                         FMPageTranslator/FMTranslatedPageView（基盤モデルによるレイアウト保持翻訳）
+│   │                         SentenceSplitter/TranslationMix（文単位分割・訳文割合のミックス規則）
 │   │                         StockSummarizer/StockSummary（ストック要約の map-reduce パイプライン）
 │   │                         ArticleContentFetcher（記事 URL から本文抽出）
 │   └── Utilities/            ServerURLManager / DefaultsKeys / HorizontalSwipe / DateFormatter+ / AppGroup
@@ -266,7 +267,7 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - Instapaper 的な保存機能。サーバー側に URL・タイトル・カテゴリ・要約を保存する（お気に入りの後継として統合済み、`is_favorite` カラムは削除済み）
 - 追加経路: 記事一覧の左スワイプ（ストック元は所属グループ名）/ iOS・iPadOS の共有シート（`GogaiShareExtension`）
 - 要約はストック追加時に自動生成せず、**ボタン起点**で明示的に生成する（`StockSummarizer` が map-reduce でオンデバイス生成し `PUT /api/stocks/:id/summary` で保存）
-- 翻訳はレイアウト保持のページ内翻訳を基盤モデルで行う（`FMPageTranslator`/`FMTranslatedPageView`）。結果は `stock_translations` に保存し再翻訳可能
+- 翻訳はレイアウト保持のページ内翻訳を基盤モデルで行う（`FMPageTranslator`/`FMTranslatedPageView`）。結果は `stock_translations` に**文単位**で保存し再翻訳可能（下記「文単位ミックス翻訳」参照）
 - 編集可能なのはタイトル・カテゴリのみ。カテゴリは並び替え可能（`PATCH /api/stock-categories/reorder`）
 - `StockListView` の行を長押しすると、詳細ページのフッターと同じ操作（元記事・翻訳・要約を生成・編集・削除）をコンテキストメニューで実行できる
 - シークレットフィード判定と同様、`StockStore` が一覧・作成・更新・削除を保持する
@@ -284,6 +285,26 @@ make ios-deploy DEVICE_ID=<device-uuid>
     プロンプトを縮小して自動リトライする（`FoundationModelTextGenerator.shrinkPromptIfContextExceeded`）。
     型ではなくエラー文言のキーワードで判定している（Xcode/SDK バージョンによって型が存在しないことがあるため）
 - Translation framework はシミュレーター不可（実機で確認）。Foundation Models は iOS 27 シミュレーターで動作確認可能
+
+### 文単位ミックス翻訳（ページ内翻訳の表示規則、iOS / Android 共通）
+
+Mazelingo 方式: ページを文単位に分割し、設定した割合の文だけ訳文で表示、残りは原文のまま。文をタップすると
+その文だけ原文 ⇄ 訳文が切り替わる（日本語の文脈が翻訳の代わりになる読み方）。
+
+- **分割**: `SentenceSplitter`（iOS `AI/SentenceSplitter.swift` / Android `ai/SentenceSplitter.kt`）。
+  テキストノードの文字列を可逆に分割する（連結すると元に戻る。句点・終端記号と後続の空白は前の文に付く）。
+  両プラットフォームで**同一アルゴリズム・同一テストケース**を維持すること（文ごとの原文ハッシュをサーバー経由で共有するため）
+- **DOM 側**: 抽出 JS（iOS `TranslatedPageModel.extractScript` / Android `assets/translator/extract.js`、**同一内容**）が
+  `__gogaiSplit(pieces)` で各文を `span.gogai-sent` に包み、`__gogaiSetTr({i,t})` で訳文を保持、`__gogaiSetShow({i,s})` で
+  表示フラグを一括設定する。タップによる個別トグルは JS 内で完結する（ネイティブは追跡しない）。
+  再抽出時は前回の span を原文テキストノードに戻してから走査する（再翻訳で二重 span にならない）
+- **割合**: `TranslationMix.isTranslated(index:ratio:offset:)`（整数の Bresenham 配分、両プラットフォーム同一）。
+  割合は 10% 刻み、既定 40%、UserDefaults / SharedPreferences の `translationMixRatio` に永続化。
+  「混ぜ直す」は offset を +1 して再配分（手動トグルはリセットされる）。`TranslatedPageModel(mixRatio:)` の既定は 100（テスト用）
+- **保存形式**: `FMTranslationPayload` / `TranslationPayload` は **version 2**（`i` = 文の通し番号、`h` = trim 済み原文の SHA256）。
+  version 1（ノード単位）は互換性がないため復元せず全文を翻訳し直す。全文を翻訳して保存し、表示だけを割合で間引く
+  （割合変更・トグルは通信なしで即時）
+- **UI**: 右下フローティングに「混ぜ直す」「− 訳 N% +」「再翻訳」「閉じる」。旧「原文/訳文トグル」は割合 0% / 100% で代替
 
 ### GogaiApp の自動更新
 
@@ -386,7 +407,7 @@ iOS 版と同じ使い勝手を目標にした移植（View → Store → Reposi
 - **記事ページは Chrome Custom Tabs**（SFSafariViewController 相当）。そのため iOS の BrowserView 右下
   AI オーバーレイは移植せず、AI アクション（要約・翻訳）は概要ページ下部バーとストック詳細フッターに配置
 - **ストックのページ内翻訳**は アプリ内 WebView の `ui/ai/TranslatedPageScreen.kt`（iOS FMTranslatedPageView 相当、
-  `assets/translator/extract.js` は iOS の TreeWalker JS を逐語移植）
+  `assets/translator/extract.js` は iOS の TreeWalker JS を逐語移植）。文単位ミックス表示も同一規則（上記参照）
 - **並び替えは編集モードの上下ボタン**（iOS はドラッグ&ドロップ）。`sh.calvin.reorderable` は導入済みだが未結線
 - **タブレット**: WindowWidthSizeClass Expanded で 3 ペイン表示（iPad の NavigationSplitView 相当）
 - **スワイプの閾値**は自作の `SwipeActionRow` が持つ（iOS の `swipeActions` は SwiftUI 任せで数値指定できない）。

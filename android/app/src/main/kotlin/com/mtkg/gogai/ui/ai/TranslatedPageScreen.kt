@@ -11,14 +11,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -41,7 +47,9 @@ import com.mtkg.gogai.R
 import com.mtkg.gogai.ai.AiError
 import com.mtkg.gogai.ai.PageBatchTranslator
 import com.mtkg.gogai.ai.PageTranslator
+import com.mtkg.gogai.ai.SentenceSplitter
 import com.mtkg.gogai.ai.TextGenerating
+import com.mtkg.gogai.ai.TranslationMix
 import com.mtkg.gogai.model.Stock
 import com.mtkg.gogai.store.StockStore
 import kotlin.coroutines.resume
@@ -49,20 +57,27 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private enum class TranslationStatus { Loading, Translating, Done, Failed }
 
 @Serializable
-private data class BulkApplyPayload(val i: List<Int>, val t: List<String>)
+private data class SetTranslationsPayload(val i: List<Int>, val t: List<String>)
+
+@Serializable
+private data class SetShowPayload(val i: List<Int>, val s: List<Boolean>)
 
 /**
  * レイアウト保持のページ内翻訳を行うフルスクリーンオーバーレイ（iOS FMTranslatedPageView /
  * TranslatedPageModel, AI/FMTranslatedPageView.swift・AI/TranslatedPageModel.swift の移植）。
  *
  * WebView で stock.url をロードし、assets/translator/extract.js を注入してテキストノードを
- * 収集、[PageTranslator] で保存済み訳文の復元と新規翻訳を行い、`__gogaiApplyAll` で DOM に
- * 書き戻す。全完了後にサーバーへ保存する（StockStore.saveTranslation）。
+ * 収集、[SentenceSplitter] で文単位に分割して `__gogaiSplit` で span 化、[PageTranslator] で
+ * 保存済み訳文の復元と新規翻訳を行い、`__gogaiSetTr` で DOM に書き戻す。全完了後にサーバーへ
+ * 保存する（StockStore.saveTranslation）。
+ * 表示は設定した割合の文だけ訳文にするミックス表示（`__gogaiSetShow`）。各文はページ上で
+ * タップすると原文 ⇄ 訳文を個別に切り替えられる（切り替えはページ側 JS が持つ）。
  *
  * app/GogaiNavHost.kt を編集できない制約のため、NavHost に新しい route を追加せず、
  * 呼び出し元（StockListScreen/StockDetailScreen）がローカル状態でこの Composable の表示を
@@ -79,9 +94,12 @@ fun TranslatedPageScreen(stock: Stock, stockStore: StockStore, onClose: () -> Un
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var translatedCount by remember { mutableIntStateOf(0) }
     var totalCount by remember { mutableIntStateOf(0) }
-    var isShowingOriginal by remember { mutableStateOf(false) }
-    var currentTranslations by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var originalTexts by remember { mutableStateOf<List<String>>(emptyList()) }
+    var hasTranslations by remember { mutableStateOf(false) }
+    var sentenceCount by remember { mutableIntStateOf(0) }
+    var mixRatio by remember {
+        mutableIntStateOf(container?.keyValueStore?.let { TranslationMix.savedRatio(it) } ?: TranslationMix.DEFAULT_RATIO)
+    }
+    var mixOffset by remember { mutableIntStateOf(0) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var pageLoaded by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
@@ -94,16 +112,22 @@ fun TranslatedPageScreen(stock: Stock, stockStore: StockStore, onClose: () -> Un
         errorMessage = null
         translatedCount = 0
         totalCount = 0
+        hasTranslations = false
         stockStore.pauseSummaryQueueForTranslation()
         try {
             val extractScript = readExtractScript(webView)
             val rawResult = webView.evaluateJavascriptSuspend(extractScript)
-            val texts = decodeTextsArray(rawResult)
-            originalTexts = texts
+            val nodeTexts = decodeTextsArray(rawResult)
+            // 文単位に分割して span 化する。以降の index はすべて文の通し番号
+            val pieces = nodeTexts.map { SentenceSplitter.split(it) }
+            val texts = pieces.flatten().map { it.trim() }
+            sentenceCount = texts.size
             if (texts.isEmpty()) {
                 status = TranslationStatus.Done
                 return
             }
+            webView.evaluateJavascriptSuspend("window.__gogaiSplit(${Json.encodeToString(pieces)}); true;")
+            applyMix(webView, texts.size, mixRatio, mixOffset)
 
             val savedJson = if (forceRetranslate) null else stockStore.fetchTranslation(stock.id)?.segments
             val generator: TextGenerating = container?.currentTextGenerator()
@@ -116,10 +140,9 @@ fun TranslatedPageScreen(stock: Stock, stockStore: StockStore, onClose: () -> Un
             }
 
             if (result.merged.isNotEmpty()) {
-                applyAll(webView, result.merged)
-                currentTranslations = result.merged
+                setTranslations(webView, result.merged)
+                hasTranslations = true
             }
-            isShowingOriginal = false
             result.payloadJson?.let { json ->
                 runCatching { stockStore.saveTranslation(stock.id, json) }
             }
@@ -185,32 +208,36 @@ fun TranslatedPageScreen(stock: Stock, stockStore: StockStore, onClose: () -> Un
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(20.dp),
+                horizontalAlignment = Alignment.End,
             ) {
-                if (currentTranslations.isNotEmpty()) {
-                    CircleIconButton(
-                        icon = Icons.Filled.Translate,
-                        contentDescription = if (isShowingOriginal) {
-                            stringResource(R.string.stock_translate_show_translation_content_description)
-                        } else {
-                            stringResource(R.string.stock_translate_show_original_content_description)
-                        },
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    ) {
-                        val webView = webViewRef ?: return@CircleIconButton
-                        scope.launch {
-                            if (isShowingOriginal) {
-                                applyAll(webView, currentTranslations)
-                                isShowingOriginal = false
-                            } else {
-                                val originals = currentTranslations.keys.associateWith { index ->
-                                    originalTexts.getOrNull(index) ?: ""
-                                }
-                                applyAll(webView, originals)
-                                isShowingOriginal = true
-                            }
-                        }
+                val isMixEnabled = status == TranslationStatus.Done && hasTranslations
+                suspend fun changeRatio(delta: Int) {
+                    val webView = webViewRef ?: return
+                    val next = TranslationMix.clamp(mixRatio + delta)
+                    if (next == mixRatio) return
+                    mixRatio = next
+                    container?.keyValueStore?.let { TranslationMix.saveRatio(it, next) }
+                    applyMix(webView, sentenceCount, mixRatio, mixOffset)
+                }
+                CircleIconButton(
+                    icon = Icons.Filled.Shuffle,
+                    contentDescription = stringResource(R.string.stock_translate_reshuffle_content_description),
+                    enabled = isMixEnabled && mixRatio > TranslationMix.MIN_RATIO && mixRatio < TranslationMix.MAX_RATIO,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                ) {
+                    val webView = webViewRef ?: return@CircleIconButton
+                    scope.launch {
+                        mixOffset += 1
+                        applyMix(webView, sentenceCount, mixRatio, mixOffset)
                     }
                 }
+                MixRatioStepper(
+                    ratio = mixRatio,
+                    enabled = isMixEnabled,
+                    onDecrease = { scope.launch { changeRatio(-TranslationMix.STEP) } },
+                    onIncrease = { scope.launch { changeRatio(TranslationMix.STEP) } },
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
                 CircleIconButton(
                     icon = Icons.Filled.Refresh,
                     contentDescription = stringResource(R.string.stock_translate_retranslate_content_description),
@@ -292,12 +319,55 @@ private fun CircleIconButton(
     }
 }
 
-private suspend fun applyAll(webView: WebView, translations: Map<Int, String>) {
+/// 訳文で表示する文の割合を 10% 刻みで増減するカプセル（iOS PageTranslationFloatingButtons の mixRatioStepper 相当）
+@Composable
+private fun MixRatioStepper(
+    ratio: Int,
+    enabled: Boolean,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.height(48.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        tonalElevation = 3.dp,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onDecrease, enabled = enabled && ratio > TranslationMix.MIN_RATIO, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.stock_translate_mix_decrease_content_description))
+            }
+            Text(
+                text = stringResource(R.string.stock_translate_mix_ratio_label, ratio),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.widthIn(min = 56.dp),
+                textAlign = TextAlign.Center,
+            )
+            IconButton(onClick = onIncrease, enabled = enabled && ratio < TranslationMix.MAX_RATIO, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.stock_translate_mix_increase_content_description))
+            }
+        }
+    }
+}
+
+/// 訳文を文 index ごとにページへ渡す（表示するかどうかは __gogaiSetShow のフラグに従う）
+private suspend fun setTranslations(webView: WebView, translations: Map<Int, String>) {
     if (translations.isEmpty()) return
     val indices = translations.keys.toList()
     val texts = indices.map { translations.getValue(it) }
-    val payloadJson = Json.encodeToString(BulkApplyPayload.serializer(), BulkApplyPayload(i = indices, t = texts))
-    webView.evaluateJavascriptSuspend("window.__gogaiApplyAll($payloadJson); true;")
+    val payloadJson = Json.encodeToString(SetTranslationsPayload.serializer(), SetTranslationsPayload(i = indices, t = texts))
+    webView.evaluateJavascriptSuspend("window.__gogaiSetTr($payloadJson); true;")
+}
+
+/// 現在の割合・オフセットから各文の表示フラグを算出してページに送る（TranslationMix と同じ規則）
+private suspend fun applyMix(webView: WebView, sentenceCount: Int, ratio: Int, offset: Int) {
+    if (sentenceCount <= 0) return
+    val indices = (0 until sentenceCount).toList()
+    val flags = indices.map { TranslationMix.isTranslated(it, ratio, offset) }
+    val payloadJson = Json.encodeToString(SetShowPayload.serializer(), SetShowPayload(i = indices, s = flags))
+    webView.evaluateJavascriptSuspend("window.__gogaiSetShow($payloadJson); true;")
 }
 
 private fun decodeTextsArray(raw: String?): List<String> {

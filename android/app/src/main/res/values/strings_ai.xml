@@ -12,8 +12,11 @@
     <string name="stock_translate_status_done">翻訳完了</string>
     <string name="stock_translate_status_failed">翻訳に失敗しました: %1$s</string>
     <string name="stock_translate_ai_unavailable_notice">AI が利用できないため、保存済みの訳文のみ表示します</string>
-    <string name="stock_translate_show_original_content_description">原文を表示</string>
-    <string name="stock_translate_show_translation_content_description">訳文を表示</string>
+    <string name="stock_translate_mix_ratio_label">訳 %1$d%%</string>
+    <string name="stock_translate_mix_ratio_content_description">訳文の割合 %1$dパーセント</string>
+    <string name="stock_translate_mix_increase_content_description">訳文を増やす</string>
+    <string name="stock_translate_mix_decrease_content_description">訳文を減らす</string>
+    <string name="stock_translate_reshuffle_content_description">混ぜ直す</string>
     <string name="stock_translate_retranslate_content_description">再翻訳</string>
     <string name="stock_translate_close_content_description">閉じる</string>
 

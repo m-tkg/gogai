@@ -25,7 +25,7 @@ struct TranslatedPageView: View {
     let url: URL
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var model = TranslatedPageModel()
+    @StateObject private var model = TranslatedPageModel(mixRatio: TranslationMix.savedRatio)
     @State private var configuration: TranslationSession.Configuration?
 
     var body: some View {
@@ -74,8 +74,8 @@ struct TranslatedPageView: View {
             }
             model.beginTranslating(total: texts.count)
 
-            // キャッシュ済みのノードは即座に書き戻し、未訳のものだけ翻訳セッションへ。
-            // clientIdentifier にノード index を載せ、訳が届き次第その場で書き戻す
+            // キャッシュ済みの文は即座に書き戻し、未訳のものだけ翻訳セッションへ。
+            // clientIdentifier に文 index を載せ、訳が届き次第その場で書き戻す
             let cache = TranslationCache.shared
             var batch: [TranslationSession.Request] = []
             for (index, text) in texts.enumerated() {
