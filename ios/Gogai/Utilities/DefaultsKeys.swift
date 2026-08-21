@@ -10,6 +10,8 @@ enum DefaultsKeys {
     static let resolvedServerURL = "resolvedServerURL"
     static let translationEngine = "translationEngine"
     static let aiProvider = "aiProvider"
+    /// ページ内翻訳で訳文表示にする文の割合(0〜100、Int)
+    static let translationMixRatio = "translationMixRatio"
     static let stockSortAscending = "stockSortAscending"
     static let stockSummaryQueue = "stockSummaryQueue"
     static let stockSummaryErrors = "stockSummaryErrors"

@@ -38,7 +38,7 @@ class PageTranslatorTest {
         val texts = listOf("Hello", "World")
 
         val payload = TranslationPayload(
-            version = 1,
+            version = TranslationPayload.CURRENT_VERSION,
             segments = listOf(
                 TranslationPayload.Segment(i = 0, h = "Hello".sha256HexDigest(), t = "こんにちは"),
                 TranslationPayload.Segment(i = 1, h = "World".sha256HexDigest(), t = "世界"),
@@ -60,7 +60,7 @@ class PageTranslatorTest {
         val texts = listOf("Hello", "ChangedText")
 
         val payload = TranslationPayload(
-            version = 1,
+            version = TranslationPayload.CURRENT_VERSION,
             segments = listOf(
                 TranslationPayload.Segment(i = 0, h = "Hello".sha256HexDigest(), t = "こんにちは"),
                 // index 1 は保存時と原文が変わっているのでハッシュ不一致になる
@@ -85,7 +85,7 @@ class PageTranslatorTest {
 
         requireNotNull(result.payloadJson)
         val decoded = Json.decodeFromString(TranslationPayload.serializer(), result.payloadJson)
-        assertEquals(1, decoded.version)
+        assertEquals(TranslationPayload.CURRENT_VERSION, decoded.version)
         assertEquals(1, decoded.segments.size)
         assertEquals(0, decoded.segments[0].i)
         assertEquals("Hello".sha256HexDigest(), decoded.segments[0].h)
@@ -99,6 +99,21 @@ class PageTranslatorTest {
 
         assertTrue(result.merged.isEmpty())
         assertNull(result.payloadJson)
+    }
+
+    @Test
+    fun `旧形式(ノード単位 version 1)のペイロードは復元せず全文を翻訳し直す`() = runTest {
+        val translator = PageTranslator(PageBatchTranslator(translatingGenerator()))
+        val payload = TranslationPayload(
+            version = 1,
+            segments = listOf(TranslationPayload.Segment(i = 0, h = "Hello".sha256HexDigest(), t = "こんにちは")),
+        )
+        val savedJson = Json.encodeToString(TranslationPayload.serializer(), payload)
+
+        val result = translator.translate(listOf("Hello"), savedPayloadJson = savedJson, pageTitle = "t")
+
+        assertTrue(result.restored.isEmpty())
+        assertEquals(mapOf(0 to "訳:Hello"), result.translatedNow)
     }
 
     @Test

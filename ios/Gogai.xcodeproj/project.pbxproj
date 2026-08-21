@@ -34,6 +34,10 @@
 		FF0000000000000000007CAB /* LocalAIErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000007BAB /* LocalAIErrorTests.swift */; };
 		FF00000000000000000046AB /* ArticleContentFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000046AB /* ArticleContentFetcher.swift */; };
 		FF00000000000000000047AB /* TranslatedPageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000047AB /* TranslatedPageModel.swift */; };
+		FF00000000000000000090AB /* SentenceSplitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000084AB /* SentenceSplitter.swift */; };
+		FF00000000000000000091AB /* TranslationMix.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000085AB /* TranslationMix.swift */; };
+		FF00000000000000000092AB /* SentenceSplitterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000086AB /* SentenceSplitterTests.swift */; };
+		FF00000000000000000093AB /* TranslationMixTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE00000000000000000087AB /* TranslationMixTests.swift */; };
 		FF00000000000000000048AB /* TranslatedPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000048AB /* TranslatedPageView.swift */; };
 		FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000042AB /* FoundationModelTextGenerator.swift */; };
 		FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00000000000000000043AB /* LocalAIResultSheet.swift */; };
@@ -195,6 +199,10 @@
 		DD00000000000000000077AB /* LocalAIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIError.swift; sourceTree = "<group>"; };
 		DD00000000000000000046AB /* ArticleContentFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleContentFetcher.swift; sourceTree = "<group>"; };
 		DD00000000000000000047AB /* TranslatedPageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageModel.swift; sourceTree = "<group>"; };
+		DD00000000000000000084AB /* SentenceSplitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceSplitter.swift; sourceTree = "<group>"; };
+		DD00000000000000000085AB /* TranslationMix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationMix.swift; sourceTree = "<group>"; };
+		EE00000000000000000086AB /* SentenceSplitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceSplitterTests.swift; sourceTree = "<group>"; };
+		EE00000000000000000087AB /* TranslationMixTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationMixTests.swift; sourceTree = "<group>"; };
 		DD00000000000000000048AB /* TranslatedPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslatedPageView.swift; sourceTree = "<group>"; };
 		DD00000000000000000042AB /* FoundationModelTextGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelTextGenerator.swift; sourceTree = "<group>"; };
 		DD00000000000000000043AB /* LocalAIResultSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAIResultSheet.swift; sourceTree = "<group>"; };
@@ -444,6 +452,8 @@
 				DD00000000000000000079AB /* PageTranslationWebView.swift */,
 				DD0000000000000000007AAB /* PageTranslationStatusBar.swift */,
 				DD0000000000000000007BAB /* PageTranslationFloatingButtons.swift */,
+				DD00000000000000000084AB /* SentenceSplitter.swift */,
+				DD00000000000000000085AB /* TranslationMix.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -559,6 +569,8 @@
 				EE00000000000000000064AB /* FMPageTranslatorTests.swift */,
 				EE00000000000000000074AB /* FoundationModelTextGeneratorTests.swift */,
 				EE0000000000000000007BAB /* LocalAIErrorTests.swift */,
+				EE00000000000000000086AB /* SentenceSplitterTests.swift */,
+				EE00000000000000000087AB /* TranslationMixTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -778,6 +790,8 @@
 				FF0000000000000000007BAB /* LocalAIError.swift in Sources */,
 				FF00000000000000000046AB /* ArticleContentFetcher.swift in Sources */,
 				FF00000000000000000047AB /* TranslatedPageModel.swift in Sources */,
+				FF00000000000000000090AB /* SentenceSplitter.swift in Sources */,
+				FF00000000000000000091AB /* TranslationMix.swift in Sources */,
 				FF00000000000000000048AB /* TranslatedPageView.swift in Sources */,
 				FF00000000000000000042AB /* FoundationModelTextGenerator.swift in Sources */,
 				FF00000000000000000043AB /* LocalAIResultSheet.swift in Sources */,
@@ -855,6 +869,8 @@
 				FF00000000000000000040AB /* LocalArticleAITests.swift in Sources */,
 				FF00000000000000000045AB /* ArticleContentFetcherTests.swift in Sources */,
 				FF00000000000000000049AB /* TranslatedPageModelTests.swift in Sources */,
+				FF00000000000000000092AB /* SentenceSplitterTests.swift in Sources */,
+				FF00000000000000000093AB /* TranslationMixTests.swift in Sources */,
 				FF0000000000000000004DAB /* TranslationCacheTests.swift in Sources */,
 				FF0000000000000000002DAB /* ArticleSortOrderTests.swift in Sources */,
 				FF0000000000000000003AAB /* ArticleUpdatingTests.swift in Sources */,

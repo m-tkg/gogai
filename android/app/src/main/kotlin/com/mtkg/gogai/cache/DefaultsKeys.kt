@@ -9,6 +9,8 @@ object DefaultsKeys {
     const val SERVER_URL = "serverURL"
     const val RESOLVED_SERVER_URL = "resolvedServerURL"
     const val AI_PROVIDER = "aiProvider"
+    /// ページ内翻訳で訳文表示にする文の割合(0〜100、文字列化した Int)
+    const val TRANSLATION_MIX_RATIO = "translationMixRatio"
     const val STOCK_SORT_ASCENDING = "stockSortAscending"
     const val STOCK_SUMMARY_QUEUE = "stockSummaryQueue"
     const val STOCK_SUMMARY_ERRORS = "stockSummaryErrors"
