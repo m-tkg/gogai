@@ -236,6 +236,11 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - メソッド単位で `@MainActor` を付ける
 - `withTaskGroup` で Store を渡すと non-Sendable エラーになるため、sequential `await` を使う
 - `Group` モデルと SwiftUI の `Group` ビューが衝突するため `SwiftUI.Group { }` と修飾する
+- **動的 actor 隔離チェックは無効化している**（プロジェクト全体の `OTHER_SWIFT_FLAGS` に
+  `-Xfrontend -disable-dynamic-actor-isolation`）。SwiftUI が view builder のクロージャを
+  `com.apple.SwiftUI.AsyncRenderer` スレッドで評価することがあり、Swift 6 モードだと
+  `@MainActor` クロージャの実行時チェックが `dispatch_assert_queue` で落ちるため
+  （1.1.33 / iOS 27 beta で `LazyView.body` 評価中にクラッシュ）。Apple 側の修正が入ったら外す
 
 ### ServerURLManager の仕様
 
