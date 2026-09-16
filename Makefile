@@ -1,7 +1,7 @@
 .PHONY: install dev dev-backend dev-frontend build test test-watch typecheck clean \
         docker-up docker-down docker-build docker-logs docker-clean \
         daemon-setup daemon-start daemon-stop daemon-restart daemon-status daemon-logs \
-        restart-daemon ios-sync-icons ios-build ios-test ios-deploy \
+        restart-daemon ios-sync-icons ios-build ios-test ios-deploy ota \
         android-sync-icons android-build android-release android-test android-deploy
 
 # ── ローカル開発 ──────────────────────────────────────────
@@ -153,6 +153,12 @@ ios-deploy: ios-sync-icons
 		xcrun devicectl device process launch \
 		--device $(DEVICE_ID) \
 		$(BUNDLE_ID)
+
+# OTA（Over-The-Air）配布。ipa + manifest.plist + index.html を作り、
+# ota.mtkg（miscpi.mtkg の /mnt/storage/ota/gogai）へ ssh 配信する。
+# 別サーバへ配るときは OTA_URL を渡す（例: make ota OTA_URL=https://example.com）。
+ota:
+	./ios/Scripts/ota.sh $(OTA_URL)
 
 # ── Android ──────────────────────────────────────────────────
 
