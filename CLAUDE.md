@@ -31,6 +31,7 @@ make daemon-restart # Raspberry Pi でサービスを再起動
 make ios-build      # iOS シミュレータービルド
 make ios-test       # iOS ユニットテストを実行
 make ios-deploy     # iOS 実機インストール＆起動
+make ota            # iOS OTA 配布（ipa/manifest.plist/index.html を ota.mtkg へ配信）
 make android-build  # Android デバッグビルド
 make android-release # Android リリースビルド（debug 署名流用の APK）
 make android-test   # Android ユニットテストを実行
@@ -198,6 +199,7 @@ make ios-sync-icons   # appiconset/ → xcassets へアイコンを同期
 make ios-build        # アイコン同期 + シミュレータービルド
 make ios-test         # ユニットテスト（iPhone 17 Pro シミュレーター）
 make ios-deploy       # アイコン同期 + Release ビルド + 実機インストール + 起動
+make ota              # OTA 配布用 ipa/manifest.plist/index.html を作り ota.mtkg へ配信
 ```
 
 新しい Swift ファイルを追加したら `Gogai.xcodeproj/project.pbxproj` への登録が必要
