@@ -114,7 +114,7 @@ GitHub API は使用しない（private repo でも動作する）。
 
 **認証（fail-closed）**: `/api/admin` 以下の全ルートに `X-Admin-Secret` 認証をかける。
 `ADMIN_SECRET` が未設定・空・空白のみなら全拒否（403、ヘッダーの有無に関わらず）、設定済みで不一致・欠落なら 401。
-値は `daemon/.env`（git 管理外、`gogai-backend.service` が `EnvironmentFile` で読む）に置く。値の生成・コミットはしない。
+値は `daemon/backend.env`（git 管理外、`gogai-backend.service` が `EnvironmentFile` で読む）に置く。旧 `daemon/.env` は読まない（旧構成のトークンを backend / git / npm の子プロセスへ渡さないため）。値の生成・コミットはしない。
 iOS / Android は設定画面の「管理シークレット」から送る。Web 版は未対応（admin 画面はエラー表示になる）。
 
 systemd の `Restart=always` により自動再起動。`ExecStartPre=-npm run build`（`-` = 失敗しても無視）は
@@ -468,3 +468,5 @@ iOS 版と同じ使い勝手を目標にした移植（View → Store → Reposi
 （iOS アプリの「サーバー URL」に `http://<tailnet ホスト名または IP>:3040` を指定）。
 記事・フィード API に共通認証は無いため、インターネットへ直接公開しないこと。
 `daemon/setup.sh` は旧バージョンのトンネル用サービスが残っていれば停止・削除する。
+既存環境は「git pull して再起動」だけでは旧サービスが止まらないため、更新後に `bash daemon/setup.sh` を再実行する。
+旧構成の `daemon/.env` のトークンは削除して失効させる。

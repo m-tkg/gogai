@@ -142,6 +142,18 @@ make daemon-logs     # ログ表示（リアルタイム）
 
 または iOS / Android アプリの管理画面から更新可能（`ADMIN_SECRET` の設定が必要。下記参照）。
 
+#### 既存環境の移行（旧トンネル構成から更新する場合）
+
+アプリの「git pull して再起動」や `make restart-daemon` は backend / frontend しか再起動しないため、
+旧トンネル用サービスは止まらない。更新後に次を行う。
+
+```bash
+bash daemon/setup.sh   # 旧サービスの停止・削除と backend の unit 更新（または: sudo systemctl disable --now gogai-cloudflare）
+```
+
+- 旧構成の `daemon/.env` に置いていたトークン（`GITHUB_PAT`）は不要になる。`daemon/.env` から削除し、発行元でトークンを失効する。
+  backend は `daemon/.env` を読まない（`daemon/backend.env` のみ読む）。
+
 #### リモートアクセス（Tailscale）
 
 外出先から接続する場合は、サーバーを公開せず [Tailscale](https://tailscale.com/) の tailnet 経由で接続する。
@@ -156,14 +168,13 @@ make daemon-logs     # ログ表示（リアルタイム）
 未設定・空文字・空白のみの間は全リクエストを 403 で拒否する。設定済みでも `X-Admin-Secret` ヘッダーが一致しなければ 401。
 
 ```bash
-# daemon/.env（git 管理外）に書く。値は十分長いランダム文字列にする
-echo 'ADMIN_SECRET=<十分長いランダム文字列>' >> daemon/.env
-chmod 600 daemon/.env
+# daemon/backend.env（git 管理外・backend 専用）に書く。作成時から所有者のみ読めるようにする
+(umask 077; printf 'ADMIN_SECRET=%s\n' "$(openssl rand -hex 32)" >> daemon/backend.env)
 sudo systemctl restart gogai-backend
 ```
 
 `make dev` など systemd 以外で動かす場合は、起動前に `ADMIN_SECRET=<...>` を環境変数に渡す。
-iOS / Android アプリは、設定画面の「管理シークレット」に同じ値を入力する。
+iOS / Android アプリは、設定画面の「管理シークレット」に同じ値を入力する（値は `cat daemon/backend.env` で確認できる）。
 Web 版の設定画面は秘密を送信しないため、管理 API を使えない（更新はアプリか `make restart-daemon` で行う）。
 
 ### iOS / iPadOS / macOS アプリ

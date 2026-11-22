@@ -26,17 +26,18 @@ sudo systemctl start gogai-frontend
 # （再実行しても復活しない。存在しなければ何もしない）
 if [ -f "$SYSTEMD_DIR/gogai-cloudflare.service" ]; then
   sudo systemctl disable --now gogai-cloudflare || true
+  sudo systemctl reset-failed gogai-cloudflare 2>/dev/null || true
   sudo rm -f "$SYSTEMD_DIR/gogai-cloudflare.service"
   sudo systemctl daemon-reload
 fi
 
 # 管理 API（更新確認・git pull して再起動）は ADMIN_SECRET が未設定だと全拒否になる。
-if [ ! -f "$SCRIPT_DIR/.env" ] || ! grep -q '^ADMIN_SECRET=.' "$SCRIPT_DIR/.env"; then
+BACKEND_ENV="$SCRIPT_DIR/backend.env"
+if [ ! -f "$BACKEND_ENV" ] || ! grep -q '^ADMIN_SECRET=[^[:space:]"'"'"']' "$BACKEND_ENV"; then
   echo ""
-  echo "注意: daemon/.env に ADMIN_SECRET が未設定のため、管理 API は無効（403）です。"
+  echo "注意: daemon/backend.env に ADMIN_SECRET が未設定のため、管理 API は無効（403）です。"
   echo "      使う場合は以下を実行し、アプリ側の「管理シークレット」にも同じ値を設定してください:"
-  echo "        echo 'ADMIN_SECRET=<十分長いランダム文字列>' >> $SCRIPT_DIR/.env"
-  echo "        chmod 600 $SCRIPT_DIR/.env"
+  echo "        (umask 077; printf 'ADMIN_SECRET=%s\\n' \"\$(openssl rand -hex 32)\" >> $BACKEND_ENV)"
   echo "        sudo systemctl restart gogai-backend"
 fi
 
