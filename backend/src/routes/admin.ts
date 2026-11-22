@@ -3,6 +3,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { resolve, join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { createHash, timingSafeEqual } from 'crypto'
 import { AppError, errorHandler } from '../errors.js'
 
 const execAsync = promisify(exec)
@@ -13,19 +14,25 @@ const BACKEND_DIR = join(PROJECT_ROOT, 'backend')
 
 const GITHUB_BRANCH = 'main'
 
+// 長さの差を漏らさないよう SHA-256 に揃えてから定数時間比較する
+function secretMatches(provided: string | undefined, expected: string): boolean {
+  if (provided === undefined) return false
+  const digest = (v: string) => createHash('sha256').update(v).digest()
+  return timingSafeEqual(digest(provided), digest(expected))
+}
+
 const app = new Hono()
 app.onError(errorHandler)
 
-// git pull・npm run build・プロセス再起動という強い権限操作のため、ADMIN_SECRET が
-// 設定されていれば X-Admin-Secret ヘッダーでの認証を必須にする。
-// opt-in: 未設定の既存デプロイを壊さないよう、未設定時は従来通り無認証で通す。
+// git pull・npm run build・プロセス再起動という強い権限操作のため、fail-closed で保護する。
+// - ADMIN_SECRET が未設定・空・空白のみ → 全ルートを 403 で拒否（認証ヘッダーの有無に関わらず）
+// - 設定済み → X-Admin-Secret ヘッダーが一致する場合のみ許可（不一致・欠落は 401）
 app.use('*', async (c, next) => {
   const secret = process.env.ADMIN_SECRET
-  if (!secret) {
-    await next()
-    return
+  if (!secret || secret.trim() === '') {
+    throw new AppError('管理 API は無効です（サーバーに ADMIN_SECRET が設定されていません）', 403)
   }
-  if (c.req.header('X-Admin-Secret') !== secret) {
+  if (!secretMatches(c.req.header('X-Admin-Secret'), secret)) {
     throw new AppError('Unauthorized', 401)
   }
   await next()

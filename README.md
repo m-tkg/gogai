@@ -17,7 +17,7 @@ Web + iOS + Android の RSS リーダー。REST API を共有する Web フロ�
   - サーバーに URL・タイトル・要約を保存し、カテゴリで分類・並び替え可能
   - iOS/iPadOS/macOS の Foundation Models（オンデバイス AI）で要約・翻訳を生成し結果をサーバーに保存
 - **iOS / iPadOS / macOS（Mac Catalyst）アプリ**（SwiftUI）
-  - LAN IP または Cloudflare Tunnel URL（Gist 経由）でサーバーに接続
+  - LAN IP または Tailscale（tailnet 内アドレス）などの利用者指定 URL でサーバーに接続
   - 起動時・バックグラウンド復帰時・5 分ごとに記事を自動更新
   - 右スワイプで既読/未読、左スワイプでストックに追加
   - iOS/iPadOS の共有シートから任意ページをストックに追加可能
@@ -26,9 +26,7 @@ Web + iOS + Android の RSS リーダー。REST API を共有する Web フロ�
   - 要約・翻訳はリモート AI（OpenAI / Gemini / Claude、API キー設定時のみ）
   - 記事ページは Chrome Custom Tabs、他アプリの共有からストック追加可能
   - タブレットは 3 ペイン表示（iPad 相当）
-- **Cloudflare Tunnel**（Raspberry Pi 用）
-  - 起動時に Quick Tunnel URL を自動取得し GitHub Gist に書き込む
-  - iOS アプリは Gist URL をサーバー URL として登録可能
+- **リモートアクセス**: Tailscale 経由（サーバーをインターネットへ公開しない）
 
 ## 技術スタック
 
@@ -93,8 +91,6 @@ gogai/
 ├── daemon/                           # systemd サービスファイル（Raspberry Pi 用）
 │   ├── gogai-backend.service
 │   ├── gogai-frontend.service
-│   ├── gogai-cloudflare.service      # Cloudflare Tunnel サービス
-│   ├── cloudflare-tunnel.sh          # Tunnel 起動 + Gist 書き込みスクリプト
 │   └── setup.sh
 ├── .github/workflows/
 │   └── ci.yml                        # CI（backend / frontend / android のテスト）
@@ -144,29 +140,42 @@ make daemon-status   # 状態確認
 make daemon-logs     # ログ表示（リアルタイム）
 ```
 
-または設定画面の「↻ git pull && 再起動」ボタンでブラウザから更新可能。
+または iOS / Android アプリの管理画面から更新可能（`ADMIN_SECRET` の設定が必要。下記参照）。
 
-#### Cloudflare Tunnel（外部アクセス用）
+#### 既存環境の移行（旧トンネル構成から更新する場合）
 
-外出先から iOS アプリで接続する場合、Cloudflare Tunnel を使って Raspberry Pi を外部公開できます。
+アプリの「git pull して再起動」や `make restart-daemon` は backend / frontend しか再起動しないため、
+旧トンネル用サービスは止まらない。更新後に次を行う。
 
 ```bash
-# 1. daemon/.env を作成（GitHub Classic PAT で gist スコープが必要）
-cat > daemon/.env << EOF
-GITHUB_PAT=ghp_xxxxxxxxxxxxxxxxxx
-EOF
-
-# 2. cloudflare-tunnel サービスを起動
-sudo systemctl enable gogai-cloudflare
-sudo systemctl start gogai-cloudflare
+bash daemon/setup.sh   # 旧サービスの停止・削除と backend の unit 更新（または: sudo systemctl disable --now gogai-cloudflare）
 ```
 
-起動すると以下が自動実行されます：
-- Cloudflare Quick Tunnel を起動して `*.trycloudflare.com` URL を取得
-- GitHub Gist に URL を書き込む
-- iOS アプリはその Gist URL をサーバー URL として登録可能
-  - 例: `https://gist.github.com/<your-username>/<your-gist-id>`
-  - 起動するたびに Gist から最新 URL を取得するため、Pi 再起動後も自動で繋がる
+- 旧構成の `daemon/.env` に置いていたトークン（`GITHUB_PAT`）は不要になる。`daemon/.env` から削除し、発行元でトークンを失効する。
+  backend は `daemon/.env` を読まない（`daemon/backend.env` のみ読む）。
+
+#### リモートアクセス（Tailscale）
+
+外出先から接続する場合は、サーバーを公開せず [Tailscale](https://tailscale.com/) の tailnet 経由で接続する。
+サーバーとクライアント端末の両方を同じ tailnet に参加させ、アプリの「サーバー URL」に tailnet 内のアドレスを指定する。
+
+- 例: `http://<サーバーの tailnet ホスト名または IP>:3040`（バックエンド直）
+- 記事・フィード API には共通の認証が無いため、**インターネットへ直接公開しない**こと
+
+#### 管理 API の保護（ADMIN_SECRET）
+
+`/api/admin/*`（更新確認・git pull して再起動）は、サーバーに環境変数 `ADMIN_SECRET` が設定されている場合だけ使える。
+未設定・空文字・空白のみの間は全リクエストを 403 で拒否する。設定済みでも `X-Admin-Secret` ヘッダーが一致しなければ 401。
+
+```bash
+# daemon/backend.env（git 管理外・backend 専用）に書く。作成時から所有者のみ読めるようにする
+(umask 077; printf 'ADMIN_SECRET=%s\n' "$(openssl rand -hex 32)" >> daemon/backend.env)
+sudo systemctl restart gogai-backend
+```
+
+`make dev` など systemd 以外で動かす場合は、起動前に `ADMIN_SECRET=<...>` を環境変数に渡す。
+iOS / Android アプリは、設定画面の「管理シークレット」に同じ値を入力する（値は `cat daemon/backend.env` で確認できる）。
+Web 版の設定画面は秘密を送信しないため、管理 API を使えない（更新はアプリか `make restart-daemon` で行う）。
 
 ### iOS / iPadOS / macOS アプリ
 
@@ -270,8 +279,8 @@ make docker-down
 
 | Method | Path | 説明 |
 |--------|------|------|
-| GET | `/api/admin/update-check` | `git fetch` でリモートと比較し更新の有無を返す |
-| POST | `/api/admin/restart` | git pull + npm run build → レスポンス返却後に `process.exit(0)` で終了（systemd が自動再起動） |
+| GET | `/api/admin/update-check` | `git fetch` でリモートと比較し更新の有無を返す（要 `X-Admin-Secret`） |
+| POST | `/api/admin/restart` | git pull + npm run build → レスポンス返却後に `process.exit(0)` で終了（systemd が自動再起動）（要 `X-Admin-Secret`） |
 
 ## DB スキーマ
 

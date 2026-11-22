@@ -24,15 +24,30 @@ function mockExecResults(results: Record<string, { stdout?: string; error?: Erro
   })
 }
 
+const TEST_SECRET = 'test-secret'
+
+// 契約テストは正しい秘密付きで呼ぶ（未設定・不一致の拒否は「認証」ブロックで検証する）
+function authed(path: string, init: RequestInit = {}) {
+  return adminRouter.request(path, {
+    ...init,
+    headers: { 'X-Admin-Secret': TEST_SECRET, ...(init.headers as Record<string, string> | undefined) },
+  })
+}
+
 let exitSpy: ReturnType<typeof vi.spyOn>
 
+const ORIGINAL_ADMIN_SECRET = process.env.ADMIN_SECRET
+
 beforeEach(() => {
+  process.env.ADMIN_SECRET = TEST_SECRET
   vi.clearAllMocks()
   vi.useFakeTimers()
   exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
 })
 
 afterEach(() => {
+  if (ORIGINAL_ADMIN_SECRET === undefined) delete process.env.ADMIN_SECRET
+  else process.env.ADMIN_SECRET = ORIGINAL_ADMIN_SECRET
   vi.runOnlyPendingTimers()
   vi.useRealTimers()
   exitSpy.mockRestore()
@@ -46,7 +61,7 @@ describe('admin ルート（HTTP 契約）', () => {
         'fetch origin': { stdout: '' },
         'rev-parse origin/main': { stdout: 'abc123\n' },
       })
-      const res = await adminRouter.request('/update-check')
+      const res = await authed('/update-check')
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual({ local: 'abc123', remote: 'abc123', hasUpdate: false })
     })
@@ -57,7 +72,7 @@ describe('admin ルート（HTTP 契約）', () => {
         'fetch origin': { stdout: '' },
         'rev-parse origin/main': { stdout: 'def456\n' },
       })
-      const res = await adminRouter.request('/update-check')
+      const res = await authed('/update-check')
       expect((await res.json()).hasUpdate).toBe(true)
     })
 
@@ -65,7 +80,7 @@ describe('admin ルート（HTTP 契約）', () => {
       mockExecResults({
         'rev-parse HEAD': { error: new Error('not a git repo') },
       })
-      const res = await adminRouter.request('/update-check')
+      const res = await authed('/update-check')
       expect(res.status).toBe(500)
       expect((await res.json()).error).toBeTypeOf('string')
     })
@@ -75,7 +90,7 @@ describe('admin ルート（HTTP 契約）', () => {
         'rev-parse HEAD': { stdout: 'abc123\n' },
         'fetch origin': { error: new Error('network unreachable') },
       })
-      const res = await adminRouter.request('/update-check')
+      const res = await authed('/update-check')
       expect(res.status).toBe(500)
       expect((await res.json()).error).toBeTypeOf('string')
     })
@@ -90,7 +105,7 @@ describe('admin ルート（HTTP 契約）', () => {
         cb(new Error(`unexpected command: ${cmd}`))
       })
 
-      await adminRouter.request('/update-check')
+      await authed('/update-check')
 
       expect(receivedOpts).toHaveLength(1)
       expect(receivedOpts[0]?.env).toMatchObject({
@@ -105,7 +120,7 @@ describe('admin ルート（HTTP 契約）', () => {
         'git pull': { stdout: 'Already up to date.\n' },
         'npm run build': { stdout: 'built\n' },
       })
-      const res = await adminRouter.request('/restart', { method: 'POST' })
+      const res = await authed('/restart', { method: 'POST' })
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.output).toContain('Already up to date.')
@@ -118,7 +133,7 @@ describe('admin ルート（HTTP 契約）', () => {
       mockExecResults({
         'git pull': { error: new Error('merge conflict') },
       })
-      const res = await adminRouter.request('/restart', { method: 'POST' })
+      const res = await authed('/restart', { method: 'POST' })
       expect(res.status).toBe(500)
       expect((await res.json()).error).toBeTypeOf('string')
       vi.advanceTimersByTime(1000)
@@ -130,7 +145,7 @@ describe('admin ルート（HTTP 契約）', () => {
         'git pull': { stdout: 'ok\n' },
         'npm run build': { error: new Error('tsc error') },
       })
-      const res = await adminRouter.request('/restart', { method: 'POST' })
+      const res = await authed('/restart', { method: 'POST' })
       expect(res.status).toBe(500)
       expect((await res.json()).error).toContain('ビルドに失敗しました')
       vi.advanceTimersByTime(1000)
@@ -146,15 +161,46 @@ describe('admin ルート（HTTP 契約）', () => {
       else process.env.ADMIN_SECRET = ORIGINAL_SECRET
     })
 
-    it('ADMIN_SECRET 未設定なら従来通り無認証で通る（opt-in）', async () => {
+    it('ADMIN_SECRET 未設定なら拒否する（fail-closed）。コマンドは実行しない', async () => {
       delete process.env.ADMIN_SECRET
-      mockExecResults({
-        'rev-parse HEAD': { stdout: 'abc123\n' },
-        'fetch origin': { stdout: '' },
-        'rev-parse origin/main': { stdout: 'abc123\n' },
-      })
-      const res = await adminRouter.request('/update-check')
-      expect(res.status).toBe(200)
+      for (const [path, method] of [['/update-check', 'GET'], ['/restart', 'POST']] as const) {
+        const res = await adminRouter.request(path, { method })
+        expect(res.status).toBe(403)
+        expect((await res.json()).error).toBeTypeOf('string')
+      }
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('ADMIN_SECRET 未設定なら、ヘッダーを付けても（空文字含む）拒否する', async () => {
+      delete process.env.ADMIN_SECRET
+      for (const header of ['', 'undefined', 'anything']) {
+        const res = await adminRouter.request('/update-check', { headers: { 'X-Admin-Secret': header } })
+        expect(res.status).toBe(403)
+      }
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('ADMIN_SECRET が空文字なら未設定と同様に拒否する（空ヘッダーでも通らない）', async () => {
+      process.env.ADMIN_SECRET = ''
+      const res = await adminRouter.request('/restart', { method: 'POST', headers: { 'X-Admin-Secret': '' } })
+      expect(res.status).toBe(403)
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('ADMIN_SECRET が空白のみなら未設定と同様に拒否する', async () => {
+      process.env.ADMIN_SECRET = '   '
+      const res = await adminRouter.request('/update-check', { headers: { 'X-Admin-Secret': '   ' } })
+      expect(res.status).toBe(403)
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('不一致（長さ違い・前方一致）は 401 でコマンドを実行しない', async () => {
+      process.env.ADMIN_SECRET = 'test-secret'
+      for (const header of ['test-secre', 'test-secret-x', 'TEST-SECRET']) {
+        const res = await adminRouter.request('/restart', { method: 'POST', headers: { 'X-Admin-Secret': header } })
+        expect(res.status).toBe(401)
+      }
+      expect(execMock).not.toHaveBeenCalled()
     })
 
     it('ADMIN_SECRET 設定時、ヘッダーなしは 401 で { error } を返す', async () => {

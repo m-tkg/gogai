@@ -25,8 +25,8 @@ struct SettingsRepository: Sendable {
         return result.output
     }
 
-    /// サーバー側で ADMIN_SECRET が設定されている場合のみ検証される認証ヘッダー。
-    /// 未設定(Keychain に何も保存していない)の場合は空のまま送る(opt-in のため無認証でも通る)。
+    /// サーバーの管理 API が要求する認証ヘッダー(サーバー側は ADMIN_SECRET 未設定なら全拒否)。
+    /// 未設定(Keychain に何も保存していない)の場合はヘッダーを送らない(サーバーに拒否される)。
     private var adminHeaders: [String: String] {
         guard let secret = KeychainStore.get(forKey: KeychainStore.adminSecretKey), !secret.isEmpty else {
             return [:]

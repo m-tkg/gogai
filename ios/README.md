@@ -156,17 +156,27 @@ http://192.168.x.x:3040
 `Info.plist` に `NSAllowsLocalNetworking = YES` が設定済みのため、
 LAN 内の HTTP サーバーへの接続は追加設定なしで動作する。
 
-### Cloudflare Tunnel 経由で外出先から接続する場合
+### 外出先から接続する場合（Tailscale）
 
-Raspberry Pi 側で `gogai-cloudflare` サービスを起動すると、Quick Tunnel URL が GitHub Gist に書き込まれる。
-アプリの URL 設定画面で Gist の URL を入力すると、起動するたびに最新のトンネル URL を自動取得する：
+サーバーとこの端末を同じ [Tailscale](https://tailscale.com/) の tailnet に参加させ、
+URL 設定画面に tailnet 内のアドレスを入力する：
 
 ```
-https://gist.github.com/m-tkg/ae26d3342733622b70e9a2740d78cd47
+http://<サーバーの tailnet ホスト名または IP>:3040
 ```
 
-- `gist.github.com` のドメインを検出すると自動で Gist API を呼び出し実際のサーバー URL を解決する
-- Pi を再起動してトンネル URL が変わっても、アプリ側の設定変更は不要
+- サーバーをインターネットへ直接公開しないこと（記事・フィード API に共通の認証は無い）
+- 「管理」画面（更新確認・git pull して再起動）を使うには、サーバーの `ADMIN_SECRET` と同じ値を
+  設定画面の「管理シークレット」に入力する（サーバー側が未設定の間、管理 API は拒否される）
+
+### Gist URL（任意・互換機能）
+
+`gist.github.com` の URL を入力すると、Gist の内容（サーバー URL が書かれたテキスト）を GitHub Gist API 経由で
+取得して接続先に使う。すでに Gist URL を設定している場合は、そのまま動作する。
+
+```
+https://gist.github.com/<your-username>/<your-gist-id>
+```
 
 ---
 

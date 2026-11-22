@@ -3,6 +3,7 @@ dist/
 backend/data/
 *.db
 .env
+daemon/backend.env
 .env.local
 .DS_Store
 .next/

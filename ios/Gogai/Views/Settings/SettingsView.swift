@@ -117,7 +117,7 @@ struct SettingsView: View {
                 } header: {
                     Text("管理者シークレット")
                 } footer: {
-                    Text("「管理」画面の操作を保護します。サーバー側の ADMIN_SECRET 環境変数と同じ値を入力してください(サーバー側が未設定の場合は空のままで動作します)。")
+                    Text("「管理」画面の操作を保護します。サーバー側の ADMIN_SECRET 環境変数と同じ値を入力してください(サーバー側が未設定の間は、管理 API は拒否されます)。")
                 }
 
                 NavigationLink {
