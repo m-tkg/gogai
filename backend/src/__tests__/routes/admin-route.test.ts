@@ -146,15 +146,46 @@ describe('admin ルート（HTTP 契約）', () => {
       else process.env.ADMIN_SECRET = ORIGINAL_SECRET
     })
 
-    it('ADMIN_SECRET 未設定なら従来通り無認証で通る（opt-in）', async () => {
+    it('ADMIN_SECRET 未設定なら拒否する（fail-closed）。コマンドは実行しない', async () => {
       delete process.env.ADMIN_SECRET
-      mockExecResults({
-        'rev-parse HEAD': { stdout: 'abc123\n' },
-        'fetch origin': { stdout: '' },
-        'rev-parse origin/main': { stdout: 'abc123\n' },
-      })
-      const res = await adminRouter.request('/update-check')
-      expect(res.status).toBe(200)
+      for (const [path, method] of [['/update-check', 'GET'], ['/restart', 'POST']] as const) {
+        const res = await adminRouter.request(path, { method })
+        expect(res.status).toBe(403)
+        expect((await res.json()).error).toBeTypeOf('string')
+      }
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('ADMIN_SECRET 未設定なら、ヘッダーを付けても（空文字含む）拒否する', async () => {
+      delete process.env.ADMIN_SECRET
+      for (const header of ['', 'undefined', 'anything']) {
+        const res = await adminRouter.request('/update-check', { headers: { 'X-Admin-Secret': header } })
+        expect(res.status).toBe(403)
+      }
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('ADMIN_SECRET が空文字なら未設定と同様に拒否する（空ヘッダーでも通らない）', async () => {
+      process.env.ADMIN_SECRET = ''
+      const res = await adminRouter.request('/restart', { method: 'POST', headers: { 'X-Admin-Secret': '' } })
+      expect(res.status).toBe(403)
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('ADMIN_SECRET が空白のみなら未設定と同様に拒否する', async () => {
+      process.env.ADMIN_SECRET = '   '
+      const res = await adminRouter.request('/update-check', { headers: { 'X-Admin-Secret': '   ' } })
+      expect(res.status).toBe(403)
+      expect(execMock).not.toHaveBeenCalled()
+    })
+
+    it('不一致（長さ違い・前方一致）は 401 でコマンドを実行しない', async () => {
+      process.env.ADMIN_SECRET = 'test-secret'
+      for (const header of ['test-secre', 'test-secret-x', 'TEST-SECRET']) {
+        const res = await adminRouter.request('/restart', { method: 'POST', headers: { 'X-Admin-Secret': header } })
+        expect(res.status).toBe(401)
+      }
+      expect(execMock).not.toHaveBeenCalled()
     })
 
     it('ADMIN_SECRET 設定時、ヘッダーなしは 401 で { error } を返す', async () => {
