@@ -112,6 +112,11 @@ GitHub API は使用しない（private repo でも動作する）。
 3. レスポンスを返す
 4. 500ms 後に `process.exit(0)`
 
+**認証（fail-closed）**: `/api/admin` 以下の全ルートに `X-Admin-Secret` 認証をかける。
+`ADMIN_SECRET` が未設定・空・空白のみなら全拒否（403、ヘッダーの有無に関わらず）、設定済みで不一致・欠落なら 401。
+値は `daemon/.env`（git 管理外、`gogai-backend.service` が `EnvironmentFile` で読む）に置く。値の生成・コミットはしない。
+iOS / Android は設定画面の「管理シークレット」から送る。Web 版は未対応（admin 画面はエラー表示になる）。
+
 systemd の `Restart=always` により自動再起動。`ExecStartPre=-npm run build`（`-` = 失敗しても無視）は
 ビルド済み `dist/` があれば即起動できるようにするセーフティネット。
 
@@ -249,12 +254,12 @@ make ios-deploy DEVICE_ID=<device-uuid>
 - `serverURL`: UserDefaults に保存した生の URL（Gist URL の場合もある）
 - `resolvedURL`: 実際に API クライアントが使う URL（Gist URL なら解決済み）
 - `resolve()`: `gist.github.com` URL の場合は GitHub Gist API 経由でコンテンツを取得し実 URL を解決
-- Gist URL を保存することで Pi 再起動後も最新トンネル URL を自動取得できる
+- Gist URL を保存した既存設定は引き続き動作する（任意の互換機能。新規の接続手順は Tailscale 前提）
 
 ```swift
 // 入力例: https://gist.github.com/<your-username>/<your-gist-id>
-// → GitHub API で Gist のコンテンツ（トンネル URL）を取得
-// → resolvedURL = https://xxxx.trycloudflare.com
+// → GitHub API で Gist のコンテンツ（サーバー URL）を取得
+// → resolvedURL = http://<tailnet ホスト名または IP>:3040
 ```
 
 ### ArticleStore の主な仕様
@@ -447,31 +452,19 @@ iOS 版と同じ使い勝手を目標にした移植（View → Store → Reposi
 
 ## Raspberry Pi（systemd）
 
-- サービスファイル: `daemon/gogai-backend.service` / `gogai-frontend.service` / `gogai-cloudflare.service`
+- サービスファイル: `daemon/gogai-backend.service` / `gogai-frontend.service`
 - セットアップ: `bash daemon/setup.sh`
 - backend / frontend ともに `host: 0.0.0.0` でバインドして LAN からアクセス可能
-- 設定画面の「git pull して再起動」ボタンでブラウザ・iOS アプリから更新可能
+- 設定画面の「git pull して再起動」ボタンで iOS / Android アプリから更新可能（`ADMIN_SECRET` 設定時のみ。Web 版は未対応）
 
 ### gogai-backend.service の注意点
 
 - `Restart=always` — `process.exit(0)` でも再起動するために必要（`on-failure` は終了コード 0 で再起動しない）
 - `ExecStartPre=-npm run build` — `-` プレフィックスで失敗しても無視（restart エンドポイントが事前にビルド済みのため）
 
-### Cloudflare トンネル（gogai-cloudflare.service）
+### リモートアクセス（Tailscale）
 
-起動時に `cloudflared` でクイックトンネルを作成し、割り当て URL を GitHub Gist に書き込む。
-
-```bash
-# daemon/.env に GitHub classic PAT（gist スコープ必須）を設定
-echo "GITHUB_PAT=ghp_xxxx" > daemon/.env
-chmod 600 daemon/.env
-
-# サービスをインストール
-sudo cp daemon/gogai-cloudflare.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now gogai-cloudflare
-```
-
-- `~/.cloudflared/config.yml` に名前付きトンネルの設定がある場合、`--config` に空の一時ファイルを渡してクイックトンネルとして起動する（既存設定の ingress ルールが干渉するため）
-- Gist URL: `https://gist.github.com/<your-username>/<your-gist-id>`
-- iOS アプリの「サーバー URL」にこの Gist URL を入力すると、起動時に最新トンネル URL を自動解決して接続する
+外部への公開トンネルは持たない。外出先からは Tailscale の tailnet 経由で接続する
+（iOS アプリの「サーバー URL」に `http://<tailnet ホスト名または IP>:3040` を指定）。
+記事・フィード API に共通認証は無いため、インターネットへ直接公開しないこと。
+`daemon/setup.sh` は旧バージョンのトンネル用サービスが残っていれば停止・削除する。

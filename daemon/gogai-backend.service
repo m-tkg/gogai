@@ -13,6 +13,8 @@ RestartSec=5
 Environment=NODE_ENV=production
 Environment=PORT=3040
 Environment=DB_PATH=/home/masaki/gogai/backend/data/rss.db
+# ADMIN_SECRET など非公開の設定（リポジトリ管理外。無ければ無視）
+EnvironmentFile=-/home/masaki/gogai/daemon/.env
 
 [Install]
 WantedBy=multi-user.target

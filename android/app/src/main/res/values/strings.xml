@@ -179,7 +179,7 @@
     <string name="settings_invalid_value">無効な値です</string>
     <string name="settings_section_admin_secret">管理者シークレット</string>
     <string name="settings_admin_secret_placeholder">未設定</string>
-    <string name="settings_admin_secret_footer">「管理」画面の操作を保護します。サーバー側の ADMIN_SECRET 環境変数と同じ値を入力してください（サーバー側が未設定の場合は空のままで動作します）。</string>
+    <string name="settings_admin_secret_footer">「管理」画面の操作を保護します。サーバー側の ADMIN_SECRET 環境変数と同じ値を入力してください（サーバー側が未設定の間は、管理 API は拒否されます）。</string>
     <string name="settings_section_app_info">アプリ情報</string>
     <string name="settings_version_label">バージョン</string>
 

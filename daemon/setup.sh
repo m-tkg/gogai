@@ -7,13 +7,9 @@ SERVICE_USER="${SUDO_USER:-$(whoami)}"
 
 echo "=== Gogai daemon setup ==="
 
-# スクリプトに実行権限を付与
-chmod +x "$SCRIPT_DIR/cloudflare-tunnel.sh"
-
 # サービスファイルをコピー
 sudo cp "$SCRIPT_DIR/gogai-backend.service" "$SYSTEMD_DIR/"
 sudo cp "$SCRIPT_DIR/gogai-frontend.service" "$SYSTEMD_DIR/"
-sudo cp "$SCRIPT_DIR/gogai-cloudflare.service" "$SYSTEMD_DIR/"
 
 # systemd をリロード
 sudo systemctl daemon-reload
@@ -26,20 +22,22 @@ sudo systemctl enable gogai-frontend
 sudo systemctl start gogai-backend
 sudo systemctl start gogai-frontend
 
-# gogai-cloudflare は daemon/.env に GITHUB_PAT(gist スコープ)が必須なため、
-# 未設定のまま有効化するとクラッシュループしてしまう。.env がある場合のみ自動起動する。
-if [ -f "$SCRIPT_DIR/.env" ]; then
-  sudo systemctl enable gogai-cloudflare
-  sudo systemctl start gogai-cloudflare
-  CLOUDFLARE_ENABLED=1
-else
-  CLOUDFLARE_ENABLED=0
+# 旧バージョンが導入した公開トンネルのサービスが残っていれば停止・無効化・削除する
+# （再実行しても復活しない。存在しなければ何もしない）
+if [ -f "$SYSTEMD_DIR/gogai-cloudflare.service" ]; then
+  sudo systemctl disable --now gogai-cloudflare || true
+  sudo rm -f "$SYSTEMD_DIR/gogai-cloudflare.service"
+  sudo systemctl daemon-reload
+fi
+
+# 管理 API（更新確認・git pull して再起動）は ADMIN_SECRET が未設定だと全拒否になる。
+if [ ! -f "$SCRIPT_DIR/.env" ] || ! grep -q '^ADMIN_SECRET=.' "$SCRIPT_DIR/.env"; then
   echo ""
-  echo "警告: daemon/.env が見つからないため gogai-cloudflare は起動していません。"
-  echo "      Cloudflare トンネル(リモートアクセス用 URL)を使う場合は以下を実行してください:"
-  echo "        echo \"GITHUB_PAT=ghp_xxxx\" > $SCRIPT_DIR/.env"
+  echo "注意: daemon/.env に ADMIN_SECRET が未設定のため、管理 API は無効（403）です。"
+  echo "      使う場合は以下を実行し、アプリ側の「管理シークレット」にも同じ値を設定してください:"
+  echo "        echo 'ADMIN_SECRET=<十分長いランダム文字列>' >> $SCRIPT_DIR/.env"
   echo "        chmod 600 $SCRIPT_DIR/.env"
-  echo "        sudo systemctl enable --now gogai-cloudflare"
+  echo "        sudo systemctl restart gogai-backend"
 fi
 
 # アプリ内「git pull して再起動」ボタン用: パスワードなしで systemctl restart を許可
@@ -51,13 +49,6 @@ echo "sudoers: ${SUDOERS_FILE} を設定しました (${SERVICE_USER})"
 
 echo ""
 echo "=== 完了 ==="
-if [ "$CLOUDFLARE_ENABLED" = "1" ]; then
-  echo "状態確認: sudo systemctl status gogai-backend gogai-frontend gogai-cloudflare"
-  echo "ログ確認: journalctl -u gogai-backend -f"
-  echo "         journalctl -u gogai-frontend -f"
-  echo "         journalctl -u gogai-cloudflare -f"
-else
-  echo "状態確認: sudo systemctl status gogai-backend gogai-frontend"
-  echo "ログ確認: journalctl -u gogai-backend -f"
-  echo "         journalctl -u gogai-frontend -f"
-fi
+echo "状態確認: sudo systemctl status gogai-backend gogai-frontend"
+echo "ログ確認: journalctl -u gogai-backend -f"
+echo "         journalctl -u gogai-frontend -f"

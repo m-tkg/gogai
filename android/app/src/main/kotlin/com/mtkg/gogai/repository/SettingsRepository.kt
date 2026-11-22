@@ -30,8 +30,8 @@ class SettingsRepository(private val client: ApiClient, private val secretStore:
         return result.output
     }
 
-    /// サーバー側で ADMIN_SECRET が設定されている場合のみ検証される認証ヘッダー。
-    /// 未設定（SecretStore に何も保存していない）の場合は空のまま送る（opt-in のため無認証でも通る）。
+    /// サーバーの管理 API が要求する認証ヘッダー（サーバー側は ADMIN_SECRET 未設定なら全拒否）。
+    /// 未設定（SecretStore に何も保存していない）の場合はヘッダーを送らない（サーバーに拒否される）。
     private fun adminHeaders(): Map<String, String> {
         val secret = secretStore.get(SecretStore.ADMIN_SECRET)
         return if (!secret.isNullOrEmpty()) mapOf("X-Admin-Secret" to secret) else emptyMap()
